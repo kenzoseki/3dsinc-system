@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            String        @id @default(cuid())
+  nome          String
+  email         String        @unique
+  senha         String
+  cargo         Cargo         @default(OPERADOR)
+  avatarUrl     String?
+  telefone      String?
+  ativo         Boolean       @default(true)
+  primeiroAcesso Boolean      @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  historicos    HistoricoPedido[]
+  convitesEnviados Convite[]  @relation("ConviteEnviador")
+}
+
+enum Cargo {
+  ADMIN
+  SOCIO
+  GERENTE
+  OPERADOR
+  VISUALIZADOR
+}
+
+model Convite {
+  id          String   @id @default(cuid())
+  email       String
+  cargo       Cargo    @default(OPERADOR)
+  token       String   @unique @default(cuid())
+  usado       Boolean  @default(false)
+  expiresAt   DateTime
+  enviadoPor  String
+  enviador    Usuario  @relation("ConviteEnviador", fields: [enviadoPor], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String?
+  telefone  String?
+  empresa   String?
+  cpfCnpj   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  pedidos   Pedido[]
+}
+
+model Pedido {
+  id           String          @id @default(cuid())
+  numero       Int             @unique @default(autoincrement())
+  clienteId    String
+  cliente      Cliente         @relation(fields: [clienteId], references: [id])
+  descricao    String
+  arquivo3d    String?
+  status       StatusPedido    @default(ORCAMENTO)
+  prioridade   Prioridade      @default(NORMAL)
+  valorTotal   Decimal?        @db.Decimal(10, 2)
+  prazoEntrega DateTime?
+  observacoes  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  itens        ItemPedido[]
+  historico    HistoricoPedido[]
+}
+
+enum StatusPedido {
+  ORCAMENTO
+  APROVADO
+  EM_PRODUCAO
+  PAUSADO
+  CONCLUIDO
+  ENTREGUE
+  CANCELADO
+}
+
+enum Prioridade {
+  BAIXA
+  NORMAL
+  ALTA
+  URGENTE
+}
+
+model ItemPedido {
+  id            String     @id @default(cuid())
+  pedidoId      String
+  pedido        Pedido     @relation(fields: [pedidoId], references: [id])
+  filamentoId   String?
+  filamento     Filamento? @relation(fields: [filamentoId], references: [id])
+  descricao     String
+  quantidade    Int        @default(1)
+  pesoGramas    Decimal?   @db.Decimal(8, 2)
+  tempoHoras    Decimal?   @db.Decimal(6, 2)
+  valorUnitario Decimal?   @db.Decimal(10, 2)
+}
+
+model HistoricoPedido {
+  id          String       @id @default(cuid())
+  pedidoId    String
+  pedido      Pedido       @relation(fields: [pedidoId], references: [id])
+  usuarioId   String?
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id])
+  status      StatusPedido
+  nota        String?
+  createdAt   DateTime     @default(now())
+}
+
+model Filamento {
+  id          String         @id @default(cuid())
+  marca       String
+  material    MaterialType
+  cor         String
+  corHex      String?
+  diametro    Decimal        @db.Decimal(4, 2)
+  pesoTotal   Decimal        @db.Decimal(8, 2)
+  pesoAtual   Decimal        @db.Decimal(8, 2)
+  temperatura Int?
+  velocidade  Int?
+  localizacao String?
+  ativo       Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  itensPedido ItemPedido[]
+  alertas     AlertaEstoque[]
+}
+
+enum MaterialType {
+  PLA
+  PETG
+  ABS
+  TPU
+  ASA
+  PLA_PLUS
+  RESIN_STANDARD
+  RESIN_ABS_LIKE
+  NYLON
+  OUTRO
+}
+
+model AlertaEstoque {
+  id          String    @id @default(cuid())
+  filamentoId String
+  filamento   Filamento @relation(fields: [filamentoId], references: [id])
+  tipoAlerta  String
+  lido        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
