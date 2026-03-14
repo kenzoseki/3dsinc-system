@@ -7,7 +7,7 @@ import { z } from 'zod'
 // Schema de validacao para criacao de convite
 const schemaCriarConvite = z.object({
   email: z.string().email('Email invalido'),
-  cargo: z.enum(['SOCIO', 'GERENTE', 'OPERADOR', 'VISUALIZADOR']),
+  cargo: z.enum(['GERENTE', 'OPERADOR', 'VISUALIZADOR']),
 })
 
 export async function POST(request: NextRequest) {

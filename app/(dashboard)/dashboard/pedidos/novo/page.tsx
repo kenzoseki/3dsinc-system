@@ -48,6 +48,8 @@ export default function PaginaNovoPedido() {
   const [carregandoClientes, setCarregandoClientes] = useState(true)
 
   const [clienteId, setClienteId] = useState('')
+  const [tipo, setTipo] = useState<'B2C' | 'B2B'>('B2C')
+  const [categoria, setCategoria] = useState('')
   const [descricao, setDescricao] = useState('')
   const [prioridade, setPrioridade] = useState<'BAIXA' | 'NORMAL' | 'ALTA' | 'URGENTE'>('NORMAL')
   const [prazoEntrega, setPrazoEntrega] = useState('')
@@ -80,7 +82,7 @@ export default function PaginaNovoPedido() {
     setErros({})
     setErroGeral('')
 
-    const dadosFormulario = { clienteId, descricao, prioridade, prazoEntrega, valorTotal, observacoes }
+    const dadosFormulario = { clienteId, descricao, prioridade, prazoEntrega, valorTotal, observacoes, tipo, categoria }
     const validacao = schemaPedido.safeParse(dadosFormulario)
 
     if (!validacao.success) {
@@ -96,7 +98,8 @@ export default function PaginaNovoPedido() {
     setEnviando(true)
 
     try {
-      const payload: Record<string, unknown> = { clienteId, descricao, prioridade }
+      const payload: Record<string, unknown> = { clienteId, tipo, descricao, prioridade }
+      if (categoria) payload.categoria = categoria
       if (prazoEntrega) payload.prazoEntrega = new Date(prazoEntrega).toISOString()
       if (valorTotal) payload.valorTotal = parseFloat(valorTotal)
       if (observacoes) payload.observacoes = observacoes
@@ -141,6 +144,21 @@ export default function PaginaNovoPedido() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}>
         <form onSubmit={handleSubmit}>
+          {/* Tipo B2C / B2B */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            {(['B2C', 'B2B'] as const).map((t) => (
+              <button key={t} type="button" onClick={() => setTipo(t)} style={{
+                flex: 1, padding: '10px', borderRadius: '8px', fontSize: '14px',
+                fontFamily: 'Nunito, sans-serif', fontWeight: 600, cursor: 'pointer',
+                border: tipo === t ? '2px solid var(--purple)' : '1px solid var(--border)',
+                backgroundColor: tipo === t ? 'var(--purple-light)' : 'transparent',
+                color: tipo === t ? 'var(--purple-text)' : 'var(--text-secondary)',
+              }}>
+                {t === 'B2C' ? 'B2C — Pessoa Física' : 'B2B — Empresa'}
+              </button>
+            ))}
+          </div>
+
           {/* Cliente */}
           <div style={{ marginBottom: '18px' }}>
             <label style={estiloLabel}>Cliente *</label>
@@ -163,6 +181,19 @@ export default function PaginaNovoPedido() {
             {erros.clienteId && (
               <p style={{ fontSize: '12px', color: 'var(--red)', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>{erros.clienteId}</p>
             )}
+          </div>
+
+          {/* Categoria */}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={estiloLabel}>Categoria</label>
+            <input
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              placeholder="Ex: Miniatura, Peça técnica, Protótipo..."
+              style={estiloInput}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+            />
           </div>
 
           {/* Descrição */}

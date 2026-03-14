@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface AlertaEstoque {
   id: string
@@ -47,6 +48,7 @@ function BarraProgresso({ pesoAtual, pesoTotal }: { pesoAtual: number; pesoTotal
 }
 
 export default function PaginaEstoque() {
+  const router = useRouter()
   const [filamentos, setFilamentos] = useState<Filamento[]>([])
   const [carregando, setCarregando] = useState(true)
 
@@ -226,6 +228,34 @@ export default function PaginaEstoque() {
                     </div>
                   )}
                 </div>
+
+                {/* Botão editar */}
+                <button
+                  onClick={() => router.push(`/dashboard/estoque/${filamento.id}/editar`)}
+                  style={{
+                    marginTop: '14px',
+                    width: '100%',
+                    padding: '7px',
+                    borderRadius: '7px',
+                    fontSize: '13px',
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: 500,
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--purple)'
+                    e.currentTarget.style.color = 'var(--purple)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.color = 'var(--text-secondary)'
+                  }}
+                >
+                  Editar
+                </button>
               </div>
             )
           })}

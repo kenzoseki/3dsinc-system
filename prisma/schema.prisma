@@ -60,6 +60,8 @@ model Pedido {
   numero       Int             @unique @default(autoincrement())
   clienteId    String
   cliente      Cliente         @relation(fields: [clienteId], references: [id])
+  tipo         TipoPedido      @default(B2C)
+  categoria    String?
   descricao    String
   arquivo3d    String?
   status       StatusPedido    @default(ORCAMENTO)
@@ -71,6 +73,11 @@ model Pedido {
   updatedAt    DateTime        @updatedAt
   itens        ItemPedido[]
   historico    HistoricoPedido[]
+}
+
+enum TipoPedido {
+  B2C
+  B2B
 }
 
 enum StatusPedido {

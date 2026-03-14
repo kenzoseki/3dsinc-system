@@ -9,6 +9,8 @@ import { Cargo, StatusPedido } from '@prisma/client'
 // Schema de validacao para criacao de pedido
 const schemaCriarPedido = z.object({
   clienteId: z.string().min(1, 'Cliente obrigatorio'),
+  tipo: z.enum(['B2C', 'B2B']).default('B2C'),
+  categoria: z.string().optional().nullable(),
   descricao: z.string().min(1, 'Descricao obrigatoria'),
   prioridade: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),
   prazoEntrega: z.string().datetime().optional().nullable(),
@@ -90,6 +92,8 @@ export async function POST(request: NextRequest) {
       const novoPedido = await tx.pedido.create({
         data: {
           clienteId: dados.clienteId,
+          tipo: dados.tipo,
+          categoria: dados.categoria ?? null,
           descricao: dados.descricao,
           prioridade: dados.prioridade,
           prazoEntrega: dados.prazoEntrega ? new Date(dados.prazoEntrega) : null,

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const erpContext = await getERPContext()
 
     const resposta = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: `Voce e o assistente IA da 3D Sinc, empresa de impressao 3D por encomenda.
 Voce tem acesso em tempo real ao ERP. Use os dados abaixo para responder com precisao.
