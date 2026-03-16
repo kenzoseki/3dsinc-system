@@ -676,7 +676,7 @@ Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
 - Adicionar `RESEND_API_KEY` ao `.env`
 - Implementar funcao de envio de email em `lib/email.ts`
 - Criar logica de deteccao de pedidos atrasados (`prazoEntrega < hoje AND status != ENTREGUE/CANCELADO`)
-- Criar job/cron de verificacao periodica (ex: rota `/api/cron/alertas` chamada via Vercel Cron ou cron externo)
+- Criar rota `/api/cron/alertas` chamada via Vercel Cron ou cron externo
 - Conectar a condicao `alertaEmailHabilitado` ao envio efetivo
 
 ---
@@ -690,21 +690,18 @@ Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
 **Pendente:**
 - Relatorios gerenciais dedicados (pedidos por periodo, receita, clientes, estoque)
 - Pagina `/dashboard/relatorios` com filtros e opcao de exportar
-- Avaliacao de biblioteca para geracao programatica: `@react-pdf/renderer` ou `html2pdf.js`
-- Export sem depender do navegador (geracao server-side)
+- Biblioteca recomendada: `html2pdf.js` (mais simples) ou `@react-pdf/renderer` (server-side)
 
 ---
 
 #### Item 12 — Gerador de orcamentos ✅ IMPLEMENTADO (100%)
 
 **Implementado:**
-- CRUD completo: listagem, criacao (`/dashboard/orcamentos/novo`), edicao e visualizacao (`/dashboard/orcamentos/[id]`)
+- CRUD completo: listagem, criacao, edicao e visualizacao com PDF via navegador
 - Itens com quantidade, valor unitario, detalhamento e imagens (base64, max 2MB/imagem)
 - Calculo automatico de subtotal, frete, imposto, bonus e total geral
 - Fluxo de status: RASCUNHO → ENVIADO → APROVADO / REPROVADO / EXPIRADO
-- Vinculacao bidirecional com pedidos (pedido pode referenciar um orcamento)
-- Documento imprimivel em PDF via navegador com layout profissional, logo e anexos de imagens
-- API completa: `GET/POST /api/orcamentos` e `GET/PATCH/DELETE /api/orcamentos/[id]`
+- Vinculacao bidirecional com pedidos
 
 ---
 
@@ -727,18 +724,80 @@ Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
 **Pendente (tudo):**
 - Criar `/public/manifest.json` com nome, icones, cores e orientacao
 - Criar icones do app: 192x192 e 512x512 (minimo)
-- Adicionar meta tags PWA no `app/layout.tsx`: `theme-color`, `apple-mobile-web-app-capable`, link para manifest
-- Instalar e configurar `next-pwa` no `next.config.ts`: `npm install next-pwa`
-- Definir estrategia de cache (ex: cache-first para assets estaticos, network-first para API)
+- Adicionar meta tags PWA no `app/layout.tsx`
+- Instalar e configurar `next-pwa`: `npm install next-pwa`
+- Definir estrategia de cache (cache-first para assets, network-first para API)
 - Testar instalacao no Android e iOS
+
+---
+
+#### Item 15 — Responsividade web/mobile ✅ IMPLEMENTADO (100%)
+
+**Implementado:**
+- Sidebar colapsavel em mobile: hamburguer no topbar abre/fecha o menu
+- Overlay escuro ao abrir sidebar em mobile (clique fora fecha)
+- Padding do main content adaptativo: 64px em desktop, 16px em mobile
+- Topbar mostra botao hamburguer em telas < 768px (sidebar oculta por padrao)
+- Largura da sidebar: 220px fixa em desktop, 260px flutuante em mobile
+- Estrategia de breakpoints:
+  - `>= 768px` — desktop: sidebar sempre visivel, main com padding normal
+  - `< 768px`  — mobile: sidebar escondida, aberta via hamburguer com overlay
+
+**Tecnica usada:**
+- CSS injetado via `<style>` em `app/globals.css` com media queries
+- Estado `sidebarAberta` no layout controlado por JS
+- Sem dependencias externas
+
+---
+
+### Fase 2 — Pendencias ERP/CRM identificadas
+
+#### Item 16 — Pagina de clientes — PENDENTE (0%)
+
+A API `/api/clientes` existe mas nao ha pagina de gerenciamento na UI.
+O ERP precisa de uma tela de cadastro e historico de clientes.
+
+**Pendente:**
+- Pagina `/dashboard/clientes` com listagem paginada e busca
+- Detalhe do cliente com historico de pedidos e orcamentos
+- Formulario de criacao e edicao de clientes
+- API `GET/PATCH/DELETE /api/clientes/[id]` (atualmente so tem GET/POST)
+
+---
+
+#### Item 17 — Pagina de Producao — PENDENTE (0%)
+
+O menu ja tem o item "Producao" (href `/dashboard/producao`) mas a pagina nao existe.
+Retorna 404. Deve ser implementada ou o item do menu deve ser removido.
+
+**Opcao A — Implementar pagina de producao:**
+- Kanban ou lista de pedidos em status AGUARDANDO e EM_PRODUCAO
+- Controle de fila: reordenar, iniciar/pausar impressao
+- Registro de tempo e consumo de filamento por pedido
+
+**Opcao B — Remover do menu enquanto nao implementado:**
+- Remover item `producao` do array `itensNavegacao` em `layout.tsx`
 
 ---
 
 ### Fase 3 — Planejada
 
-15. Portal do cliente para acompanhamento de pedidos
-16. CRM leve com pipeline de vendas
-17. App nativo com React Native (reutiliza toda a API)
+18. Portal do cliente para acompanhamento de pedidos
+19. CRM leve com pipeline de vendas (funil PROSPECTO → NEGOCIACAO → FECHADO)
+20. App nativo com React Native (reutiliza toda a API)
+
+---
+
+### Resumo de proximos passos — ordem sugerida
+
+| Prioridade | Item | Motivo |
+|------------|------|--------|
+| 1 | Item 16 — Pagina clientes | Lacuna funcional visivel no ERP |
+| 2 | Item 17 — Definir Producao | 404 no menu e problema critico de UX |
+| 3 | Item 10 — Alertas email | 60% do trabalho ja esta feito |
+| 4 | Item 14 — PWA | Habilita uso no celular sem app nativo |
+| 5 | Item 11 — Relatorios PDF | Valor alto para gestao |
+| 6 | Item 13 — NF-e | Requer Railway + contador |
 
 ---
 

@@ -83,7 +83,102 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 1;
 }
 
-/* CSS de impressão — orçamentos */
+/* =============================================
+   RESPONSIVIDADE — Layout principal
+   ============================================= */
+
+/* Sidebar overlay (mobile) */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+}
+
+/* Sidebar mobile: oculta por padrão, abre via JS */
+@media (max-width: 767px) {
+  .layout-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 260px !important;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+
+  .layout-sidebar.aberta {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.visivel {
+    display: block;
+  }
+
+  .layout-main {
+    padding: 20px 16px !important;
+  }
+
+  .topbar-hamburguer {
+    display: flex !important;
+  }
+
+  /* Tabelas: scroll horizontal em mobile */
+  .tabela-responsiva {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cards de métricas: empilha em 2 colunas em mobile */
+  .grid-metricas {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Cabeçalho de páginas: empilha em mobile */
+  .cabecalho-pagina {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Formulários: coluna única em mobile */
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tablet (768px–1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .layout-main {
+    padding: 24px 32px !important;
+  }
+
+  .grid-metricas {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .topbar-hamburguer {
+    display: none !important;
+  }
+}
+
+/* Desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  .topbar-hamburguer {
+    display: none !important;
+  }
+
+  .layout-sidebar {
+    position: relative !important;
+    transform: none !important;
+  }
+}
+
+/* =============================================
+   CSS de impressão — orçamentos
+   ============================================= */
 @media print {
   .no-print {
     display: none !important;
