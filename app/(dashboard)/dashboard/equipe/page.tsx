@@ -44,7 +44,7 @@ export default function PaginaEquipe() {
   // Modal de convite
   const [modalConvite, setModalConvite] = useState(false)
   const [emailConvite, setEmailConvite] = useState('')
-  const [cargoConvite, setCargoConvite] = useState<'GERENTE' | 'OPERADOR' | 'VISUALIZADOR'>('OPERADOR')
+  const [cargoConvite, setCargoConvite] = useState<'SOCIO' | 'GERENTE' | 'OPERADOR' | 'VISUALIZADOR'>('OPERADOR')
   const [enviandoConvite, setEnviandoConvite] = useState(false)
   const [linkGerado, setLinkGerado] = useState('')
 
@@ -266,6 +266,7 @@ export default function PaginaEquipe() {
                   <select value={cargoConvite} onChange={(e) => setCargoConvite(e.target.value as typeof cargoConvite)} style={estiloInput}
                     onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
+                    <option value="SOCIO">Sócio</option>
                     <option value="GERENTE">Gerente</option>
                     <option value="OPERADOR">Operador</option>
                     <option value="VISUALIZADOR">Visualizador</option>
