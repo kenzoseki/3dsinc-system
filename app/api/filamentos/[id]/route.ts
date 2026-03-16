@@ -159,13 +159,14 @@ export async function DELETE(
       return NextResponse.json({ erro: 'Filamento nao encontrado' }, { status: 404 })
     }
 
-    // Soft delete — apenas marca como inativo
-    await prisma.filamento.update({
-      where: { id },
-      data: { ativo: false },
+    // Hard delete — desvincula itens de pedido antes de excluir
+    await prisma.$transaction(async (tx) => {
+      await tx.itemPedido.updateMany({ where: { filamentoId: id }, data: { filamentoId: null } })
+      await tx.alertaEstoque.deleteMany({ where: { filamentoId: id } })
+      await tx.filamento.delete({ where: { id } })
     })
 
-    return NextResponse.json({ mensagem: 'Filamento desativado com sucesso' })
+    return NextResponse.json({ mensagem: 'Filamento excluído com sucesso' })
   } catch (erro) {
     console.error('Erro ao desativar filamento:', erro)
     return NextResponse.json({ erro: 'Erro interno do servidor' }, { status: 500 })

@@ -139,12 +139,19 @@ async function getDados(periodo: string) {
     ([data, valor]) => ({ data, valor: Math.round(valor * 100) / 100 })
   )
 
-  // Últimos pedidos
-  const ultimosPedidos = await prisma.pedido.findMany({
-    take: 5,
-    orderBy: { createdAt: 'desc' },
-    include: { cliente: true },
-  })
+  // Últimos pedidos e orçamentos
+  const [ultimosPedidos, ultimosOrcamentos] = await Promise.all([
+    prisma.pedido.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: { cliente: true },
+    }),
+    prisma.orcamento.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: { itens: true },
+    }),
+  ])
 
   return {
     totalPedidos,
@@ -157,6 +164,7 @@ async function getDados(periodo: string) {
     dadosTipo,
     dadosReceita,
     ultimosPedidos,
+    ultimosOrcamentos,
   }
 }
 
@@ -308,6 +316,75 @@ export default async function PaginaDashboard({
                       </td>
                       <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
                         {pedido.createdAt.toLocaleDateString('pt-BR')}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Orçamentos recentes */}
+      <div style={{ borderRadius: '10px', overflow: 'hidden', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginTop: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>
+            Orçamentos Recentes
+          </h2>
+          <Link href="/dashboard/orcamentos" style={{ fontSize: '13px', color: 'var(--purple)', fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
+            Ver todos →
+          </Link>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'var(--bg-hover)' }}>
+                {['Número', 'Cliente', 'Total', 'Status', 'Data'].map((col) => (
+                  <th key={col} style={{ textAlign: 'left', padding: '10px 24px', fontSize: '11px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dados.ultimosOrcamentos.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>
+                    Nenhum orçamento gerado ainda
+                  </td>
+                </tr>
+              ) : (
+                dados.ultimosOrcamentos.map((orc) => {
+                  const subtotal = orc.itens.reduce((s: number, i: { valorUnitario: unknown; quantidade: number }) => s + Number(i.valorUnitario) * i.quantidade, 0)
+                  const total = subtotal + Number(orc.frete ?? 0) + subtotal * (Number(orc.bonusPercentual ?? 0) / 100)
+                  const stLabel: Record<string, { label: string; cor: string; fundo: string }> = {
+                    RASCUNHO: { label: 'Rascunho', cor: '#6B6860', fundo: '#F3F2EF' },
+                    ENVIADO:  { label: 'Enviado',  cor: '#8A5A0A', fundo: '#FEF3E2' },
+                    APROVADO: { label: 'Aprovado', cor: '#1A6B42', fundo: '#E8F5EE' },
+                    REPROVADO:{ label: 'Reprovado',cor: '#B83232', fundo: '#FCE9E9' },
+                    EXPIRADO: { label: 'Expirado', cor: '#6B6860', fundo: '#F3F2EF' },
+                  }
+                  const st = stLabel[orc.status] ?? stLabel.RASCUNHO
+                  return (
+                    <tr key={orc.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--purple)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                        ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
+                      </td>
+                      <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
+                        {orc.clienteNome}
+                        {orc.clienteEmpresa && <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}> ({orc.clienteEmpresa})</span>}
+                      </td>
+                      <td style={{ padding: '12px 24px', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </td>
+                      <td style={{ padding: '12px 24px' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: '5px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: st.cor, backgroundColor: st.fundo }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+                        {new Date(orc.createdAt).toLocaleDateString('pt-BR')}
                       </td>
                     </tr>
                   )

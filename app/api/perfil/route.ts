@@ -8,13 +8,29 @@ import bcrypt from 'bcryptjs'
 const schemaAtualizarPerfil = z.object({
   nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').optional(),
   telefone: z.string().optional().nullable(),
-  avatarUrl: z.string().url('URL inválida').optional().nullable(),
+  avatarUrl: z.string().optional().nullable(), // aceita URL ou base64
 })
 
 const schemaAlterarSenha = z.object({
   senhaAtual: z.string().min(1, 'Senha atual obrigatória'),
   novaSenha: z.string().min(6, 'Nova senha deve ter ao menos 6 caracteres'),
 })
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, nome: true, email: true, cargo: true, telefone: true, avatarUrl: true },
+    })
+    if (!usuario) return NextResponse.json({ erro: 'Usuário não encontrado' }, { status: 404 })
+    return NextResponse.json(usuario)
+  } catch (erro) {
+    return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
+  }
+}
 
 export async function PATCH(request: NextRequest) {
   try {

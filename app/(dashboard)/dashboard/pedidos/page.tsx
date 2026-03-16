@@ -23,6 +23,7 @@ interface Pedido {
 const statusBadge: Record<string, { cor: string; fundo: string; label: string }> = {
   ORCAMENTO:   { cor: '#B83232', fundo: '#FCE9E9', label: 'Orçamento' },
   APROVADO:    { cor: '#8A5A0A', fundo: '#FEF3E2', label: 'Aprovado' },
+  AGUARDANDO:  { cor: '#8A5A0A', fundo: '#FEF3E2', label: 'Aguardando' },
   EM_PRODUCAO: { cor: '#4C3DB5', fundo: '#EDE9FC', label: 'Em Produção' },
   PAUSADO:     { cor: '#B83232', fundo: '#FCE9E9', label: 'Pausado' },
   CONCLUIDO:   { cor: '#1A6B42', fundo: '#E8F5EE', label: 'Concluído' },

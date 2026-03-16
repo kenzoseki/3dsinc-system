@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -8,6 +8,21 @@ interface Cliente {
   id: string
   nome: string
   empresa: string | null
+}
+
+interface OrcamentoOpcao {
+  id: string
+  numero: number
+  revisao: number
+  clienteNome: string
+  status: string
+}
+
+interface ArquivoSelecionado {
+  nome: string
+  tipo: string
+  tamanhoBytes: number
+  conteudoBase64: string
 }
 
 const schemaPedido = z.object({
@@ -46,8 +61,18 @@ export default function PaginaNovoPedido() {
   const router = useRouter()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [carregandoClientes, setCarregandoClientes] = useState(true)
+  const [orcamentos, setOrcamentos] = useState<OrcamentoOpcao[]>([])
+  const [arquivosSelecionados, setArquivosSelecionados] = useState<ArquivoSelecionado[]>([])
+  const inputArquivoRef = useRef<HTMLInputElement>(null)
 
   const [clienteId, setClienteId] = useState('')
+  const [orcamentoId, setOrcamentoId] = useState('')
+  const [novoClienteAberto, setNovoClienteAberto] = useState(false)
+  const [novoClienteNome, setNovoClienteNome] = useState('')
+  const [novoClienteEmail, setNovoClienteEmail] = useState('')
+  const [novoClienteTelefone, setNovoClienteTelefone] = useState('')
+  const [novoClienteEmpresa, setNovoClienteEmpresa] = useState('')
+  const [criandoCliente, setCriandoCliente] = useState(false)
   const [tipo, setTipo] = useState<'B2C' | 'B2B'>('B2C')
   const [categoria, setCategoria] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -61,12 +86,21 @@ export default function PaginaNovoPedido() {
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
-    async function buscarClientes() {
+    async function buscarDados() {
       try {
-        const resposta = await fetch('/api/clientes')
-        if (resposta.ok) {
-          const dados = await resposta.json()
-          setClientes(dados)
+        const [resClientes, resOrc] = await Promise.all([
+          fetch('/api/clientes'),
+          fetch('/api/orcamentos'),
+        ])
+        if (resClientes.ok) setClientes(await resClientes.json())
+        if (resOrc.ok) {
+          const lista = await resOrc.json()
+          if (Array.isArray(lista)) {
+            setOrcamentos(lista.map((o: { id: string; numero: number; revisao: number; clienteNome: string; status: string }) => ({
+              id: o.id, numero: o.numero, revisao: o.revisao,
+              clienteNome: o.clienteNome, status: o.status,
+            })))
+          }
         }
       } catch {
         // Silencioso
@@ -74,8 +108,62 @@ export default function PaginaNovoPedido() {
         setCarregandoClientes(false)
       }
     }
-    buscarClientes()
+    buscarDados()
   }, [])
+
+  function adicionarArquivo(file: File) {
+    const MAX = 10 * 1024 * 1024
+    if (file.size > MAX) { alert(`Arquivo "${file.name}" excede 10 MB.`); return }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setArquivosSelecionados(prev => [...prev, {
+        nome: file.name,
+        tipo: file.type || 'application/octet-stream',
+        tamanhoBytes: file.size,
+        conteudoBase64: reader.result as string,
+      }])
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function removerArquivo(idx: number) {
+    setArquivosSelecionados(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function formatarTamanho(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  async function criarCliente() {
+    if (!novoClienteNome.trim()) return
+    setCriandoCliente(true)
+    try {
+      const res = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: novoClienteNome,
+          email: novoClienteEmail || null,
+          telefone: novoClienteTelefone || null,
+          empresa: novoClienteEmpresa || null,
+        }),
+      })
+      if (res.ok) {
+        const criado = await res.json()
+        setClientes(prev => [...prev, criado])
+        setClienteId(criado.id)
+        setNovoClienteAberto(false)
+        setNovoClienteNome('')
+        setNovoClienteEmail('')
+        setNovoClienteTelefone('')
+        setNovoClienteEmpresa('')
+      }
+    } finally {
+      setCriandoCliente(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -103,6 +191,7 @@ export default function PaginaNovoPedido() {
       if (prazoEntrega) payload.prazoEntrega = new Date(prazoEntrega).toISOString()
       if (valorTotal) payload.valorTotal = parseFloat(valorTotal)
       if (observacoes) payload.observacoes = observacoes
+      if (orcamentoId) payload.orcamentoId = orcamentoId
 
       const resposta = await fetch('/api/pedidos', {
         method: 'POST',
@@ -115,6 +204,14 @@ export default function PaginaNovoPedido() {
       if (!resposta.ok) {
         setErroGeral(dados.erro ?? 'Erro ao criar pedido')
       } else {
+        // Upload de arquivos, se houver
+        for (const arq of arquivosSelecionados) {
+          await fetch(`/api/pedidos/${dados.id}/arquivos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(arq),
+          })
+        }
         router.push('/dashboard/pedidos')
       }
     } catch {
@@ -180,6 +277,54 @@ export default function PaginaNovoPedido() {
             </select>
             {erros.clienteId && (
               <p style={{ fontSize: '12px', color: 'var(--red)', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>{erros.clienteId}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setNovoClienteAberto(v => !v)}
+              style={{ marginTop: '8px', fontSize: '12px', color: 'var(--purple)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', padding: 0 }}
+            >
+              {novoClienteAberto ? '− Fechar' : '+ Cadastrar novo cliente'}
+            </button>
+
+            {novoClienteAberto && (
+              <div style={{ marginTop: '12px', padding: '16px', borderRadius: '8px', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'Nunito, sans-serif', color: 'var(--text-primary)', marginBottom: '12px' }}>Novo cliente</p>
+                <div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ ...estiloLabel, fontSize: '12px' }}>Nome *</label>
+                    <input style={estiloInput} value={novoClienteNome} onChange={e => setNovoClienteNome(e.target.value)} required
+                      onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ ...estiloLabel, fontSize: '12px' }}>E-mail</label>
+                      <input style={estiloInput} type="email" value={novoClienteEmail} onChange={e => setNovoClienteEmail(e.target.value)}
+                        onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                        onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
+                    </div>
+                    <div>
+                      <label style={{ ...estiloLabel, fontSize: '12px' }}>Telefone</label>
+                      <input style={estiloInput} value={novoClienteTelefone} onChange={e => setNovoClienteTelefone(e.target.value)}
+                        onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                        onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ ...estiloLabel, fontSize: '12px' }}>Empresa (B2B)</label>
+                    <input style={estiloInput} value={novoClienteEmpresa} onChange={e => setNovoClienteEmpresa(e.target.value)}
+                      onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
+                  </div>
+                  <button type="button" onClick={criarCliente} disabled={criandoCliente} style={{
+                    padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                    fontFamily: 'Inter, sans-serif', backgroundColor: 'var(--purple)', color: '#fff',
+                    border: 'none', cursor: criandoCliente ? 'not-allowed' : 'pointer', opacity: criandoCliente ? 0.7 : 1,
+                  }}>
+                    {criandoCliente ? 'Salvando...' : 'Criar e selecionar'}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -272,6 +417,70 @@ export default function PaginaNovoPedido() {
               onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
             />
+          </div>
+
+          {/* Orçamento vinculado (opcional) */}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={estiloLabel}>Orçamento vinculado <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span></label>
+            <select
+              value={orcamentoId}
+              onChange={(e) => setOrcamentoId(e.target.value)}
+              style={estiloInput}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <option value="">Nenhum</option>
+              {orcamentos.map((o) => (
+                <option key={o.id} value={o.id}>
+                  ORC-{String(o.numero).padStart(4, '0')}-{String(o.revisao).padStart(2, '0')} — {o.clienteNome} ({o.status})
+                </option>
+              ))}
+            </select>
+            {orcamentoId && orcamentos.find(o => o.id === orcamentoId)?.status !== 'APROVADO' && (
+              <p style={{ fontSize: '12px', color: 'var(--amber)', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>
+                ⚠ Este orçamento ainda não está APROVADO. O pedido só poderá ser aprovado após aprovação do orçamento.
+              </p>
+            )}
+          </div>
+
+          {/* Arquivos de referência */}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={estiloLabel}>Arquivos de referência <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(modelos 3D, imagens, etc.)</span></label>
+            <div style={{ border: '1px dashed var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-page)' }}>
+              {arquivosSelecionados.length > 0 && (
+                <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {arquivosSelecionados.map((arq, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '16px' }}>{arq.tipo.startsWith('image/') ? '🖼' : arq.tipo.includes('stl') || arq.tipo.includes('obj') ? '📐' : '📎'}</span>
+                        <div>
+                          <p style={{ fontSize: '13px', fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>{arq.nome}</p>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>{formatarTamanho(arq.tamanhoBytes)}</p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => removerArquivo(idx)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => inputArquivoRef.current?.click()}
+                style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter, sans-serif', cursor: 'pointer', fontWeight: 500, backgroundColor: 'transparent', color: 'var(--purple)', border: '1px solid var(--purple-light)' }}
+              >
+                + Adicionar arquivo
+              </button>
+              <input
+                ref={inputArquivoRef}
+                type="file"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => { Array.from(e.target.files ?? []).forEach(adicionarArquivo); e.target.value = '' }}
+              />
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginTop: '8px', marginBottom: 0 }}>
+                Aceita qualquer tipo de arquivo · máx. 10 MB por arquivo
+              </p>
+            </div>
           </div>
 
           {/* Erro geral */}

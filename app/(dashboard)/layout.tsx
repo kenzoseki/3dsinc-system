@@ -10,6 +10,7 @@ import { Cargo } from '@prisma/client'
 const itensNavegacao = [
   { href: '/dashboard', label: 'Dashboard', icone: '⊞' },
   { href: '/dashboard/pedidos', label: 'Pedidos', icone: '📋' },
+  { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '📄' },
   { href: '/dashboard/producao', label: 'Produção', icone: '⚙️' },
   { href: '/dashboard/estoque', label: 'Estoque', icone: '🧵' },
   { href: '/dashboard/assistente', label: 'Assistente IA', icone: '✦' },
@@ -17,6 +18,7 @@ const itensNavegacao = [
 ]
 
 const itemEquipe = { href: '/dashboard/equipe', label: 'Equipe', icone: '👥' }
+const itemConfig = { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⚙' }
 
 const labelCargo: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -31,6 +33,14 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
   const router = useRouter()
   const pathname = usePathname()
   const [dropdownAberto, setDropdownAberto] = useState(false)
+  const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/configuracoes')
+      .then(r => r.json())
+      .then(c => setLogoEmpresa(c.logoBase64 ?? null))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -49,6 +59,7 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
   const { user } = session
   const cargo = user.cargo as Cargo
   const podeVerEquipe = Permissoes.podeVerEquipe(cargo)
+  const isAdmin = cargo === 'ADMIN'
   const iniciais = user.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
 
   function isAtivo(href: string) {
@@ -69,14 +80,18 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
       }}>
         {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <h1 style={{
-              fontFamily: 'Nunito, sans-serif',
-              fontWeight: 700,
-              fontSize: '20px',
-              color: 'var(--purple)',
-              letterSpacing: '-0.3px',
-            }}>3D Sinc</h1>
+          <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            {logoEmpresa ? (
+              <img src={logoEmpresa} alt="Logo" style={{ maxHeight: '36px', maxWidth: '160px', objectFit: 'contain' }} />
+            ) : (
+              <h1 style={{
+                fontFamily: 'Nunito, sans-serif',
+                fontWeight: 700,
+                fontSize: '20px',
+                color: 'var(--purple)',
+                letterSpacing: '-0.3px',
+              }}>3D Sinc</h1>
+            )}
           </Link>
         </div>
 
@@ -119,15 +134,9 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
               <Link
                 href={itemEquipe.href}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 12px',
-                  borderRadius: '7px',
-                  marginBottom: '2px',
-                  textDecoration: 'none',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13.5px',
+                  display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
+                  borderRadius: '7px', marginBottom: '2px', textDecoration: 'none',
+                  fontFamily: 'Inter, sans-serif', fontSize: '13.5px',
                   fontWeight: ativo ? 500 : 400,
                   color: ativo ? 'var(--purple-text)' : 'var(--text-secondary)',
                   backgroundColor: ativo ? 'var(--purple-light)' : 'transparent',
@@ -139,6 +148,30 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
               >
                 <span style={{ fontSize: '14px' }}>{itemEquipe.icone}</span>
                 <span>{itemEquipe.label}</span>
+              </Link>
+            )
+          })()}
+
+          {isAdmin && (() => {
+            const ativo = pathname.startsWith(itemConfig.href)
+            return (
+              <Link
+                href={itemConfig.href}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
+                  borderRadius: '7px', marginBottom: '2px', textDecoration: 'none',
+                  fontFamily: 'Inter, sans-serif', fontSize: '13.5px',
+                  fontWeight: ativo ? 500 : 400,
+                  color: ativo ? 'var(--purple-text)' : 'var(--text-secondary)',
+                  backgroundColor: ativo ? 'var(--purple-light)' : 'transparent',
+                  borderLeft: ativo ? '3px solid var(--purple)' : '3px solid transparent',
+                  transition: 'all 0.12s',
+                }}
+                onMouseEnter={(e) => { if (!ativo) { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--bg-hover)'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)' } }}
+                onMouseLeave={(e) => { if (!ativo) { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-secondary)' } }}
+              >
+                <span style={{ fontSize: '14px' }}>{itemConfig.icone}</span>
+                <span>{itemConfig.label}</span>
               </Link>
             )
           })()}
@@ -237,7 +270,7 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
         </header>
 
         {/* Conteúdo */}
-        <main style={{ flex: 1, padding: '24px', overflow: 'auto' }}>
+        <main style={{ flex: 1, padding: '32px 64px', overflow: 'auto' }}>
           {children}
         </main>
       </div>

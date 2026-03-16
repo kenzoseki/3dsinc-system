@@ -24,6 +24,14 @@ interface ItemPedido {
   filamento: { marca: string; cor: string; material: string } | null
 }
 
+interface ArquivoPedido {
+  id: string
+  nome: string
+  tipo: string
+  tamanhoBytes: number
+  createdAt: string
+}
+
 interface PedidoDetalhe {
   id: string
   numero: number
@@ -35,13 +43,16 @@ interface PedidoDetalhe {
   observacoes: string | null
   createdAt: string
   cliente: { id: string; nome: string; email: string | null; telefone: string | null }
+  orcamento: { id: string; numero: number; revisao: number; status: string } | null
   itens: ItemPedido[]
   historico: HistoricoItem[]
+  arquivos: ArquivoPedido[]
 }
 
 const statusBadge: Record<string, { cor: string; fundo: string; label: string }> = {
   ORCAMENTO:   { cor: '#B83232', fundo: '#FCE9E9', label: 'Orçamento' },
   APROVADO:    { cor: '#8A5A0A', fundo: '#FEF3E2', label: 'Aprovado' },
+  AGUARDANDO:  { cor: '#8A5A0A', fundo: '#FEF3E2', label: 'Aguardando' },
   EM_PRODUCAO: { cor: '#4C3DB5', fundo: '#EDE9FC', label: 'Em Produção' },
   PAUSADO:     { cor: '#B83232', fundo: '#FCE9E9', label: 'Pausado' },
   CONCLUIDO:   { cor: '#1A6B42', fundo: '#E8F5EE', label: 'Concluído' },
@@ -50,8 +61,9 @@ const statusBadge: Record<string, { cor: string; fundo: string; label: string }>
 }
 
 const proximosStatus: Record<string, string[]> = {
-  ORCAMENTO: ['APROVADO', 'CANCELADO'],
-  APROVADO: ['EM_PRODUCAO', 'CANCELADO'],
+  ORCAMENTO:  ['APROVADO', 'CANCELADO'],
+  APROVADO:   ['AGUARDANDO', 'EM_PRODUCAO', 'CANCELADO'],
+  AGUARDANDO: ['EM_PRODUCAO', 'CANCELADO'],
   EM_PRODUCAO: ['PAUSADO', 'CONCLUIDO'],
   PAUSADO: ['EM_PRODUCAO', 'CANCELADO'],
   CONCLUIDO: ['ENTREGUE'],
@@ -111,12 +123,21 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
       if (resposta.ok) {
         const dados = await resposta.json()
         setPedido(dados)
+      } else {
+        const dados = await resposta.json()
+        alert(dados.erro ?? 'Erro ao alterar status')
       }
     } catch (erro) {
       console.error('Erro ao alterar status:', erro)
     } finally {
       setAlterandoStatus(false)
     }
+  }
+
+  function formatarTamanho(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
   if (carregando) {
@@ -163,33 +184,42 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
 
         {/* Ações de status */}
         {podeEditar && acoesPossiveis.length > 0 && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {acoesPossiveis.map((status) => {
-              const b = statusBadge[status]
-              const ehCancelamento = status === 'CANCELADO'
-              return (
-                <button
-                  key={status}
-                  onClick={() => mudarStatus(status)}
-                  disabled={alterandoStatus}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    fontFamily: 'Inter, sans-serif',
-                    cursor: alterandoStatus ? 'not-allowed' : 'pointer',
-                    opacity: alterandoStatus ? 0.5 : 1,
-                    backgroundColor: ehCancelamento ? 'var(--red-light)' : 'var(--purple-light)',
-                    color: ehCancelamento ? 'var(--red)' : 'var(--purple-text)',
-                    border: `1px solid ${ehCancelamento ? 'var(--red-light)' : 'var(--purple-light)'}`,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  → {b?.label ?? status}
-                </button>
-              )
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {acoesPossiveis.map((status) => {
+                const b = statusBadge[status]
+                const ehCancelamento = status === 'CANCELADO'
+                const bloqueadoPorOrc = status === 'APROVADO' && pedido.orcamento && pedido.orcamento.status !== 'APROVADO'
+                return (
+                  <button
+                    key={status}
+                    onClick={() => mudarStatus(status)}
+                    disabled={alterandoStatus || !!bloqueadoPorOrc}
+                    title={bloqueadoPorOrc ? 'O orçamento vinculado precisa estar APROVADO primeiro' : undefined}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      fontFamily: 'Inter, sans-serif',
+                      cursor: (alterandoStatus || bloqueadoPorOrc) ? 'not-allowed' : 'pointer',
+                      opacity: (alterandoStatus || bloqueadoPorOrc) ? 0.4 : 1,
+                      backgroundColor: ehCancelamento ? 'var(--red-light)' : 'var(--purple-light)',
+                      color: ehCancelamento ? 'var(--red)' : 'var(--purple-text)',
+                      border: `1px solid ${ehCancelamento ? 'var(--red-light)' : 'var(--purple-light)'}`,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    → {b?.label ?? status}
+                  </button>
+                )
+              })}
+            </div>
+            {pedido.orcamento && pedido.orcamento.status !== 'APROVADO' && acoesPossiveis.includes('APROVADO') && (
+              <p style={{ fontSize: '11px', color: 'var(--amber)', fontFamily: 'Inter, sans-serif', margin: 0, textAlign: 'right' }}>
+                ⚠ Orçamento ORC-{String(pedido.orcamento.numero).padStart(4,'0')}-{String(pedido.orcamento.revisao).padStart(2,'0')} ainda não APROVADO
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -265,6 +295,59 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </div>
+
+      {/* Orçamento vinculado */}
+      {pedido.orcamento && (
+        <div style={{ ...estiloCard, marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '12px' }}>
+            Orçamento Vinculado
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <a
+              href={`/dashboard/orcamentos/${pedido.orcamento.id}`}
+              style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '14px', color: 'var(--purple)', fontWeight: 600, textDecoration: 'none' }}
+            >
+              ORC-{String(pedido.orcamento.numero).padStart(4, '0')}-{String(pedido.orcamento.revisao).padStart(2, '0')}
+            </a>
+            <span style={{
+              padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif',
+              backgroundColor: pedido.orcamento.status === 'APROVADO' ? 'var(--green-light)' : pedido.orcamento.status === 'REPROVADO' ? 'var(--red-light)' : 'var(--amber-light)',
+              color: pedido.orcamento.status === 'APROVADO' ? 'var(--green)' : pedido.orcamento.status === 'REPROVADO' ? 'var(--red)' : 'var(--amber)',
+            }}>
+              {pedido.orcamento.status}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Arquivos de referência */}
+      {pedido.arquivos && pedido.arquivos.length > 0 && (
+        <div style={{ ...estiloCard, marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '12px' }}>
+            Arquivos de Referência
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {pedido.arquivos.map((arq) => (
+              <div key={arq.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '18px' }}>{arq.tipo.startsWith('image/') ? '🖼' : '📎'}</span>
+                  <div>
+                    <p style={{ fontSize: '13px', fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', margin: 0 }}>{arq.nome}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>{formatarTamanho(arq.tamanhoBytes)}</p>
+                  </div>
+                </div>
+                <a
+                  href={`/api/pedidos/${pedido.id}/arquivos/${arq.id}`}
+                  download={arq.nome}
+                  style={{ fontSize: '12px', color: 'var(--purple)', fontFamily: 'Inter, sans-serif', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--purple-light)', backgroundColor: 'var(--purple-light)' }}
+                >
+                  Baixar
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Itens do pedido */}
       {pedido.itens.length > 0 && (

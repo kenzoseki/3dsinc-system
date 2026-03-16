@@ -8,14 +8,15 @@ import { Cargo, StatusPedido } from '@prisma/client'
 
 // Schema de validacao para atualizacao de pedido
 const schemaAtualizarPedido = z.object({
-  descricao: z.string().min(1).optional(),
-  prioridade: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).optional(),
-  status: z.enum(['ORCAMENTO', 'APROVADO', 'EM_PRODUCAO', 'PAUSADO', 'CONCLUIDO', 'ENTREGUE', 'CANCELADO']).optional(),
+  descricao:    z.string().min(1).optional(),
+  prioridade:   z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).optional(),
+  status:       z.enum(['ORCAMENTO', 'APROVADO', 'AGUARDANDO', 'EM_PRODUCAO', 'PAUSADO', 'CONCLUIDO', 'ENTREGUE', 'CANCELADO']).optional(),
   prazoEntrega: z.string().datetime().optional().nullable(),
-  valorTotal: z.number().positive().optional().nullable(),
-  observacoes: z.string().optional().nullable(),
-  arquivo3d: z.string().optional().nullable(),
-  notaStatus: z.string().optional(),
+  valorTotal:   z.number().positive().optional().nullable(),
+  observacoes:  z.string().optional().nullable(),
+  arquivo3d:    z.string().optional().nullable(),
+  orcamentoId:  z.string().optional().nullable(),
+  notaStatus:   z.string().optional(),
 })
 
 export async function GET(
@@ -34,6 +35,7 @@ export async function GET(
       where: { id },
       include: {
         cliente: true,
+        orcamento: { select: { id: true, numero: true, revisao: true, status: true } },
         itens: {
           include: { filamento: true },
         },
@@ -41,6 +43,7 @@ export async function GET(
           include: { usuario: true },
           orderBy: { createdAt: 'desc' },
         },
+        arquivos: { select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
       },
     })
 
@@ -83,9 +86,22 @@ export async function PATCH(
     const dados = validacao.data
 
     // Buscar pedido atual para verificar mudanca de status
-    const pedidoAtual = await prisma.pedido.findUnique({ where: { id } })
+    const pedidoAtual = await prisma.pedido.findUnique({
+      where: { id },
+      include: { orcamento: { select: { status: true } } },
+    })
     if (!pedidoAtual) {
       return NextResponse.json({ erro: 'Pedido nao encontrado' }, { status: 404 })
+    }
+
+    // Validar transição para APROVADO: orçamento vinculado deve estar APROVADO
+    if (dados.status === 'APROVADO' && pedidoAtual.orcamentoId) {
+      if (pedidoAtual.orcamento?.status !== 'APROVADO') {
+        return NextResponse.json(
+          { erro: 'O orçamento vinculado precisa estar APROVADO antes de aprovar este pedido.' },
+          { status: 422 }
+        )
+      }
     }
 
     const pedidoAtualizado = await prisma.$transaction(async (tx) => {
@@ -99,14 +115,17 @@ export async function PATCH(
           ...(dados.valorTotal !== undefined && { valorTotal: dados.valorTotal }),
           ...(dados.observacoes !== undefined && { observacoes: dados.observacoes }),
           ...(dados.arquivo3d !== undefined && { arquivo3d: dados.arquivo3d }),
+          ...(dados.orcamentoId !== undefined && { orcamentoId: dados.orcamentoId }),
         },
         include: {
           cliente: true,
+          orcamento: { select: { id: true, numero: true, revisao: true, status: true } },
           itens: { include: { filamento: true } },
           historico: {
             include: { usuario: true },
             orderBy: { createdAt: 'desc' },
           },
+          arquivos: { select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
         },
       })
 

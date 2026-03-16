@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const labelCargo: Record<string, string> = {
   ADMIN: 'Administrador', SOCIO: 'Sócio', GERENTE: 'Gerente',
@@ -30,10 +30,12 @@ export default function PaginaPerfil() {
   const { data: session, update } = useSession()
   const usuario = session?.user
 
-  const [nome, setNome] = useState(usuario?.nome ?? '')
+  const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState(usuario?.avatarUrl ?? '')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [carregado, setCarregado] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const inputAvatarRef = useRef<HTMLInputElement>(null)
   const [mensagemPerfil, setMensagemPerfil] = useState('')
 
   const [senhaAtual, setSenhaAtual] = useState('')
@@ -42,9 +44,35 @@ export default function PaginaPerfil() {
   const [salvandoSenha, setSalvandoSenha] = useState(false)
   const [mensagemSenha, setMensagemSenha] = useState('')
 
-  if (!usuario) return null
+  // Carrega dados atualizados do banco ao montar
+  useEffect(() => {
+    fetch('/api/perfil')
+      .then(r => r.json())
+      .then(d => {
+        setNome(d.nome ?? '')
+        setTelefone(d.telefone ?? '')
+        setAvatarUrl(d.avatarUrl ?? '')
+        setCarregado(true)
+      })
+  }, [])
 
-  const iniciais = usuario.nome.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+  if (!usuario) return null
+  if (!carregado) return (
+    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+      Carregando...
+    </div>
+  )
+
+  const iniciais = nome ? nome.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : usuario.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
+
+  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 500 * 1024) { alert('Imagem muito grande. Máximo 500 KB.'); return }
+    const reader = new FileReader()
+    reader.onload = () => setAvatarUrl(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
   async function salvarPerfil(e: React.FormEvent) {
     e.preventDefault()
@@ -116,19 +144,36 @@ export default function PaginaPerfil() {
       {/* Card de identidade */}
       <div style={estiloCartao}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {usuario.avatarUrl ? (
-            <img src={usuario.avatarUrl} alt={usuario.nome} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: 'var(--purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700, fontFamily: 'Nunito, sans-serif', flexShrink: 0 }}>
-              {iniciais}
-            </div>
-          )}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={usuario.nome} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: 'var(--purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>
+                {iniciais}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => inputAvatarRef.current?.click()}
+              title="Alterar foto"
+              style={{
+                position: 'absolute', bottom: 0, right: 0,
+                width: '24px', height: '24px', borderRadius: '50%',
+                backgroundColor: 'var(--purple)', color: '#fff', border: '2px solid #fff',
+                cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >✎</button>
+            <input ref={inputAvatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+          </div>
           <div>
             <p style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'Nunito, sans-serif', color: 'var(--text-primary)' }}>{usuario.nome}</p>
             <p style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px', marginTop: '2px' }}>{usuario.email}</p>
             <span style={{ display: 'inline-block', marginTop: '6px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif', backgroundColor: 'var(--purple-light)', color: 'var(--purple-text)' }}>
               {labelCargo[usuario.cargo] ?? usuario.cargo}
             </span>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginTop: '6px' }}>
+              Clique no ícone ✎ para alterar a foto · PNG/JPG · máx. 500 KB
+            </p>
           </div>
         </div>
       </div>
@@ -152,12 +197,6 @@ export default function PaginaPerfil() {
           <div style={{ marginBottom: '16px' }}>
             <label style={estiloLabel}>Telefone</label>
             <input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-9999" style={estiloInput}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'} />
-          </div>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={estiloLabel}>URL do Avatar</label>
-            <input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." style={estiloInput}
               onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>

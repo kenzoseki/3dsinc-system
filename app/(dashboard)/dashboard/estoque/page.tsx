@@ -51,23 +51,35 @@ export default function PaginaEstoque() {
   const router = useRouter()
   const [filamentos, setFilamentos] = useState<Filamento[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function carregarFilamentos() {
-      try {
-        const resposta = await fetch('/api/filamentos')
-        if (resposta.ok) {
-          const dados = await resposta.json()
-          setFilamentos(dados)
-        }
-      } catch (erro) {
-        console.error('Erro ao carregar filamentos:', erro)
-      } finally {
-        setCarregando(false)
-      }
+  async function carregarFilamentos() {
+    try {
+      const resposta = await fetch('/api/filamentos')
+      if (resposta.ok) setFilamentos(await resposta.json())
+    } catch (erro) {
+      console.error('Erro ao carregar filamentos:', erro)
+    } finally {
+      setCarregando(false)
     }
-    carregarFilamentos()
-  }, [])
+  }
+
+  useEffect(() => { carregarFilamentos() }, [])
+
+  async function excluirFilamento(id: string, nome: string) {
+    if (!confirm(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return
+    setExcluindo(id)
+    try {
+      const res = await fetch(`/api/filamentos/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setFilamentos(prev => prev.filter(f => f.id !== id))
+      } else {
+        alert('Erro ao excluir filamento.')
+      }
+    } finally {
+      setExcluindo(null)
+    }
+  }
 
   const filamentosComAlerta = filamentos.filter(f => f.alertas.some(a => !a.lido))
 
@@ -229,33 +241,37 @@ export default function PaginaEstoque() {
                   )}
                 </div>
 
-                {/* Botão editar */}
-                <button
-                  onClick={() => router.push(`/dashboard/estoque/${filamento.id}/editar`)}
-                  style={{
-                    marginTop: '14px',
-                    width: '100%',
-                    padding: '7px',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 500,
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'transparent',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--purple)'
-                    e.currentTarget.style.color = 'var(--purple)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border)'
-                    e.currentTarget.style.color = 'var(--text-secondary)'
-                  }}
-                >
-                  Editar
-                </button>
+                {/* Botões editar / excluir */}
+                <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => router.push(`/dashboard/estoque/${filamento.id}/editar`)}
+                    style={{
+                      flex: 1, padding: '7px', borderRadius: '7px', fontSize: '13px',
+                      fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                      border: '1px solid var(--border)', backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)', cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--purple)'; e.currentTarget.style.color = 'var(--purple)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => excluirFilamento(filamento.id, `${filamento.marca} ${filamento.cor}`)}
+                    disabled={excluindo === filamento.id}
+                    style={{
+                      padding: '7px 12px', borderRadius: '7px', fontSize: '13px',
+                      fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                      border: '1px solid var(--red-light)', backgroundColor: 'transparent',
+                      color: 'var(--red)', cursor: excluindo === filamento.id ? 'not-allowed' : 'pointer',
+                      opacity: excluindo === filamento.id ? 0.5 : 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--red-light)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
+                    {excluindo === filamento.id ? '...' : 'Excluir'}
+                  </button>
+                </div>
               </div>
             )
           })}

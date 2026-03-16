@@ -8,15 +8,16 @@ import { Cargo, StatusPedido } from '@prisma/client'
 
 // Schema de validacao para criacao de pedido
 const schemaCriarPedido = z.object({
-  clienteId: z.string().min(1, 'Cliente obrigatorio'),
-  tipo: z.enum(['B2C', 'B2B']).default('B2C'),
-  categoria: z.string().optional().nullable(),
-  descricao: z.string().min(1, 'Descricao obrigatoria'),
-  prioridade: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),
+  clienteId:    z.string().min(1, 'Cliente obrigatorio'),
+  orcamentoId:  z.string().optional().nullable(),
+  tipo:         z.enum(['B2C', 'B2B']).default('B2C'),
+  categoria:    z.string().optional().nullable(),
+  descricao:    z.string().min(1, 'Descricao obrigatoria'),
+  prioridade:   z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),
   prazoEntrega: z.string().datetime().optional().nullable(),
-  valorTotal: z.number().positive().optional().nullable(),
-  observacoes: z.string().optional().nullable(),
-  arquivo3d: z.string().optional().nullable(),
+  valorTotal:   z.number().positive().optional().nullable(),
+  observacoes:  z.string().optional().nullable(),
+  arquivo3d:    z.string().optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -91,16 +92,17 @@ export async function POST(request: NextRequest) {
     const pedido = await prisma.$transaction(async (tx) => {
       const novoPedido = await tx.pedido.create({
         data: {
-          clienteId: dados.clienteId,
-          tipo: dados.tipo,
-          categoria: dados.categoria ?? null,
-          descricao: dados.descricao,
-          prioridade: dados.prioridade,
+          clienteId:    dados.clienteId,
+          orcamentoId:  dados.orcamentoId ?? null,
+          tipo:         dados.tipo,
+          categoria:    dados.categoria ?? null,
+          descricao:    dados.descricao,
+          prioridade:   dados.prioridade,
           prazoEntrega: dados.prazoEntrega ? new Date(dados.prazoEntrega) : null,
-          valorTotal: dados.valorTotal ?? null,
-          observacoes: dados.observacoes ?? null,
-          arquivo3d: dados.arquivo3d ?? null,
-          status: 'ORCAMENTO',
+          valorTotal:   dados.valorTotal ?? null,
+          observacoes:  dados.observacoes ?? null,
+          arquivo3d:    dados.arquivo3d ?? null,
+          status:       'ORCAMENTO',
         },
         include: {
           cliente: true,

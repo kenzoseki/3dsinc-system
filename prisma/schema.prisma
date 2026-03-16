@@ -60,6 +60,8 @@ model Pedido {
   numero       Int             @unique @default(autoincrement())
   clienteId    String
   cliente      Cliente         @relation(fields: [clienteId], references: [id])
+  orcamentoId  String?
+  orcamento    Orcamento?      @relation(fields: [orcamentoId], references: [id])
   tipo         TipoPedido      @default(B2C)
   categoria    String?
   descricao    String
@@ -73,6 +75,7 @@ model Pedido {
   updatedAt    DateTime        @updatedAt
   itens        ItemPedido[]
   historico    HistoricoPedido[]
+  arquivos     ArquivoPedido[]
 }
 
 enum TipoPedido {
@@ -83,6 +86,7 @@ enum TipoPedido {
 enum StatusPedido {
   ORCAMENTO
   APROVADO
+  AGUARDANDO
   EM_PRODUCAO
   PAUSADO
   CONCLUIDO
@@ -160,4 +164,97 @@ model AlertaEstoque {
   tipoAlerta  String
   lido        Boolean   @default(false)
   createdAt   DateTime  @default(now())
+}
+
+model ConfiguracaoEmpresa {
+  id                    String   @id @default("empresa")
+  nomeEmpresa           String   @default("3D Sinc")
+  cnpj                  String?
+  email                 String?
+  telefone              String?
+  endereco              String?
+  cidade                String?
+  estado                String?
+  logoBase64            String?  @db.Text
+  // Preferências de notificação
+  alertaEstoqueBaixo    Boolean  @default(true)
+  alertaPedidoAtrasado  Boolean  @default(true)
+  alertaEmailHabilitado Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Orcamento {
+  id                  String          @id @default(cuid())
+  numero              Int             @unique @default(autoincrement())
+  revisao             Int             @default(0)
+  // Dados do cliente
+  clienteNome         String
+  clienteEmpresa      String?
+  clienteCnpj         String?
+  clienteEmail        String?
+  clienteTelefone     String?
+  clienteEndereco     String?
+  clienteCep          String?
+  clienteResponsavel  String?
+  clienteCodInterno   String?
+  // Metadados
+  dataEmissao         DateTime        @default(now())
+  validadeDias        Int             @default(5)
+  orcamentista        String?
+  cidade              String?
+  // Condições e observações
+  condicoesTecnicas   String?         @db.Text
+  condicoesComerciais String?         @db.Text
+  notas               String?         @db.Text
+  // Outras despesas
+  frete               Decimal?        @db.Decimal(10, 2)
+  aliquotaImposto     Decimal?        @db.Decimal(5, 2)
+  bonusPercentual     Decimal?        @db.Decimal(5, 2)
+  // Status
+  status              StatusOrcamento @default(RASCUNHO)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  itens               ItemOrcamento[]
+  pedidos             Pedido[]
+}
+
+enum StatusOrcamento {
+  RASCUNHO
+  ENVIADO
+  APROVADO
+  REPROVADO
+  EXPIRADO
+}
+
+model ItemOrcamento {
+  id            String                  @id @default(cuid())
+  orcamentoId   String
+  orcamento     Orcamento               @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  ordem         Int                     @default(0)
+  descricao     String
+  detalhamento  String?                 @db.Text
+  quantidade    Int                     @default(1)
+  valorUnitario Decimal                 @db.Decimal(10, 2)
+  imagens       ImagemItemOrcamento[]
+}
+
+model ImagemItemOrcamento {
+  id              String        @id @default(cuid())
+  itemOrcamentoId String
+  item            ItemOrcamento @relation(fields: [itemOrcamentoId], references: [id], onDelete: Cascade)
+  imagemBase64    String        @db.Text
+  nomeArquivo     String
+  createdAt       DateTime      @default(now())
+}
+
+model ArquivoPedido {
+  id             String   @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  nome           String
+  tipo           String
+  tamanhoBytes   Int
+  conteudoBase64 String   @db.Text
+  createdAt      DateTime @default(now())
 }

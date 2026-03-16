@@ -5,20 +5,26 @@
 
 ## Contexto do Projeto
 
-**Empresa:** 3D Sinc  
-**Segmento:** Impressão 3D por encomenda  
-**Equipe:** 1 a 5 pessoas  
+**Empresa:** 3D Sinc
+**Segmento:** Impressão 3D por encomenda
+**Equipe:** 1 a 5 pessoas
 **Objetivo:** Sistema web completo com ERP próprio, controle de filamentos e assistente IA integrado
 
 ---
 
 ## Stack e Infraestrutura
 
-**Frontend/Backend:** Next.js 14 (App Router), Tailwind CSS, shadcn/ui, TypeScript
+**Frontend/Backend:** Next.js 16.1.6 (App Router, Turbopack), TypeScript
 **Banco:** PostgreSQL via Neon (regiao Sao Paulo — sa-east-1)
-**ORM:** Prisma
-**IA:** Anthropic Claude API - modelo claude-sonnet-4-20250514
-**NF-e:** nfewizard-io (biblioteca Node.js nativa para SEFAZ)
+**ORM:** Prisma v6
+**IA:** Anthropic Claude API — modelo `claude-haiku-4-5-20251001` (padrão), `claude-sonnet-4-6` (premium)
+**NF-e:** nfewizard-io (pendente de implementacao — Fase 2)
+
+> **Atencao com params no App Router:** No Next.js 16+, `params` e uma `Promise`. Sempre usar
+> `{ params }: { params: Promise<{ id: string }> }` e `const { id } = await params` nos route handlers e pages.
+
+> **Atencao com Prisma generate:** Nunca usar `--no-engine`. Sempre `npx prisma generate` simples.
+> O flag `--no-engine` gera cliente para Prisma Accelerate (exige URL `prisma://`) — incompativel com Neon direto.
 
 ### Hospedagem — trajetoria recomendada
 
@@ -36,7 +42,7 @@ A biblioteca nfewizard-io requer acesso ao sistema de arquivos (certificado .pfx
 
 ---
 
-## Modulo NF-e — Emissor Proprio
+## Modulo NF-e — Emissor Proprio (Fase 2 — PENDENTE)
 
 ### Requisitos obrigatorios (legais)
 
@@ -89,7 +95,7 @@ await nfewizard.NFE_LoadEnvironment({
 export { nfewizard }
 ```
 
-### Variaveis de ambiente adicionais
+### Variaveis de ambiente adicionais (quando implementar)
 
 ```
 NFE_CERT_PATH="./storage/certificado.pfx"
@@ -106,16 +112,16 @@ NFE_CNPJ="00000000000000"
 - Cancelamento de NF-e (dentro do prazo legal)
 - Contingencia offline (emissao em modo DPEC quando SEFAZ fora do ar)
 
-### Posicionamento no roadmap
+### Observacoes especificas da 3D Sinc
 
-Este modulo entra na **Fase 2**, apos o MVP estar estavel. Requer:
-- Certificado A1 adquirido junto a AC credenciada ICP-Brasil (~R$150-300/ano)
-- Testes no ambiente de homologacao da SEFAZ antes de producao
-- Consulta ao contador da empresa para configurar CFOP, CST e aliquotas corretas
+- MEI ativo desde 2024 — certificado digital A1 ja adquirido
+- Credenciamento SEFAZ para MEI deve ser feito manualmente (nao e automatico)
+- Requer migrar para Railway antes de implementar (incompativel com Vercel)
+- Consultar contador para configurar CFOP, CST e aliquotas corretas
 
 ---
 
-## Estrutura de Pastas
+## Estrutura de Pastas (estado atual)
 
 ```
 3dsinc-system/
@@ -126,28 +132,24 @@ Este modulo entra na **Fase 2**, apos o MVP estar estavel. Requer:
 │   ├── (dashboard)/
 │   │   ├── layout.tsx          # Sidebar + Topbar com avatar
 │   │   ├── page.tsx            # Dashboard principal
-│   │   ├── pedidos/            # ERP - Pedidos
-│   │   ├── producao/           # ERP - Producao
-│   │   ├── estoque/            # Modulo Filamentos
-│   │   ├── assistente/         # IA Chat
-│   │   ├── perfil/             # Perfil do usuario logado
-│   │   └── equipe/             # Gerenciamento de equipe (admin)
+│   │   ├── dashboard/
+│   │   │   ├── pedidos/        # ERP - Pedidos (listagem, novo, [id])
+│   │   │   ├── orcamentos/     # Orcamentos (listagem, novo, [id])
+│   │   │   ├── estoque/        # Modulo Filamentos
+│   │   │   ├── assistente/     # IA Chat
+│   │   │   ├── perfil/         # Perfil do usuario logado
+│   │   │   ├── equipe/         # Gerenciamento de equipe (admin)
+│   │   │   └── configuracoes/  # Configuracoes da empresa
 │   └── api/
-│       ├── pedidos/
+│       ├── pedidos/            # CRUD + [id]/arquivos/[arquivoId]
+│       ├── orcamentos/         # CRUD
 │       ├── filamentos/
-│       ├── producao/
-│       ├── perfil/             # Atualizar dados do proprio perfil
-│       ├── equipe/             # CRUD membros (admin only)
-│       ├── convite/            # Gerar e validar convites
-│       └── ia/chat/            # Endpoint Claude API
-├── components/
-│   ├── ui/                     # shadcn/ui
-│   ├── dashboard/
-│   ├── pedidos/
-│   ├── estoque/
-│   ├── chat/
-│   ├── equipe/                 # Tabela de membros, modal de convite
-│   └── perfil/                 # Avatar, card de perfil, form de edicao
+│       ├── clientes/
+│       ├── configuracoes/
+│       ├── perfil/
+│       ├── equipe/
+│       ├── convite/
+│       └── ia/chat/
 ├── lib/
 │   ├── db.ts                   # Prisma client
 │   ├── claude.ts               # Anthropic client
@@ -155,7 +157,7 @@ Este modulo entra na **Fase 2**, apos o MVP estar estavel. Requer:
 │   ├── auth.ts                 # Config NextAuth + permissoes
 │   └── permissoes.ts           # Helper de verificacao de cargo
 ├── prisma/
-│   ├── schema.prisma
+│   ├── schema.prisma           # Schema completo (ver secao abaixo)
 │   └── seed.ts                 # Cria o primeiro usuario ADMIN
 └── public/
     └── reference/dashboard.html
@@ -163,7 +165,7 @@ Este modulo entra na **Fase 2**, apos o MVP estar estavel. Requer:
 
 ---
 
-## Schema do Banco (Prisma)
+## Schema do Banco (Prisma — estado atual)
 
 ```prisma
 generator client {
@@ -176,19 +178,19 @@ datasource db {
 }
 
 model Usuario {
-  id            String        @id @default(cuid())
-  nome          String
-  email         String        @unique
-  senha         String
-  cargo         Cargo         @default(OPERADOR)
-  avatarUrl     String?
-  telefone      String?
-  ativo         Boolean       @default(true)
-  primeiroAcesso Boolean      @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  historicos    HistoricoPedido[]
-  convitesEnviados Convite[]  @relation("ConviteEnviador")
+  id             String            @id @default(cuid())
+  nome           String
+  email          String            @unique
+  senha          String
+  cargo          Cargo             @default(OPERADOR)
+  avatarUrl      String?
+  telefone       String?
+  ativo          Boolean           @default(true)
+  primeiroAcesso Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  historicos     HistoricoPedido[]
+  convitesEnviados Convite[]       @relation("ConviteEnviador")
 }
 
 enum Cargo {
@@ -228,6 +230,8 @@ model Pedido {
   numero       Int             @unique @default(autoincrement())
   clienteId    String
   cliente      Cliente         @relation(fields: [clienteId], references: [id])
+  orcamentoId  String?
+  orcamento    Orcamento?      @relation(fields: [orcamentoId], references: [id])
   tipo         TipoPedido      @default(B2C)
   categoria    String?
   descricao    String
@@ -241,6 +245,7 @@ model Pedido {
   updatedAt    DateTime        @updatedAt
   itens        ItemPedido[]
   historico    HistoricoPedido[]
+  arquivos     ArquivoPedido[]
 }
 
 enum TipoPedido {
@@ -251,6 +256,7 @@ enum TipoPedido {
 enum StatusPedido {
   ORCAMENTO
   APROVADO
+  AGUARDANDO   // adicionado: aguardando inicio da producao
   EM_PRODUCAO
   PAUSADO
   CONCLUIDO
@@ -289,21 +295,32 @@ model HistoricoPedido {
   createdAt   DateTime     @default(now())
 }
 
+model ArquivoPedido {
+  id             String   @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  nome           String
+  tipo           String
+  tamanhoBytes   Int
+  conteudoBase64 String   @db.Text
+  createdAt      DateTime @default(now())
+}
+
 model Filamento {
-  id          String         @id @default(cuid())
+  id          String          @id @default(cuid())
   marca       String
   material    MaterialType
   cor         String
   corHex      String?
-  diametro    Decimal        @db.Decimal(4, 2)
-  pesoTotal   Decimal        @db.Decimal(8, 2)
-  pesoAtual   Decimal        @db.Decimal(8, 2)
+  diametro    Decimal         @db.Decimal(4, 2)
+  pesoTotal   Decimal         @db.Decimal(8, 2)
+  pesoAtual   Decimal         @db.Decimal(8, 2)
   temperatura Int?
   velocidade  Int?
   localizacao String?
-  ativo       Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  ativo       Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   itensPedido ItemPedido[]
   alertas     AlertaEstoque[]
 }
@@ -329,11 +346,90 @@ model AlertaEstoque {
   lido        Boolean   @default(false)
   createdAt   DateTime  @default(now())
 }
+
+model ConfiguracaoEmpresa {
+  id                    String   @id @default("empresa")
+  nomeEmpresa           String   @default("3D Sinc")
+  cnpj                  String?
+  email                 String?
+  telefone              String?
+  endereco              String?
+  cidade                String?
+  estado                String?
+  logoBase64            String?  @db.Text
+  alertaEstoqueBaixo    Boolean  @default(true)
+  alertaPedidoAtrasado  Boolean  @default(true)
+  alertaEmailHabilitado Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Orcamento {
+  id                  String          @id @default(cuid())
+  numero              Int             @unique @default(autoincrement())
+  revisao             Int             @default(0)
+  // Dados do cliente (desnormalizados para preservar historico)
+  clienteNome         String
+  clienteEmpresa      String?
+  clienteCnpj         String?
+  clienteEmail        String?
+  clienteTelefone     String?
+  clienteEndereco     String?
+  clienteCep          String?
+  clienteResponsavel  String?
+  clienteCodInterno   String?
+  // Metadados
+  dataEmissao         DateTime        @default(now())
+  validadeDias        Int             @default(5)
+  orcamentista        String?
+  cidade              String?
+  // Condicoes e observacoes
+  condicoesTecnicas   String?         @db.Text
+  condicoesComerciais String?         @db.Text
+  notas               String?         @db.Text
+  // Financeiro
+  frete               Decimal?        @db.Decimal(10, 2)
+  aliquotaImposto     Decimal?        @db.Decimal(5, 2)
+  bonusPercentual     Decimal?        @db.Decimal(5, 2)
+  // Status
+  status              StatusOrcamento @default(RASCUNHO)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  itens               ItemOrcamento[]
+  pedidos             Pedido[]
+}
+
+enum StatusOrcamento {
+  RASCUNHO
+  ENVIADO
+  APROVADO
+  REPROVADO
+  EXPIRADO
+}
+
+model ItemOrcamento {
+  id            String                @id @default(cuid())
+  orcamentoId   String
+  orcamento     Orcamento             @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  ordem         Int                   @default(0)
+  descricao     String
+  detalhamento  String?               @db.Text
+  quantidade    Int                   @default(1)
+  valorUnitario Decimal               @db.Decimal(10, 2)
+  imagens       ImagemItemOrcamento[]
+}
+
+model ImagemItemOrcamento {
+  id              String        @id @default(cuid())
+  itemOrcamentoId String
+  item            ItemOrcamento @relation(fields: [itemOrcamentoId], references: [id], onDelete: Cascade)
+  imagemBase64    String        @db.Text
+  nomeArquivo     String
+  createdAt       DateTime      @default(now())
+}
 ```
 
 ### Seed — primeiro usuario ADMIN
-
-Sem seed, ninguem consegue logar pela primeira vez. Criar obrigatoriamente:
 
 ```typescript
 // prisma/seed.ts
@@ -361,16 +457,9 @@ async function main() {
 main().finally(() => prisma.$disconnect())
 ```
 
-Adicionar ao `package.json`:
-```json
-"prisma": { "seed": "ts-node prisma/seed.ts" }
-```
-
 Executar com: `npx prisma db seed`
 
 ### Extensao de tipos do NextAuth
-
-O NextAuth nao conhece os campos `cargo` e `id` do Usuario por padrao. Criar obrigatoriamente:
 
 ```typescript
 // types/next-auth.d.ts
@@ -387,51 +476,6 @@ declare module 'next-auth' {
       avatarUrl?: string | null
     }
   }
-}
-```
-
-### Config do NextAuth
-
-```typescript
-// lib/auth.ts
-import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
-import { prisma } from './db'
-
-export const authOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        senha: { label: 'Senha', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.senha) return null
-        const usuario = await prisma.usuario.findUnique({
-          where: { email: credentials.email }
-        })
-        if (!usuario || !usuario.ativo) return null
-        const senhaValida = await bcrypt.compare(credentials.senha, usuario.senha)
-        if (!senhaValida) return null
-        return { id: usuario.id, nome: usuario.nome, email: usuario.email, cargo: usuario.cargo, avatarUrl: usuario.avatarUrl }
-      }
-    })
-  ],
-  callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) { token.id = user.id; token.cargo = user.cargo; token.nome = user.nome; token.avatarUrl = user.avatarUrl }
-      return token
-    },
-    async session({ session, token }: any) {
-      session.user.id = token.id
-      session.user.cargo = token.cargo
-      session.user.nome = token.nome
-      session.user.avatarUrl = token.avatarUrl
-      return session
-    }
-  },
-  pages: { signIn: '/login' }
 }
 ```
 
@@ -466,289 +510,75 @@ export const Permissoes = {
 }
 ```
 
-### Pagina /perfil — editavel pelo proprio usuario
+---
 
-Campos EDITAVEIS pelo usuario logado:
-- nome
-- telefone
-- avatarUrl (upload de foto)
-- senha (formulario separado com confirmacao)
+## Modulo de Pedidos — Regras de Negocio
 
-Campos SOMENTE LEITURA na pagina de perfil:
-- email (nao pode ser alterado pelo usuario)
-- cargo (somente ADMIN pode alterar cargo de outro usuario)
-
-### Pagina /equipe — gerenciavel pelo ADMIN
-
-A pagina deve exibir uma tabela com todos os membros cadastrados contendo: nome, email, cargo, status (ativo/inativo) e data de entrada. Acoes disponiveis por linha: editar cargo, ativar/desativar membro. Botao de novo convite visivel no topo da pagina.
-
-ADMIN pode:
-- Ver todos os membros
-- Alterar cargo de qualquer membro (exceto promover para ADMIN)
-- Ativar e desativar membros
-- Gerar e reenviar convites
-
-SOCIO e GERENTE podem:
-- Ver a lista de membros (somente leitura)
-
-### Fluxo de convite — implementar completamente
+### Fluxo de status
 
 ```
-1. ADMIN acessa /equipe e clica em "Convidar membro"
-2. Preenche email e escolhe cargo (exceto ADMIN e SOCIO)
-3. Sistema gera token e salva no banco (model Convite)
-4. Link gerado: /primeiro-acesso?token=TOKEN
-5. ADMIN copia o link e envia manualmente (email, WhatsApp, etc.)
-   (envio automatico de email pode ser adicionado depois via Resend)
-6. Membro acessa o link, confere email pre-preenchido
-7. Define nome, senha e faz upload de avatar (opcional)
-8. Conta criada, token marcado como usado, redireciona para /dashboard
+ORCAMENTO → APROVADO → AGUARDANDO → EM_PRODUCAO → CONCLUIDO → ENTREGUE
+                ↓            ↓             ↓
+           CANCELADO    CANCELADO      PAUSADO → EM_PRODUCAO
 ```
 
-```typescript
-// app/api/convite/route.ts (gerar convite — somente ADMIN)
-export async function POST(req: Request) {
-  const session = await getServerSession()
-  if (session?.user.cargo !== 'ADMIN') return new Response('Proibido', { status: 403 })
+### Vinculacao com Orcamento
 
-  const { email, cargo } = await req.json()
+- Pedido pode ser vinculado a um `Orcamento` existente via `orcamentoId`
+- Se vinculado, a transicao para `APROVADO` e bloqueada enquanto o orcamento nao estiver `APROVADO`
+- Bloqueio ocorre tanto na UI (botao desabilitado) quanto na API (retorna 422)
 
-  // ADMIN e SOCIO nao podem ser criados via convite
-  if (['ADMIN', 'SOCIO'].includes(cargo)) return new Response('Proibido', { status: 403 })
+### Upload de arquivos de referencia
 
-  const convite = await prisma.convite.create({
-    data: {
-      email,
-      cargo,
-      enviadoPor: session.user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
-    }
-  })
-
-  const link = `${process.env.NEXTAUTH_URL}/primeiro-acesso?token=${convite.token}`
-  return Response.json({ token: convite.token, link })
-}
-
-// app/api/convite/validar/route.ts (validar token ao acessar /primeiro-acesso)
-export async function GET(req: Request) {
-  const token = new URL(req.url).searchParams.get('token')
-  const convite = await prisma.convite.findUnique({ where: { token } })
-  if (!convite || convite.usado || convite.expiresAt < new Date()) {
-    return new Response('Convite invalido ou expirado', { status: 410 })
-  }
-  return Response.json({ email: convite.email, cargo: convite.cargo })
-}
-```
-
-### O que aparece no topbar
-
-O topbar deve exibir o avatar, nome e cargo do usuario logado, com menu dropdown contendo:
-- Meu Perfil → /perfil
-- Alterar Senha → modal ou /perfil#senha
-- Sair → signOut()
+- Qualquer tipo de arquivo (modelos 3D, imagens, documentos)
+- Limite: 10 MB por arquivo
+- Armazenados em base64 no campo `conteudoBase64` da tabela `ArquivoPedido`
+- Download via `/api/pedidos/[id]/arquivos/[arquivoId]` (retorna binario com headers corretos)
 
 ---
 
-## Modulo de Filamentos — Cadastro e Edicao
+## Modulo de Orcamentos — Regras de Negocio
 
-O cadastro de filamentos deve suportar criacao e edicao completa. Cada filamento cadastrado precisa de um botao "Editar" que abre o mesmo formulario pre-preenchido com os dados atuais.
+### Identificacao
 
-Campos do formulario (criacao e edicao):
-- marca (texto livre)
-- material (select: PLA, PETG, ABS, TPU, ASA, PLA_PLUS, RESIN_STANDARD, RESIN_ABS_LIKE, NYLON, OUTRO)
-- cor (texto livre, ex: "Vermelho Vivo")
-- corHex (color picker para exibir na UI)
-- diametro (select: 1.75mm ou 2.85mm)
-- pesoTotal (gramas — peso do rolo novo)
-- pesoAtual (gramas — peso restante, editavel para atualizar consumo)
-- temperatura (opcional, em graus Celsius)
-- velocidade (opcional, em mm/s)
-- localizacao (opcional, texto livre: ex "Prateleira A2")
-- ativo (toggle — inativar sem excluir)
+Formato de exibicao: `ORC-XXXX-YY` onde XXXX = numero (4 digitos) e YY = revisao (2 digitos)
 
-A listagem deve exibir uma barra de progresso visual por filamento mostrando o percentual restante (pesoAtual / pesoTotal). Filamentos com menos de 20% devem acionar alerta visual automaticamente.
+### Calculo de totais
+
+```
+subtotal = soma(valorUnitario * quantidade) de todos os itens
+imposto  = subtotal * (aliquotaImposto / 100)
+bonus    = subtotal * (bonusPercentual / 100)   // desconto/acrescimo
+total    = subtotal + frete + imposto + bonus
+```
+
+### Itens com imagens
+
+Cada `ItemOrcamento` pode ter multiplas imagens (`ImagemItemOrcamento`), armazenadas em base64.
+As imagens sao exibidas em uma secao "ANEXO DE IMAGENS" nas ultimas paginas do PDF.
+
+### PDF via navegador
+
+A pagina `/dashboard/orcamentos/[id]` usa `window.print()` com `@media print` para gerar PDF.
+Nao ha geracao programatica de PDF — depende do navegador do usuario.
 
 ---
 
-## Modulo de Pedidos — CRUD completo
+## Modulo de Filamentos — Regras de Negocio
 
-Campos obrigatorios no formulario de criacao e edicao de pedidos:
-- tipo: B2C (Pessoa Fisica) ou B2B (Empresa) — selector destacado no topo do formulario
-- cliente (busca ou cadastro rapido inline)
-- descricao do pedido
-- status (select com todos os StatusPedido)
-- prioridade (select: BAIXA, NORMAL, ALTA, URGENTE)
-- prazo de entrega (date picker)
-- itens do pedido (lista dinamica com filamento, quantidade, peso estimado, tempo estimado, valor unitario)
-- observacoes (textarea)
-- arquivo 3D (upload opcional)
-
-Diferencas visuais B2C vs B2B:
-- Badge de tipo visivel na listagem e no detalhe do pedido
-- B2B: campo adicional para razao social / CNPJ do cliente
+- Alerta de estoque critico: quando `pesoAtual < pesoTotal * 0.20` (menos de 20%)
+- Alerta criado automaticamente ao editar um filamento via `PATCH /api/filamentos/[id]`
+- O alerta e registrado na tabela `AlertaEstoque` com `tipoAlerta = 'ESTOQUE_BAIXO'`
+- Filamentos inativos (`ativo = false`) nao aparecem nos graficos do dashboard
 
 ---
 
-## Dashboard — Metricas, Graficos e Filtros
+## Modulo IA — Contexto Dinamico
 
-### Filtros globais do dashboard
+A IA busca dados frescos do ERP antes de cada resposta via `lib/erp-context.ts`.
+Inclui: pedidos ativos (APROVADO, AGUARDANDO, EM_PRODUCAO, PAUSADO), filamentos, alertas nao lidos.
 
-Seletor de periodo visivel no topo da pagina, aplicado a todos os graficos e cards simultaneamente:
-
-| Opcao | Intervalo |
-|-------|-----------|
-| Hoje | dia atual |
-| Esta semana | seg-dom da semana atual |
-| Este mes | mes atual |
-| Ultimos 3 meses | rolling 90 dias |
-| Este ano | 1 jan ate hoje |
-| Periodo personalizado | date picker com inicio e fim |
-
-### Cards de metricas (linha superior)
-
-- Total de pedidos no periodo
-- Pedidos em producao (contagem atual, independe do filtro)
-- Receita no periodo
-- Ticket medio no periodo
-- Filamentos com estoque critico (abaixo de 20%, sempre atual)
-
-### Graficos
-
-**1. Pedidos por status ao longo do tempo** (grafico de barras empilhadas por semana/mes)
-- Eixo X: semanas ou meses do periodo selecionado
-- Eixo Y: quantidade de pedidos
-- Cores por status (usar paleta de badges ja definida)
-
-**2. Estoque de filamentos** (grafico de barras horizontais)
-- Um item por filamento ativo
-- Barra mostra percentual restante (pesoAtual / pesoTotal)
-- Vermelho abaixo de 20%, ambar entre 20-50%, verde acima de 50%
-- Sem filtro de data (sempre mostra estado atual)
-
-**3. Prospeccao de clientes — B2C vs B2B** (grafico de rosca/donut)
-- Distribuicao percentual de pedidos por tipo no periodo
-- Numero absoluto de clientes unicos por tipo
-
-**4. Receita por periodo** (grafico de linha)
-- Eixo X: dias, semanas ou meses (adaptado ao periodo selecionado)
-- Eixo Y: valor em R$
-
-### Biblioteca de graficos recomendada
-
-Usar **Recharts** (ja compativel com Next.js e React, sem dependencias extras):
-```bash
-npm install recharts
-```
-
-Criar obrigatoriamente para bloquear acesso sem login:
-
-```typescript
-// middleware.ts (raiz do projeto)
-import { withAuth } from 'next-auth/middleware'
-
-export default withAuth({
-  pages: { signIn: '/login' }
-})
-
-export const config = {
-  matcher: ['/(dashboard)/:path*', '/api/pedidos/:path*', '/api/filamentos/:path*', '/api/ia/:path*']
-}
-```
-
----
-
-## Modulo IA — Provedor e Contexto Dinamico
-
-### Comparativo de provedores de IA para o sistema 3D Sinc
-
-| Provedor | Modelo recomendado | Entrada (por 1M tokens) | Saida (por 1M tokens) | Melhor para |
-|----------|-------------------|------------------------|----------------------|-------------|
-| **Anthropic Claude** | claude-haiku-4-5 | ~$0,80 | ~$4,00 | Custo-beneficio equilibrado, contexto longo confiavel |
-| **Anthropic Claude** | claude-sonnet-4-6 | ~$3,00 | ~$15,00 | Qualidade maxima, tarefas complexas |
-| **OpenAI** | gpt-4o-mini | ~$0,15 | ~$0,60 | Mais barato do mercado tier-mid |
-| **OpenAI** | gpt-4o | ~$2,50 | ~$10,00 | Multimodal, bom para imagens |
-| **Google** | gemini-2.0-flash | ~$0,10 | ~$0,40 | Mais barato para volume alto |
-| **Google** | gemini-2.5-pro | ~$1,25 | ~$10,00 | Contexto muito longo (1M tokens) |
-| **DeepSeek** | deepseek-v3 | ~$0,03 | ~$0,09 | Ultra barato, servidores na China |
-
-### Recomendacao para comecar — Claude Haiku
-
-Para o sistema interno da 3D Sinc com equipe de 1-5 pessoas, o volume de tokens por mes sera baixo. Estimativa realista: 500 a 2.000 queries/mes = custo de R$2 a R$15/mes com Haiku.
-
-Usar **claude-haiku-4-5** na Fase 1 por ser o ponto otimo de custo-beneficio da Anthropic: rapido, barato e com contexto de 200k tokens — suficiente para carregar todo o ERP no prompt sem truncar. Migrar para Sonnet se a equipe sentir necessidade de respostas mais elaboradas.
-
-Trocar o modelo e so alterar uma linha no codigo:
-```typescript
-model: 'claude-haiku-4-5-20251001'  // barato — comecar aqui
-// model: 'claude-sonnet-4-6'       // mais capaz — migrar se necessario
-```
-
-### Contexto dinamico — busca dados antes de cada resposta
-
-```typescript
-// lib/erp-context.ts
-export async function getERPContext(): Promise<string> {
-  const [pedidos, filamentos, alertas] = await Promise.all([
-    prisma.pedido.findMany({
-      where: { status: { in: ['APROVADO', 'EM_PRODUCAO', 'PAUSADO'] } },
-      include: { cliente: true, itens: true },
-      orderBy: { prazoEntrega: 'asc' },
-      take: 50
-    }),
-    prisma.filamento.findMany({
-      where: { ativo: true },
-      orderBy: { pesoAtual: 'asc' }
-    }),
-    prisma.alertaEstoque.findMany({
-      where: { lido: false },
-      include: { filamento: true }
-    })
-  ])
-
-  return `
-=== DADOS ERP 3D SINC (tempo real) ===
-PEDIDOS ATIVOS: ${pedidos.length}
-${pedidos.map(p =>
-  `- #${p.numero} | ${p.cliente.nome} | ${p.status} | Prazo: ${p.prazoEntrega?.toLocaleDateString('pt-BR') ?? 'Sem prazo'}`
-).join('\n')}
-
-ESTOQUE FILAMENTOS:
-${filamentos.map(f =>
-  `- ${f.marca} ${f.material} ${f.cor} | ${f.pesoAtual}g de ${f.pesoTotal}g`
-).join('\n')}
-
-ALERTAS NAO LIDOS: ${alertas.length}
-${alertas.map(a => `- ${a.tipoAlerta}: ${a.filamento.marca} ${a.filamento.cor}`).join('\n')}
-  `
-}
-```
-
-```typescript
-// app/api/ia/chat/route.ts
-import Anthropic from '@anthropic-ai/sdk'
-import { getERPContext } from '@/lib/erp-context'
-
-const anthropic = new Anthropic()
-
-export async function POST(req: Request) {
-  const { messages } = await req.json()
-  const erpContext = await getERPContext()
-
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001', // trocar para claude-sonnet-4-6 se necessario
-    max_tokens: 1024,
-    system: `Voce e o assistente IA da 3D Sinc, empresa de impressao 3D por encomenda.
-Voce tem acesso em tempo real ao ERP. Use os dados abaixo para responder com precisao.
-Seja objetivo e profissional. Sempre em portugues brasileiro.
-Quando identificar problemas (atrasos, estoque critico), proponha acoes concretas.
-
-${erpContext}`,
-    messages
-  })
-
-  return Response.json(response)
-}
-```
+Modelo atual: `claude-haiku-4-5-20251001`. Para migrar para Sonnet, alterar uma linha em `app/api/ia/chat/route.ts`.
 
 ---
 
@@ -784,46 +614,18 @@ ${erpContext}`,
 | Corpo e labels | Inter | 400 / 500 | 13-15px |
 | Numeros, IDs, timestamps | JetBrains Mono | 400 | 12-13px |
 
-Google Fonts import:
-```css
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap');
-```
-
-### Variaveis CSS globais
-
-Declarar em `app/globals.css`:
-
-```css
-:root {
-  --bg-page:        #F5F3EE;
-  --bg-surface:     #FAF9F6;
-  --bg-hover:       #F0EDE6;
-  --border:         #E8E6E0;
-  --border-strong:  #D4D1C8;
-  --text-primary:   #2C2A26;
-  --text-secondary: #6B6860;
-  --purple:         #5B47C8;
-  --purple-light:   #EDE9FC;
-  --purple-dark:    #4C3DB5;
-  --purple-text:    #4C3DB5;
-  --red:            #B83232;
-  --red-light:      #FCE9E9;
-  --green:          #1A6B42;
-  --green-light:    #E8F5EE;
-  --amber:          #8A5A0A;
-  --amber-light:    #FEF3E2;
-}
-```
-
 ### Badges de status de pedido
 
-| Status | Background | Texto |
-|--------|-----------|-------|
-| Em producao | #EDE9FC | #4C3DB5 |
-| Atrasado | #FCE9E9 | #B83232 |
-| Entregue | #E8F5EE | #1A6B42 |
-| Aguardando | #FEF3E2 | #8A5A0A |
-| Cancelado | #F3F2EF | #6B6860 |
+| Status | Background | Texto | Label |
+|--------|-----------|-------|-------|
+| ORCAMENTO | #FCE9E9 | #B83232 | Orçamento |
+| APROVADO | #FEF3E2 | #8A5A0A | Aprovado |
+| AGUARDANDO | #FEF3E2 | #8A5A0A | Aguardando |
+| EM_PRODUCAO | #EDE9FC | #4C3DB5 | Em Produção |
+| PAUSADO | #FCE9E9 | #B83232 | Pausado |
+| CONCLUIDO | #E8F5EE | #1A6B42 | Concluído |
+| ENTREGUE | #E8F5EE | #1A6B42 | Entregue |
+| CANCELADO | #F3F2EF | #6B6860 | Cancelado |
 
 Referencia visual: `public/reference/dashboard.html`
 
@@ -831,56 +633,119 @@ Referencia visual: `public/reference/dashboard.html`
 
 ## Roadmap de Desenvolvimento
 
-### Fase 1 — MVP (comecar aqui)
-1. Autenticacao com NextAuth (login por email + senha)
-2. Modelos de Usuario e Convite com cargos (ADMIN, SOCIO, GERENTE, OPERADOR, VISUALIZADOR)
-3. Fluxo de convite completo — ADMIN gera link, membro define senha e avatar em /primeiro-acesso
-4. Pagina /perfil — editavel pelo proprio usuario (nome, telefone, avatar, senha)
-5. Pagina /equipe — ADMIN gerencia membros, altera cargos, ativa/desativa
-6. CRUD de Pedidos com tipo B2C/B2B, categoria, historico de status e itens
-7. Cadastro e edicao de Filamentos com barra de progresso e alerta de estoque critico
-8. Dashboard com cards de metricas, 4 graficos (Recharts) e filtros de periodo
-9. IA Chat com Claude Haiku, contexto ERP dinamico em tempo real
+### Fase 1 — MVP ✅ CONCLUIDA
 
-### Fase 2
-10. Alertas automaticos de estoque baixo e pedidos atrasados (email via Resend)
-11. Exportacao de relatorios em PDF
-12. Gerador de orcamentos com calculo de filamento e tempo
-13. Modulo NF-e — emissor proprio com nfewizard-io (requer Railway)
-14. PWA — manifest + service worker para instalacao no celular
+1. ✅ Autenticacao com NextAuth (login por email + senha)
+2. ✅ Modelos de Usuario e Convite com cargos (ADMIN, SOCIO, GERENTE, OPERADOR, VISUALIZADOR)
+3. ✅ Fluxo de convite completo — ADMIN gera link, membro define senha e avatar em /primeiro-acesso
+4. ✅ Pagina /perfil — editavel pelo proprio usuario (nome, telefone, avatar, senha)
+5. ✅ Pagina /equipe — ADMIN gerencia membros, altera cargos, ativa/desativa
+6. ✅ CRUD de Pedidos com tipo B2C/B2B, historico de status, itens, vinculacao com orcamento e upload de arquivos
+7. ✅ Cadastro e edicao de Filamentos com barra de progresso e alerta de estoque critico
+8. ✅ Dashboard com cards de metricas, 4 graficos (Recharts) e filtros de periodo
+9. ✅ IA Chat com Claude Haiku, contexto ERP dinamico em tempo real
 
-### Fase 3
+---
+
+### Fase 2 — Em andamento
+
+#### Item 10 — Alertas automaticos por email (Resend) — PARCIAL (~40%)
+
+**Implementado:**
+- Modelo `AlertaEstoque` no banco
+- Criacao automatica de alerta `ESTOQUE_BAIXO` ao editar filamento (pesoAtual < 20%)
+- Campos de configuracao na tabela `ConfiguracaoEmpresa`: `alertaEstoqueBaixo`, `alertaPedidoAtrasado`, `alertaEmailHabilitado`
+- Pagina `/dashboard/configuracoes` com toggles para ativar/desativar alertas
+
+**Pendente:**
+- Instalar biblioteca `resend`: `npm install resend`
+- Adicionar `RESEND_API_KEY` ao `.env`
+- Implementar funcao de envio de email em `lib/email.ts`
+- Criar logica de deteccao de pedidos atrasados (`prazoEntrega < hoje AND status != ENTREGUE/CANCELADO`)
+- Criar job/cron de verificacao periodica (ex: rota `/api/cron/alertas` chamada via Vercel Cron ou cron externo)
+- Conectar a condicao `alertaEmailHabilitado` ao envio efetivo
+
+---
+
+#### Item 11 — Exportacao de relatorios em PDF — PARCIAL (~30%)
+
+**Implementado:**
+- Orcamentos tem documento formatado profissionalmente com `window.print()` via navegador
+- Impressao CSS otimizada com classe `.no-print` para ocultar controles
+
+**Pendente:**
+- Relatorios gerenciais dedicados (pedidos por periodo, receita, clientes, estoque)
+- Pagina `/dashboard/relatorios` com filtros e opcao de exportar
+- Avaliacao de biblioteca para geracao programatica: `@react-pdf/renderer` ou `html2pdf.js`
+- Export sem depender do navegador (geracao server-side)
+
+---
+
+#### Item 12 — Gerador de orcamentos ✅ IMPLEMENTADO (100%)
+
+**Implementado:**
+- CRUD completo: listagem, criacao (`/dashboard/orcamentos/novo`), edicao e visualizacao (`/dashboard/orcamentos/[id]`)
+- Itens com quantidade, valor unitario, detalhamento e imagens (base64, max 2MB/imagem)
+- Calculo automatico de subtotal, frete, imposto, bonus e total geral
+- Fluxo de status: RASCUNHO → ENVIADO → APROVADO / REPROVADO / EXPIRADO
+- Vinculacao bidirecional com pedidos (pedido pode referenciar um orcamento)
+- Documento imprimivel em PDF via navegador com layout profissional, logo e anexos de imagens
+- API completa: `GET/POST /api/orcamentos` e `GET/PATCH/DELETE /api/orcamentos/[id]`
+
+---
+
+#### Item 13 — Modulo NF-e (nfewizard-io) — PENDENTE (0%)
+
+**Pendente (tudo):**
+- Instalar: `npm install nfewizard-io`
+- Criar `lib/nfe.ts` com configuracao do ambiente SEFAZ
+- Adicionar modelo `NotaFiscal` ao schema Prisma
+- Criar rotas: `POST /api/pedidos/[id]/nfe` (emitir), `DELETE /api/nfe/[id]` (cancelar)
+- Pagina de emissao vinculada ao detalhe do pedido
+- Armazenar XML autorizado e DANFE em PDF
+- Testar em ambiente de homologacao antes de producao
+- **Prerequisito: migrar hospedagem para Railway** (incompativel com Vercel)
+
+---
+
+#### Item 14 — PWA (manifest + service worker) — PENDENTE (0%)
+
+**Pendente (tudo):**
+- Criar `/public/manifest.json` com nome, icones, cores e orientacao
+- Criar icones do app: 192x192 e 512x512 (minimo)
+- Adicionar meta tags PWA no `app/layout.tsx`: `theme-color`, `apple-mobile-web-app-capable`, link para manifest
+- Instalar e configurar `next-pwa` no `next.config.ts`: `npm install next-pwa`
+- Definir estrategia de cache (ex: cache-first para assets estaticos, network-first para API)
+- Testar instalacao no Android e iOS
+
+---
+
+### Fase 3 — Planejada
+
 15. Portal do cliente para acompanhamento de pedidos
 16. CRM leve com pipeline de vendas
 17. App nativo com React Native (reutiliza toda a API)
 
 ---
 
-## Comandos de Inicializacao
+## Variaveis de Ambiente
 
-```bash
-npx create-next-app@latest 3dsinc-system --typescript --tailwind --app
-cd 3dsinc-system
-npm install @prisma/client prisma @anthropic-ai/sdk next-auth @auth/prisma-adapter zod bcryptjs recharts
-npm install -D @types/bcryptjs
-npx shadcn-ui@latest init
-npx prisma init
-npx prisma migrate dev --name init
-npx prisma generate
-```
-
-Observacoes especificas da 3D Sinc:
-- MEI ativo desde 2024 — certificado digital A1 ja adquirido, usar para NF-e na Fase 2
-- Credenciamento SEFAZ para MEI deve ser feito manualmente (nao e automatico)
-- Iniciar hospedagem no Railway desde o inicio (necessario para NF-e futuramente)
-
-Variaveis de ambiente necessarias no `.env`:
+### Obrigatorias (ja configuradas)
 
 ```
-DATABASE_URL="postgresql://user:pass@localhost:5432/3dsinc"
-ANTHROPIC_API_KEY="sk-ant-..."
-NEXTAUTH_SECRET="seu-secret-aqui"
+DATABASE_URL="postgresql://..."        # Neon PostgreSQL
+ANTHROPIC_API_KEY="sk-ant-..."         # Claude API
+NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="http://localhost:3000"
+```
+
+### A adicionar na Fase 2
+
+```
+RESEND_API_KEY="re_..."                # Item 10 — alertas por email
+NFE_CERT_PATH="./storage/cert.pfx"    # Item 13 — NF-e
+NFE_CERT_SENHA="..."                   # Item 13 — NF-e
+NFE_CNPJ="00000000000000"             # Item 13 — NF-e
 ```
 
 ---
@@ -893,3 +758,6 @@ NEXTAUTH_URL="http://localhost:3000"
 - Tratamento de erro padronizado nas API routes
 - Prisma com transactions para operacoes criticas
 - A IA deve sempre buscar contexto fresco do banco antes de responder
+- Arquivos binarios (imagens, documentos) armazenados em base64 no banco (campo `@db.Text`)
+- Nunca usar `npx prisma generate --no-engine`
+- Sempre `await params` nos route handlers do App Router (Next.js 16+)
