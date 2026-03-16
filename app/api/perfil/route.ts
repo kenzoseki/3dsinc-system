@@ -42,6 +42,10 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { acao } = body
 
+    if (acao !== undefined && acao !== 'alterarSenha') {
+      return NextResponse.json({ erro: 'Ação inválida' }, { status: 400 })
+    }
+
     if (acao === 'alterarSenha') {
       const validacao = schemaAlterarSenha.safeParse(body)
       if (!validacao.success) {

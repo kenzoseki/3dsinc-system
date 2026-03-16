@@ -4,14 +4,16 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 
-const schemaUpload = z.object({
-  nome:           z.string().min(1),
-  tipo:           z.string().min(1),
-  tamanhoBytes:   z.number().int().positive(),
-  conteudoBase64: z.string().min(1),
-})
-
+// Base64 de 10 MB = ceil(10*1024*1024/3)*4 ≈ 13.981.016 chars + prefixo data URL
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+const MAX_BASE64_LEN = 14_100_000   // ~10 MB em base64 com margem para prefixo data URL
+
+const schemaUpload = z.object({
+  nome:           z.string().min(1).max(255),
+  tipo:           z.string().min(1).max(100),
+  tamanhoBytes:   z.number().int().positive(),
+  conteudoBase64: z.string().min(1).max(MAX_BASE64_LEN, 'Arquivo muito grande. Máximo 10 MB.'),
+})
 
 export async function GET(
   _: NextRequest,
@@ -45,7 +47,12 @@ export async function POST(
       return NextResponse.json({ erro: 'Dados inválidos', detalhes: validacao.error.flatten() }, { status: 400 })
     }
 
-    if (validacao.data.tamanhoBytes > MAX_BYTES) {
+    // Calcula tamanho real a partir do base64 (ignora campo informado pelo cliente)
+    const base64 = validacao.data.conteudoBase64.includes(',')
+      ? validacao.data.conteudoBase64.split(',')[1]
+      : validacao.data.conteudoBase64
+    const tamanhoReal = Math.floor((base64.length * 3) / 4)
+    if (tamanhoReal > MAX_BYTES) {
       return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 10 MB.' }, { status: 413 })
     }
 

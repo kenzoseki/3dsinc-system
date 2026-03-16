@@ -14,16 +14,9 @@ export async function GET(request: NextRequest) {
       where: { token },
     })
 
-    if (!convite) {
-      return NextResponse.json({ erro: 'Convite invalido' }, { status: 404 })
-    }
-
-    if (convite.usado) {
-      return NextResponse.json({ erro: 'Convite ja foi utilizado' }, { status: 400 })
-    }
-
-    if (convite.expiresAt < new Date()) {
-      return NextResponse.json({ erro: 'Convite expirado' }, { status: 400 })
+    // Mensagem unificada para não revelar se token existe, foi usado ou expirou
+    if (!convite || convite.usado || convite.expiresAt < new Date()) {
+      return NextResponse.json({ erro: 'Convite inválido, expirado ou já utilizado' }, { status: 400 })
     }
 
     return NextResponse.json({

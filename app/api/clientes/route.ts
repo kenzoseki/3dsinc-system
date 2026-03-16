@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const busca = searchParams.get('busca')
+    const buscaRaw = searchParams.get('busca')
+    const busca = buscaRaw ? buscaRaw.slice(0, 100) : null // limita a 100 chars
 
     const clientes = await prisma.cliente.findMany({
       where: busca

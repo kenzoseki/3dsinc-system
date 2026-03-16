@@ -24,10 +24,17 @@ export async function GET(
       : arquivo.conteudoBase64
     const buffer = Buffer.from(base64, 'base64')
 
+    // Sanitiza nome para evitar header injection (remove aspas, quebras de linha e chars de controle)
+    const nomeSanitizado = arquivo.nome.replace(/["\r\n]/g, '_')
+    // Sanitiza Content-Type para aceitar apenas mime types válidos
+    const tipoSanitizado = /^[\w-]+\/[\w.+\-]+$/.test(arquivo.tipo)
+      ? arquivo.tipo
+      : 'application/octet-stream'
+
     return new NextResponse(buffer, {
       headers: {
-        'Content-Type': arquivo.tipo,
-        'Content-Disposition': `attachment; filename="${arquivo.nome}"`,
+        'Content-Type': tipoSanitizado,
+        'Content-Disposition': `attachment; filename="${nomeSanitizado}"`,
         'Content-Length': buffer.length.toString(),
       },
     })
