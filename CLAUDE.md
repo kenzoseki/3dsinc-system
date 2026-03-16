@@ -150,6 +150,7 @@ NFE_CNPJ="00000000000000"
 │       ├── equipe/
 │       ├── convite/
 │       └── ia/chat/
+├── middleware.ts               # Protecao centralizada de /api/* e /dashboard/*
 ├── lib/
 │   ├── db.ts                   # Prisma client
 │   ├── claude.ts               # Anthropic client
@@ -649,6 +650,19 @@ Referencia visual: `public/reference/dashboard.html`
 
 ### Fase 2 — Em andamento
 
+#### Seguranca ✅ AUDITORIA CONCLUIDA
+
+Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
+- `GET /api/configuracoes` agora exige autenticacao (estava exposta)
+- Upload de arquivos: tamanho validado pelo base64 real, nao pelo campo do cliente
+- Download de arquivos: Content-Disposition e Content-Type sanitizados
+- Convite validar: mensagem de erro unificada (previne enumeracao de tokens)
+- `middleware.ts` criado: protecao centralizada de `/api/*` e `/dashboard/*`
+- Busca de clientes: parametro truncado a 100 chars
+- Perfil: rejeita campo `acao` com valor desconhecido
+
+---
+
 #### Item 10 — Alertas automaticos por email (Resend) — PARCIAL (~40%)
 
 **Implementado:**
@@ -750,14 +764,45 @@ NFE_CNPJ="00000000000000"             # Item 13 — NF-e
 
 ---
 
+## Seguranca — Decisoes e Convencoes
+
+### Middleware de autenticacao
+
+`middleware.ts` na raiz protege centralmente todas as rotas `/api/*` e `/dashboard/*`.
+Rotas publicas explicitamente liberadas: `/api/auth`, `/api/convite/validar`, `/api/convite/aceitar`.
+Ainda assim, cada route handler chama `getServerSession` individualmente para verificar cargo/permissao.
+
+### Validacao de uploads base64
+
+- Limite de tamanho validado pelo tamanho real do base64 (nao pelo campo `tamanhoBytes` que vem do cliente)
+- Schema Zod usa `.max(14_100_000)` no campo `conteudoBase64` (~10 MB em base64)
+- Bytes reais calculados via `Math.floor((base64.length * 3) / 4)`
+
+### Content-Disposition e Content-Type
+
+Ao servir arquivos para download (`/api/pedidos/[id]/arquivos/[arquivoId]`):
+- Nome do arquivo sanitizado: remove `"`, `\r`, `\n` para evitar header injection
+- Content-Type validado com regex antes de usar; fallback para `application/octet-stream`
+
+### Tokens de convite
+
+Mensagem de erro unificada para token inexistente, expirado ou ja utilizado (evita enumeracao).
+
+### Busca de texto livre
+
+Parametros de busca (ex: `/api/clientes?busca=`) truncados a 100 chars no servidor.
+
+---
+
 ## Convencoes de Codigo
 
 - TypeScript strict em todos os arquivos
 - Nomes de variaveis e comentarios em portugues
-- Validacao com Zod em todos os formularios e API routes
+- Validacao com Zod em todos os formularios e API routes — incluir `.max()` em campos de texto livre
 - Tratamento de erro padronizado nas API routes
 - Prisma com transactions para operacoes criticas
 - A IA deve sempre buscar contexto fresco do banco antes de responder
 - Arquivos binarios (imagens, documentos) armazenados em base64 no banco (campo `@db.Text`)
 - Nunca usar `npx prisma generate --no-engine`
 - Sempre `await params` nos route handlers do App Router (Next.js 16+)
+- Toda nova rota `/api/*` deve chamar `getServerSession` e verificar cargo quando necessario
