@@ -11,6 +11,7 @@ const itensNavegacao = [
   { href: '/dashboard', label: 'Dashboard', icone: '⊞' },
   { href: '/dashboard/pedidos', label: 'Pedidos', icone: '📋' },
   { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '📄' },
+  { href: '/dashboard/clientes', label: 'Clientes', icone: '👥' },
   { href: '/dashboard/producao', label: 'Produção', icone: '⚙️' },
   { href: '/dashboard/estoque', label: 'Estoque', icone: '🧵' },
   { href: '/dashboard/assistente', label: 'Assistente IA', icone: '✦' },

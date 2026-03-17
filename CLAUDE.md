@@ -135,6 +135,8 @@ NFE_CNPJ="00000000000000"
 │   │   ├── dashboard/
 │   │   │   ├── pedidos/        # ERP - Pedidos (listagem, novo, [id])
 │   │   │   ├── orcamentos/     # Orcamentos (listagem, novo, [id])
+│   │   │   ├── clientes/       # Clientes (listagem, [id] com historico)
+│   │   │   ├── producao/       # Fila de producao (AGUARDANDO + EM_PRODUCAO)
 │   │   │   ├── estoque/        # Modulo Filamentos
 │   │   │   ├── assistente/     # IA Chat
 │   │   │   ├── perfil/         # Perfil do usuario logado
@@ -144,13 +146,13 @@ NFE_CNPJ="00000000000000"
 │       ├── pedidos/            # CRUD + [id]/arquivos/[arquivoId]
 │       ├── orcamentos/         # CRUD
 │       ├── filamentos/
-│       ├── clientes/
+│       ├── clientes/           # GET (busca+paginacao), POST; [id] GET/PATCH/DELETE
 │       ├── configuracoes/
 │       ├── perfil/
 │       ├── equipe/
 │       ├── convite/
 │       └── ia/chat/
-├── middleware.ts               # Protecao centralizada de /api/* e /dashboard/*
+├── proxy.ts                    # Protecao centralizada de /api/* e /dashboard/* (Next.js 16 convention)
 ├── lib/
 │   ├── db.ts                   # Prisma client
 │   ├── claude.ts               # Anthropic client
@@ -657,7 +659,7 @@ Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
 - Upload de arquivos: tamanho validado pelo base64 real, nao pelo campo do cliente
 - Download de arquivos: Content-Disposition e Content-Type sanitizados
 - Convite validar: mensagem de erro unificada (previne enumeracao de tokens)
-- `middleware.ts` criado: protecao centralizada de `/api/*` e `/dashboard/*`
+- `proxy.ts` criado: protecao centralizada de `/api/*` e `/dashboard/*` (Next.js 16.1.6 — renomeado de middleware.ts)
 - Busca de clientes: parametro truncado a 100 chars
 - Perfil: rejeita campo `acao` com valor desconhecido
 
@@ -752,31 +754,25 @@ Pentest realizado em 16/03/2026. Vulnerabilidades corrigidas:
 
 ### Fase 2 — Pendencias ERP/CRM identificadas
 
-#### Item 16 — Pagina de clientes — PENDENTE (0%)
+#### Item 16 — Pagina de clientes ✅ IMPLEMENTADO (100%)
 
-A API `/api/clientes` existe mas nao ha pagina de gerenciamento na UI.
-O ERP precisa de uma tela de cadastro e historico de clientes.
-
-**Pendente:**
-- Pagina `/dashboard/clientes` com listagem paginada e busca
-- Detalhe do cliente com historico de pedidos e orcamentos
-- Formulario de criacao e edicao de clientes
-- API `GET/PATCH/DELETE /api/clientes/[id]` (atualmente so tem GET/POST)
+**Implementado:**
+- `/api/clientes` com paginacao (param `paginado=true`, `pagina`, `limite`)
+- `/api/clientes/[id]` com GET (detalhe + pedidos), PATCH (editar), DELETE (bloqueia se tem pedidos)
+- `/dashboard/clientes` — listagem com busca, paginacao (25/pagina) e modal de criacao
+- `/dashboard/clientes/[id]` — detalhe com historico de pedidos e edicao inline
+- Menu de navegacao atualizado com item "Clientes"
 
 ---
 
-#### Item 17 — Pagina de Producao — PENDENTE (0%)
+#### Item 17 — Pagina de Producao ✅ IMPLEMENTADO (100%)
 
-O menu ja tem o item "Producao" (href `/dashboard/producao`) mas a pagina nao existe.
-Retorna 404. Deve ser implementada ou o item do menu deve ser removido.
-
-**Opcao A — Implementar pagina de producao:**
-- Kanban ou lista de pedidos em status AGUARDANDO e EM_PRODUCAO
-- Controle de fila: reordenar, iniciar/pausar impressao
-- Registro de tempo e consumo de filamento por pedido
-
-**Opcao B — Remover do menu enquanto nao implementado:**
-- Remover item `producao` do array `itensNavegacao` em `layout.tsx`
+**Implementado:**
+- `/dashboard/producao` — lista de pedidos AGUARDANDO e EM_PRODUCAO em secoes separadas
+- Contadores no topo ("X aguardando · Y em producao")
+- Acoes diretas por linha: Iniciar Producao, Pausar, Concluir, Cancelar (usa PATCH /api/pedidos/[id])
+- Destaque de prazo atrasado (cor vermelha)
+- Click na linha navega para o detalhe do pedido
 
 ---
 
@@ -790,14 +786,14 @@ Retorna 404. Deve ser implementada ou o item do menu deve ser removido.
 
 ### Resumo de proximos passos — ordem sugerida
 
-| Prioridade | Item | Motivo |
-|------------|------|--------|
-| 1 | Item 16 — Pagina clientes | Lacuna funcional visivel no ERP |
-| 2 | Item 17 — Definir Producao | 404 no menu e problema critico de UX |
-| 3 | Item 10 — Alertas email | 60% do trabalho ja esta feito |
-| 4 | Item 14 — PWA | Habilita uso no celular sem app nativo |
-| 5 | Item 11 — Relatorios PDF | Valor alto para gestao |
-| 6 | Item 13 — NF-e | Requer Railway + contador |
+| Prioridade | Item | Status | Motivo |
+|------------|------|--------|--------|
+| ✅ | Item 16 — Clientes | CONCLUIDO | Listagem, detalhe, CRUD completo |
+| ✅ | Item 17 — Producao | CONCLUIDO | Fila com acoes de status |
+| 1 | Item 10 — Alertas email | ~40% | 60% do trabalho ja esta feito |
+| 2 | Item 14 — PWA | 0% | Habilita uso no celular sem app nativo |
+| 3 | Item 11 — Relatorios PDF | ~30% | Valor alto para gestao |
+| 4 | Item 13 — NF-e | 0% | Requer Railway + contador |
 
 ---
 
@@ -825,9 +821,10 @@ NFE_CNPJ="00000000000000"             # Item 13 — NF-e
 
 ## Seguranca — Decisoes e Convencoes
 
-### Middleware de autenticacao
+### Proxy de autenticacao (Next.js 16 convention)
 
-`middleware.ts` na raiz protege centralmente todas as rotas `/api/*` e `/dashboard/*`.
+`proxy.ts` na raiz protege centralmente todas as rotas `/api/*` e `/dashboard/*`.
+No Next.js 16.1.6+, o arquivo `middleware.ts` foi depreciado em favor de `proxy.ts` — a funcao exportada deve se chamar `proxy` (nao `middleware`).
 Rotas publicas explicitamente liberadas: `/api/auth`, `/api/convite/validar`, `/api/convite/aceitar`.
 Ainda assim, cada route handler chama `getServerSession` individualmente para verificar cargo/permissao.
 
@@ -850,6 +847,170 @@ Mensagem de erro unificada para token inexistente, expirado ou ja utilizado (evi
 ### Busca de texto livre
 
 Parametros de busca (ex: `/api/clientes?busca=`) truncados a 100 chars no servidor.
+
+---
+
+---
+
+## Módulo Stand-by — Monitoramento de Impressoras Bambu Lab
+
+> Status: implementação futura. Aguardando viabilidade de aquisição do
+> hardware. Não bloqueia nenhuma fase do roadmap.
+
+### Visão geral
+
+Um Raspberry Pi na rede local do escritório atua como bridge entre as
+impressoras Bambu Lab (protocolo MQTT) e o sistema 3D Sinc (API REST).
+Isso permite exibir no dashboard o status em tempo real de cada impressora
+— progresso, temperatura, filamento em uso, erros — acessível de qualquer
+rede.
+
+### Arquitetura
+```
+Impressoras Bambu (MQTT local)
+    ↓
+Raspberry Pi — bridge sempre ligado
+    ↓ API REST / WebSocket
+Sistema 3D Sinc — Next.js (Railway)
+    ↓
+Dashboard → card "Impressoras ao vivo"
+```
+
+### Dados disponíveis via MQTT
+
+- Status da impressão (idle, printing, paused, error)
+- Percentual de progresso
+- Tempo restante estimado
+- Temperaturas (bico, mesa, câmara)
+- Filamento em uso / AMS
+- Nome do arquivo sendo impresso
+- Velocidade de impressão
+- Erros e alertas
+- Feed de câmera (com autenticação)
+
+### Orçamento estimado
+
+| Item | Estimativa |
+|------|-----------|
+| Raspberry Pi 4 (4GB) | R$400–550 |
+| Cartão microSD 32GB | R$40–70 |
+| Fonte oficial USB-C | R$60–90 |
+| Case com ventilação | R$40–80 |
+| Waveshare UPS HAT | R$150–220 |
+| Baterias 18650 (2x) | R$40–60 |
+| Cabo de rede Cat5e 3m | R$20–30 |
+| **Total hardware** | **R$750–1.100** |
+
+Custo mensal operacional (energia elétrica): ~R$8–12/mês
+Custo de software: R$0 (tudo open source)
+
+### Solução de resiliência a queda de energia
+
+Três camadas combinadas:
+
+**1. UPS HAT no Pi**
+Bateria própria do Pi independente do nobreak das impressoras.
+Detecta queda e executa shutdown seguro antes de desligar.
+
+**2. Auto liga quando energia volta**
+Configurar EEPROM do Pi para religar automaticamente:
+
+    sudo -E rpi-eeprom-config --edit
+    # Adicionar:
+    POWER_OFF_ON_HALT=1
+    WAKE_ON_GPIO=1
+
+**3. Serviço de bridge com restart automático**
+
+    # /etc/systemd/system/bambu-bridge.service
+    [Service]
+    Restart=always
+    RestartSec=10
+
+    # Habilitar na inicialização
+    sudo systemctl enable bambu-bridge
+    sudo systemctl start bambu-bridge
+
+Fluxo completo:
+
+    Queda de energia
+        ↓
+    UPS HAT detecta → Pi faz shutdown seguro (~30 min de bateria)
+        ↓
+    Energia volta → Pi liga automaticamente (EEPROM)
+        ↓
+    Systemd sobe o serviço de bridge (~30s)
+        ↓
+    Dashboard reconecta às impressoras automaticamente
+
+### Biblioteca Python para MQTT
+
+    pip install bambulabs-api
+
+    # bridge/main.py
+    import bambulabs_api as bl
+    import time
+
+    IP          = '192.168.1.xxx'   # IP local da impressora
+    SERIAL      = 'AC12309BH109'    # Número de série
+    ACCESS_CODE = '12347890'        # Configs > Wi-Fi > Access Code
+
+    printer = bl.Printer(IP, ACCESS_CODE, SERIAL)
+    printer.connect()
+
+    while True:
+        status = printer.get_state()
+        # TODO: expor via API REST para o Next.js consumir
+        time.sleep(5)
+
+### Dashboard — card "Impressoras ao vivo"
+
+Exibir por impressora: nome, status (badge colorido), progresso (barra),
+tempo restante e temperatura do bico. Se não houver leitura há mais de
+2 minutos, exibir badge "Sem conexão" em vez de dados desatualizados.
+
+### Desenvolvimento dos scripts no Pi
+
+Usar VS Code Remote SSH — edita no computador principal, executa
+direto no Pi via rede. O Claude Code também funciona por esta conexão.
+
+Instalar a extensão "Remote - SSH" no VS Code e conectar via:
+
+    ssh pi@192.168.1.xxx
+
+### Observações para implementação
+
+- Manter firmware do Pi atualizado para compatibilidade com bambulabs-api
+- Fase atual usa Opção 1 — Developer Mode desativado, MQTT somente leitura
+- A Cloud API não oficial pode quebrar com atualizações de firmware da
+  Bambu Lab — evitar para produção
+- Um único Pi consegue monitorar múltiplas impressoras simultaneamente
+
+### Estratégia de controle — decisão dos sócios
+
+**Fase atual — Opção 1 (Monitoramento apenas)**
+Developer Mode desativado. Bambu Handy continua funcionando normalmente
+para iniciar impressões. O sistema da 3D Sinc exibe status, progresso,
+temperaturas e alertas em tempo real — somente leitura.
+
+**Implementação futura — Opção 2/3 (Controle total)**
+> Status: stand-by. Avaliar após módulo de monitoramento estável.
+
+Quando o módulo de impressoras estiver maduro, ativar Developer Mode
+impressora por impressora. Com isso o sistema ganha:
+- Iniciar impressão a partir de arquivos salvos (reimpressão de pedidos)
+- Pausar, retomar e cancelar remotamente
+- Listar e gerenciar arquivos no cartão SD da impressora
+- Fila de impressão integrada ao ERP (pedido aprovado → envia para fila)
+
+Trade-off obrigatório ao ativar Developer Mode:
+- Bambu Handy deixa de funcionar na impressora afetada
+- Impressora opera exclusivamente em LAN Mode
+- A equipe passa a controlar aquela impressora pelo sistema próprio
+
+Estratégia recomendada para a transição:
+Ativar por impressora individualmente, testando uma de cada vez, sem
+afetar a operação das demais que continuam no modo padrão.
 
 ---
 

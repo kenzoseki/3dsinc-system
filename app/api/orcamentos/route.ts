@@ -36,12 +36,39 @@ const schemaCriar = z.object({
   itens:               z.array(schemaItem).min(1),
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
 
+    const { searchParams } = new URL(request.url)
+    const paginado = searchParams.get('paginado') === 'true'
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10))
+    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '20', 10)))
+    const statusParam = searchParams.get('status')
+
+    const where = statusParam ? { status: statusParam as import('@prisma/client').StatusOrcamento } : {}
+
+    if (paginado) {
+      const [orcamentos, total] = await Promise.all([
+        prisma.orcamento.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (pagina - 1) * limite,
+          take: limite,
+          include: { itens: { select: { valorUnitario: true, quantidade: true } } },
+        }),
+        prisma.orcamento.count({ where }),
+      ])
+      return NextResponse.json({
+        orcamentos,
+        paginacao: { total, pagina, limite, totalPaginas: Math.ceil(total / limite) },
+      })
+    }
+
+    // Modo compatibilidade — retorna array plano
     const orcamentos = await prisma.orcamento.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: { itens: { include: { imagens: true } } },
     })

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 interface Orcamento {
   id: string
@@ -15,6 +15,22 @@ interface Orcamento {
   frete: number | null
   bonusPercentual: number | null
 }
+
+interface Paginacao {
+  total: number
+  pagina: number
+  limite: number
+  totalPaginas: number
+}
+
+const FILTROS = [
+  { valor: '', label: 'Todos' },
+  { valor: 'RASCUNHO', label: 'Rascunho' },
+  { valor: 'ENVIADO', label: 'Enviado' },
+  { valor: 'APROVADO', label: 'Aprovado' },
+  { valor: 'REPROVADO', label: 'Reprovado' },
+  { valor: 'EXPIRADO', label: 'Expirado' },
+]
 
 const labelStatus: Record<string, { label: string; bg: string; cor: string }> = {
   RASCUNHO:  { label: 'Rascunho',  bg: '#F3F2EF', cor: '#6B6860' },
@@ -31,27 +47,52 @@ function calcularTotal(orc: Orcamento): number {
   return subtotal + frete + bonus
 }
 
+const LIMITE = 20
+
 export default function OrcamentosPage() {
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
+  const [paginacao, setPaginacao] = useState<Paginacao | null>(null)
+  const [pagina, setPagina] = useState(1)
+  const [statusFiltro, setStatusFiltro] = useState('')
   const [carregando, setCarregando] = useState(true)
 
-  useEffect(() => {
-    fetch('/api/orcamentos')
-      .then(r => r.json())
-      .then(data => { setOrcamentos(Array.isArray(data) ? data : []); setCarregando(false) })
-      .catch(() => setCarregando(false))
-  }, [])
+  const carregar = useCallback(async () => {
+    setCarregando(true)
+    try {
+      const params = new URLSearchParams({ paginado: 'true', pagina: String(pagina), limite: String(LIMITE) })
+      if (statusFiltro) params.set('status', statusFiltro)
+      const res = await fetch(`/api/orcamentos?${params}`)
+      if (res.ok) {
+        const dados = await res.json()
+        setOrcamentos(dados.orcamentos ?? [])
+        setPaginacao(dados.paginacao ?? null)
+      }
+    } finally {
+      setCarregando(false)
+    }
+  }, [pagina, statusFiltro])
+
+  useEffect(() => { carregar() }, [carregar])
+
+  function mudarFiltro(valor: string) {
+    setStatusFiltro(valor)
+    setPagina(1)
+  }
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '8px 0 40px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      {/* Cabeçalho */}
+      <div className="cabecalho-pagina" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Orçamentos
           </h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-            {orcamentos.length} orçamento{orcamentos.length !== 1 ? 's' : ''} cadastrado{orcamentos.length !== 1 ? 's' : ''}
-          </p>
+          {paginacao && (
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+              {paginacao.total} orçamento{paginacao.total !== 1 ? 's' : ''}
+              {statusFiltro ? ` com status "${labelStatus[statusFiltro]?.label}"` : ' no total'}
+            </p>
+          )}
         </div>
         <Link
           href="/dashboard/orcamentos/novo"
@@ -67,6 +108,27 @@ export default function OrcamentosPage() {
         </Link>
       </div>
 
+      {/* Filtros de status */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        {FILTROS.map(f => (
+          <button
+            key={f.valor}
+            onClick={() => mudarFiltro(f.valor)}
+            style={{
+              padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+              borderColor: statusFiltro === f.valor ? 'var(--purple)' : 'var(--border)',
+              background: statusFiltro === f.valor ? 'var(--purple-light)' : 'var(--bg-surface)',
+              color: statusFiltro === f.valor ? 'var(--purple-text)' : 'var(--text-secondary)',
+              fontSize: '13px', fontWeight: statusFiltro === f.valor ? 600 : 400,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all 0.1s',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tabela */}
       {carregando ? (
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', padding: '40px' }}>Carregando...</p>
       ) : orcamentos.length === 0 ? (
@@ -77,10 +139,10 @@ export default function OrcamentosPage() {
         }}>
           <p style={{ fontSize: '32px', marginBottom: '12px' }}>📄</p>
           <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'Nunito, sans-serif', marginBottom: '6px' }}>
-            Nenhum orçamento ainda
+            {statusFiltro ? 'Nenhum orçamento com este status' : 'Nenhum orçamento ainda'}
           </p>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-            Crie seu primeiro orçamento clicando em "+ Novo orçamento"
+            {statusFiltro ? 'Tente outro filtro ou crie um novo orçamento.' : 'Crie seu primeiro orçamento clicando em "+ Novo orçamento"'}
           </p>
         </div>
       ) : (
@@ -106,8 +168,8 @@ export default function OrcamentosPage() {
                       ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{orc.clienteNome}</p>
-                      {orc.clienteEmpresa && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>{orc.clienteEmpresa}</p>}
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>{orc.clienteNome}</p>
+                      {orc.clienteEmpresa && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>{orc.clienteEmpresa}</p>}
                     </td>
                     <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
                       {new Date(orc.dataEmissao).toLocaleDateString('pt-BR')}
@@ -138,6 +200,38 @@ export default function OrcamentosPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Paginação */}
+      {paginacao && paginacao.totalPaginas > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+          <button
+            onClick={() => setPagina(p => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            style={{
+              padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)',
+              background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-primary)',
+              cursor: pagina === 1 ? 'not-allowed' : 'pointer', opacity: pagina === 1 ? 0.4 : 1,
+            }}
+          >
+            ← Anterior
+          </button>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+            Página {paginacao.pagina} de {paginacao.totalPaginas}
+          </span>
+          <button
+            onClick={() => setPagina(p => Math.min(paginacao.totalPaginas, p + 1))}
+            disabled={pagina === paginacao.totalPaginas}
+            style={{
+              padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)',
+              background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-primary)',
+              cursor: pagina === paginacao.totalPaginas ? 'not-allowed' : 'pointer',
+              opacity: pagina === paginacao.totalPaginas ? 0.4 : 1,
+            }}
+          >
+            Próxima →
+          </button>
         </div>
       )}
     </div>

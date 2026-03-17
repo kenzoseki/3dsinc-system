@@ -21,18 +21,42 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const buscaRaw = searchParams.get('busca')
-    const busca = buscaRaw ? buscaRaw.slice(0, 100) : null // limita a 100 chars
+    const busca = buscaRaw ? buscaRaw.slice(0, 100) : null
+    const paginado = searchParams.get('paginado') === 'true'
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10))
+    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '25', 10)))
 
+    const where = busca
+      ? {
+          OR: [
+            { nome: { contains: busca, mode: 'insensitive' as const } },
+            { empresa: { contains: busca, mode: 'insensitive' as const } },
+            { email: { contains: busca, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}
+
+    if (paginado) {
+      const [clientes, total] = await Promise.all([
+        prisma.cliente.findMany({
+          where,
+          orderBy: { nome: 'asc' },
+          skip: (pagina - 1) * limite,
+          take: limite,
+          include: { _count: { select: { pedidos: true } } },
+        }),
+        prisma.cliente.count({ where }),
+      ])
+
+      return NextResponse.json({
+        clientes,
+        paginacao: { total, pagina, limite, totalPaginas: Math.ceil(total / limite) },
+      })
+    }
+
+    // Modo compatibilidade — retorna array plano (usado pelo seletor de clientes em pedidos)
     const clientes = await prisma.cliente.findMany({
-      where: busca
-        ? {
-            OR: [
-              { nome: { contains: busca, mode: 'insensitive' } },
-              { empresa: { contains: busca, mode: 'insensitive' } },
-              { email: { contains: busca, mode: 'insensitive' } },
-            ],
-          }
-        : {},
+      where,
       orderBy: { nome: 'asc' },
       take: 50,
     })

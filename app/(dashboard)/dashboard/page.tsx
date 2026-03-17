@@ -75,7 +75,7 @@ async function getDados(periodo: string) {
   const { dataInicio, dataFim } = calcularPeriodo(periodo)
   const gran = granularidade(periodo)
 
-  const [pedidosPeriodo, pedidosEmProducao, filamentos, filamentosEstoqueCritico] = await Promise.all([
+  const [pedidosPeriodo, pedidosEmProducao, filamentos, filamentosEstoqueCritico, totalClientes] = await Promise.all([
     prisma.pedido.findMany({
       where: { createdAt: { gte: dataInicio, lte: dataFim } },
       include: { cliente: true },
@@ -88,6 +88,7 @@ async function getDados(periodo: string) {
         pesoTotal: { gt: 0 },
       },
     }),
+    prisma.cliente.count(),
   ])
 
   // Filamentos com menos de 20%
@@ -159,6 +160,7 @@ async function getDados(periodo: string) {
     receita,
     ticketMedio,
     filamentosEstoqueCritico: filamentosAbaixo20,
+    totalClientes,
     dadosPedidosStatus,
     dadosFilamentos,
     dadosTipo,
@@ -219,6 +221,7 @@ export default async function PaginaDashboard({
     { titulo: 'Receita no Período', valor: formatarMoeda(dados.receita), corValor: 'var(--green)', descricao: 'valor total', mono: false },
     { titulo: 'Ticket Médio', valor: formatarMoeda(dados.ticketMedio), corValor: 'var(--text-primary)', descricao: 'por pedido', mono: false },
     { titulo: 'Estoque Crítico', valor: dados.filamentosEstoqueCritico, corValor: 'var(--red)', descricao: 'filamentos < 20%', mono: true },
+    { titulo: 'Total de Clientes', valor: dados.totalClientes, corValor: 'var(--amber)', descricao: 'clientes cadastrados', mono: true },
   ]
 
   return (
@@ -239,7 +242,7 @@ export default async function PaginaDashboard({
       </div>
 
       {/* Cards de métricas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
+      <div className="grid-metricas" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
         {cards.map((c) => (
           <div key={c.titulo} style={estiloCard}>
             <p style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
