@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     const config = await prisma.configuracaoEmpresa.findUnique({ where: { id: 'empresa' } })
 
     // Sem email configurado ou alertas desabilitados — nada a fazer
-    if (!config?.email || !config.alertaEmailHabilitado) {
+    const emailDestino = config?.emailAlertas ?? config?.email
+    if (!emailDestino || !config?.alertaEmailHabilitado) {
       return NextResponse.json({ mensagem: 'Alertas por email desabilitados ou email não configurado', enviados: 0 })
     }
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
           pesoTotal: Number(a.filamento.pesoTotal),
         }))
 
-        await enviarAlertaEstoqueBaixo({ para: config.email, filamentos })
+        await enviarAlertaEstoqueBaixo({ para: emailDestino, filamentos })
 
         // Marca todos como lidos
         await prisma.alertaEstoque.updateMany({
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
           status:    p.status,
         }))
 
-        await enviarAlertaPedidoAtrasado({ para: config.email, pedidos })
+        await enviarAlertaPedidoAtrasado({ para: emailDestino, pedidos })
         resultados.push(`Pedidos: ${pedidos.length} pedido(s) atrasado(s) notificado(s)`)
       } else {
         resultados.push('Pedidos: sem atrasos')

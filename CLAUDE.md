@@ -509,9 +509,13 @@ ANTHROPIC_API_KEY="sk-ant-..."
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="http://localhost:3000"
 
-# Fase 2 — a adicionar
-RESEND_API_KEY="re_..."                # Item 10 — alertas por email
-NFE_CERT_PATH="./storage/cert.pfx"    # Item 13 — NF-e
+# Fase 2 — alertas por email
+RESEND_API_KEY="re_..."                # Resend — envio de email
+EMAIL_FROM="alertas@3dsinc.com.br"    # Remetente (requer domínio verificado)
+CRON_SECRET="..."                     # Gerado com: openssl rand -hex 32
+
+# Stand-by — NF-e (requer Railway)
+NFE_CERT_PATH="./storage/cert.pfx"
 NFE_CERT_SENHA="..."
 NFE_CNPJ="00000000000000"
 ```
@@ -541,7 +545,7 @@ NFE_CNPJ="00000000000000"
 
 ---
 
-### Fase 2 — Em Andamento
+### Fase 2 — ✅ CONCLUÍDA
 
 #### Próximos passos — ordem sugerida
 
@@ -575,12 +579,12 @@ NFE_CNPJ="00000000000000"
 
 ---
 
-### Fase 3 — Em Andamento
+### Fase 3 — ✅ CONCLUÍDA
 
 | Prioridade | Item | Status | Observação |
 |------------|------|--------|------------|
 | 1 | Portal do cliente | ✅ 100% | Token único por pedido, página pública `/portal/pedido/[token]` |
-| 2 | CRM leve | ✅ 100% | Pipeline kanban PROSPECTO → NEGOCIACAO → FECHADO/PERDIDO |
+| 2 | CRM leve | ✅ 100% | Pipeline kanban PROSPECTO → NEGOCIACAO → FECHADO/PERDIDO, drag and drop |
 
 #### Portal do cliente
 

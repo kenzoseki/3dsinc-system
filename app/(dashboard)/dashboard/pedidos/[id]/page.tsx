@@ -199,6 +199,9 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
               {badge.label}
             </span>
           </div>
+          <p style={{ margin: '6px 0 0', fontSize: '16px', fontWeight: 600, fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)' }}>
+            {pedido.descricao}
+          </p>
         </div>
 
         {/* Ações de status */}

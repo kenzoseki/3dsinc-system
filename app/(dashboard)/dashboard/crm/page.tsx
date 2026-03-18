@@ -41,6 +41,8 @@ export default function PaginaCRM() {
   const [salvando, setSalvando]     = useState(false)
   const [erroModal, setErroModal]   = useState('')
   const [movendo, setMovendo]       = useState<string | null>(null)
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null)
+  const [etapaAlvo, setEtapaAlvo]       = useState<EtapaLead | null>(null)
 
   const cargo = session?.user?.cargo as Cargo | undefined
   const podeEditar = cargo ? Permissoes.podeEscreverPedidos(cargo) : false
@@ -173,8 +175,20 @@ export default function PaginaCRM() {
           {ETAPAS.map(etapa => {
             const lista   = leadsPorEtapa(etapa.valor)
             const receita = receitaEtapa(etapa.valor)
+            const ehAlvo  = etapaAlvo === etapa.valor && arrastandoId !== null
             return (
-              <div key={etapa.valor}>
+              <div
+                key={etapa.valor}
+                onDragOver={e => { e.preventDefault(); setEtapaAlvo(etapa.valor) }}
+                onDragLeave={() => setEtapaAlvo(null)}
+                onDrop={e => {
+                  e.preventDefault()
+                  setEtapaAlvo(null)
+                  const lead = leads.find(l => l.id === arrastandoId)
+                  if (lead && lead.etapa !== etapa.valor) moverEtapa(lead, etapa.valor)
+                  setArrastandoId(null)
+                }}
+              >
                 {/* Cabeçalho da coluna */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px' }}>{etapa.icone}</span>
@@ -196,8 +210,14 @@ export default function PaginaCRM() {
                 )}
 
                 {/* Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {lista.length === 0 ? (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: '8px',
+                  minHeight: '60px', borderRadius: '10px', padding: '4px',
+                  transition: 'background 0.15s',
+                  background: ehAlvo ? etapa.bg : 'transparent',
+                  outline: ehAlvo ? `2px dashed ${etapa.cor}` : 'none',
+                }}>
+                  {lista.length === 0 && !ehAlvo ? (
                     <div style={{
                       padding: '20px 14px', background: 'var(--bg-surface)', borderRadius: '10px',
                       border: '1px dashed var(--border)', textAlign: 'center',
@@ -208,11 +228,15 @@ export default function PaginaCRM() {
                   ) : lista.map(lead => (
                     <div
                       key={lead.id}
+                      draggable={podeEditar}
+                      onDragStart={() => setArrastandoId(lead.id)}
+                      onDragEnd={() => { setArrastandoId(null); setEtapaAlvo(null) }}
                       style={{
                         background: 'var(--bg-surface)', border: '1px solid var(--border)',
                         borderRadius: '10px', padding: '14px',
-                        opacity: movendo === lead.id ? 0.5 : 1,
+                        opacity: (movendo === lead.id || arrastandoId === lead.id) ? 0.4 : 1,
                         transition: 'opacity 0.15s',
+                        cursor: podeEditar ? 'grab' : 'default',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
@@ -227,12 +251,20 @@ export default function PaginaCRM() {
                           )}
                         </div>
                         {podeEditar && (
-                          <button
-                            onClick={() => abrirEditar(lead)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px', padding: '0 2px', flexShrink: 0 }}
-                          >
-                            ✏
-                          </button>
+                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                            <button
+                              onClick={() => abrirEditar(lead)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px', padding: '0 2px' }}
+                            >
+                              ✏
+                            </button>
+                            <button
+                              onClick={() => excluir(lead)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B83232', fontSize: '13px', padding: '0 2px' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -246,38 +278,6 @@ export default function PaginaCRM() {
                         <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
                           👤 {lead.responsavel}
                         </p>
-                      )}
-
-                      {/* Mover para outra etapa */}
-                      {podeEditar && (
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '10px', flexWrap: 'wrap' }}>
-                          {ETAPAS.filter(e => e.valor !== etapa.valor).map(dest => (
-                            <button
-                              key={dest.valor}
-                              disabled={movendo === lead.id}
-                              onClick={() => moverEtapa(lead, dest.valor)}
-                              style={{
-                                padding: '3px 8px', borderRadius: '6px', border: 'none',
-                                background: dest.bg, color: dest.cor,
-                                fontSize: '10px', fontWeight: 600, cursor: 'pointer',
-                                fontFamily: 'Inter, sans-serif',
-                              }}
-                            >
-                              → {dest.label}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => excluir(lead)}
-                            style={{
-                              padding: '3px 8px', borderRadius: '6px', border: 'none',
-                              background: '#FCE9E9', color: '#B83232',
-                              fontSize: '10px', fontWeight: 600, cursor: 'pointer',
-                              fontFamily: 'Inter, sans-serif',
-                            }}
-                          >
-                            Excluir
-                          </button>
-                        </div>
                       )}
                     </div>
                   ))}

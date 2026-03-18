@@ -181,6 +181,7 @@ model ConfiguracaoEmpresa {
   alertaEstoqueBaixo    Boolean  @default(true)
   alertaPedidoAtrasado  Boolean  @default(true)
   alertaEmailHabilitado Boolean  @default(false)
+  emailAlertas          String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

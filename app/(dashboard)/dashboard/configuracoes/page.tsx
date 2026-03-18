@@ -15,6 +15,7 @@ interface Config {
   alertaEstoqueBaixo: boolean
   alertaPedidoAtrasado: boolean
   alertaEmailHabilitado: boolean
+  emailAlertas: string | null
 }
 
 const estiloCard: React.CSSProperties = {
@@ -279,7 +280,7 @@ export default function ConfiguracoesPage() {
         {[
           { campo: 'alertaEstoqueBaixo' as const, titulo: 'Alerta de estoque baixo', descricao: 'Notifica quando filamentos atingem menos de 20% de capacidade.' },
           { campo: 'alertaPedidoAtrasado' as const, titulo: 'Alerta de pedido atrasado', descricao: 'Notifica quando pedidos ultrapassam o prazo de entrega sem estar concluídos.' },
-          { campo: 'alertaEmailHabilitado' as const, titulo: 'Envio de alertas por e-mail', descricao: 'Envia notificações para o e-mail da empresa (requer Resend configurado — Fase 2).' },
+          { campo: 'alertaEmailHabilitado' as const, titulo: 'Envio de alertas por e-mail', descricao: 'Envia notificações por e-mail diariamente (requer Resend configurado).' },
         ].map(({ campo, titulo, descricao }) => (
           <div key={campo} style={{
             display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
@@ -315,7 +316,41 @@ export default function ConfiguracoesPage() {
               }} />
             </button>
           </div>
-        ))}
+        ])}
+
+        {/* E-mail de destino dos alertas */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '4px' }}>
+          <label style={estiloLabel}>E-mail para receber alertas</label>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginBottom: '10px' }}>
+            Se preenchido, os alertas serão enviados para este endereço. Caso vazio, será usado o e-mail da empresa.
+          </p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              style={{ ...estiloInput, flex: 1 }}
+              type="email"
+              placeholder="alertas@exemplo.com.br"
+              value={config.emailAlertas ?? ''}
+              onChange={e => setConfig(c => c ? { ...c, emailAlertas: e.target.value || null } : c)}
+              disabled={!isAdmin}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            />
+            {isAdmin && (
+              <button
+                onClick={() => salvar({ emailAlertas: config.emailAlertas })}
+                disabled={salvando}
+                style={{
+                  padding: '9px 16px', borderRadius: '8px', fontSize: '13px',
+                  fontFamily: 'Inter, sans-serif', cursor: salvando ? 'not-allowed' : 'pointer',
+                  fontWeight: 500, backgroundColor: 'var(--purple)', color: '#fff', border: 'none',
+                  opacity: salvando ? 0.7 : 1, whiteSpace: 'nowrap',
+                }}
+              >
+                Salvar
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -16,12 +16,13 @@ const schemaAtualizar = z.object({
   alertaEstoqueBaixo:    z.boolean().optional(),
   alertaPedidoAtrasado:  z.boolean().optional(),
   alertaEmailHabilitado: z.boolean().optional(),
+  emailAlertas:          z.string().email().max(200).optional().nullable(),
 })
 
 const configPadrao = {
   id: 'empresa', nomeEmpresa: '3D Sinc', cnpj: null, email: null,
   telefone: null, endereco: null, cidade: null, estado: null, logoBase64: null,
-  alertaEstoqueBaixo: true, alertaPedidoAtrasado: true, alertaEmailHabilitado: false,
+  alertaEstoqueBaixo: true, alertaPedidoAtrasado: true, alertaEmailHabilitado: false, emailAlertas: null,
 }
 
 export async function GET() {
