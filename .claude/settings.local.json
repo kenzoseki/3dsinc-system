@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /e/GitHub/3dsinc-system/app/api -name *export* -o -name *relat* -o -name *report* -o -name *pdf*)",
+      "Bash(ls \"e:/GitHub/3dsinc-system/app/\\\\\\(dashboard\\\\\\)/dashboard/\")"
+    ]
+  }
+}

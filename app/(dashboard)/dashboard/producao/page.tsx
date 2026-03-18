@@ -216,7 +216,7 @@ export default function PaginaProducao() {
                                         padding: '5px 12px', borderRadius: '6px', border: 'none',
                                         background: emAtualizacao ? 'var(--border)' : acao.cor,
                                         color: '#fff', fontSize: '12px', fontWeight: 600,
-                                        cursor: emAtualizando ? 'not-allowed' : 'pointer',
+                                        cursor: emAtualizacao ? 'not-allowed' : 'pointer',
                                         fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
                                       }}
                                     >

@@ -547,85 +547,54 @@ NFE_CNPJ="00000000000000"
 
 | Prioridade | Item | Status | Próxima ação |
 |------------|------|--------|-------------|
-| 1 | Alertas por email (Resend) | ~40% | Instalar `resend`, criar `lib/email.ts`, rota `/api/cron/alertas` |
-| 2 | PWA (manifest + service worker) | 0% | Criar manifest.json, ícones, `next-pwa` |
-| 3 | Relatórios PDF gerenciais | ~30% | Criar `/dashboard/relatorios` com `html2pdf.js` |
-| 4 | NF-e (nfewizard-io) | 0% | **Requer Railway primeiro** |
+| 1 | Alertas por email (Resend) | ✅ 100% | `lib/email.ts`, `/api/cron/alertas`, `vercel.json` (cron 08h BRT) |
+| 2 | PWA (manifest + service worker) | ✅ 100% | `app/manifest.ts`, `public/sw.js`, `PwaRegistrar`, ícones SVG |
+| 3 | Relatórios PDF gerenciais | ✅ 100% | `/dashboard/relatorios`, `/api/relatorios`, PDF via `window.print()` |
 
-#### Item: Alertas por email — ~40%
+#### Item: Alertas por email — ✅ Concluído
 
-**Implementado:** `AlertaEstoque` no banco, criação automática ao editar filamento (< 20%), campos de configuração em `ConfiguracaoEmpresa`, toggles em `/dashboard/configuracoes`.
+- `lib/email.ts` — `enviarAlertaEstoqueBaixo` e `enviarAlertaPedidoAtrasado` (templates HTML)
+- `/api/cron/alertas` — GET protegido por `Authorization: Bearer CRON_SECRET`; verifica `alertaEmailHabilitado`, envia alertas e marca `AlertaEstoque` como lidos
+- `vercel.json` — cron `0 11 * * *` (08h BRT, diário)
+- Variáveis necessárias: `RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET` (ver `.env.example`)
 
-**Pendente:**
-```bash
-npm install resend
-```
-- `RESEND_API_KEY` no `.env`
-- `lib/email.ts` — função de envio
-- Lógica de detecção de pedidos atrasados (`prazoEntrega < hoje AND status != ENTREGUE/CANCELADO`)
-- Rota `/api/cron/alertas` (Vercel Cron ou cron externo)
+#### Item: PWA — ✅ Concluído
 
-#### Item: PWA — 0%
+- `app/manifest.ts` — manifest nativo Next.js App Router
+- `public/sw.js` — service worker: cache-first para assets, network-first para API, fallback offline
+- `components/providers/PwaRegistrar.tsx` — registra o SW no cliente
+- `app/offline/page.tsx` — página de fallback offline
+- `public/icons/icon-192.svg` e `icon-512.svg` — ícones do app
+- Sem dependência externa (`next-pwa` não utilizado — usa suporte nativo do Next.js)
 
-- `/public/manifest.json` + ícones 192×192 e 512×512
-- Meta tags PWA em `app/layout.tsx`
-- `npm install next-pwa` — cache-first para assets, network-first para API
+#### Item: Relatórios PDF — ✅ Concluído
 
-#### Item: Relatórios PDF — ~30%
+- `/dashboard/relatorios` — filtros por período (mês / 90 dias / ano / tudo), KPIs, tabelas de pedidos, top clientes e estoque
+- `/api/relatorios` — GET com `?periodo=mes|trimestre|ano|tudo`, protegido por sessão
+- PDF via `window.print()` — mesmo padrão dos orçamentos; `@media print` oculta controles e exibe cabeçalho do relatório
 
-- Orçamentos já têm PDF via `window.print()`
-- Pendente: página `/dashboard/relatorios` com filtros gerenciais (pedidos, receita, clientes, estoque)
-- Biblioteca: `html2pdf.js` (simples) ou `@react-pdf/renderer` (server-side)
+---
 
-#### Item: NF-e — 0% (pré-requisito: Railway)
+### Fase 3 — Planejada (conforme necessidade)
 
-**Contexto:** MEI ativo desde 2024, certificado A1 já adquirido, credenciamento SEFAZ manual necessário.
+| Item | Pré-requisito | Observação |
+|------|--------------|------------|
+| NF-e (nfewizard-io) | Migrar para Railway | `nfewizard-io` requer acesso ao sistema de arquivos e conexão persistente com SEFAZ — incompatível com Vercel. MEI ativo, certificado A1 adquirido, credenciamento SEFAZ pendente. |
+| Portal do cliente | — | Acompanhamento de pedidos pelo cliente final |
+| CRM leve | — | Pipeline de vendas (PROSPECTO → NEGOCIACAO → FECHADO) |
+| App nativo | — | React Native reutilizando toda a API existente |
 
-**Fluxo técnico:**
+#### NF-e — detalhes técnicos (quando implementar)
+
 ```
 XML gerado → assinado com certificado A1 → transmitido SEFAZ → protocolo → DANFE PDF
 ```
 
-**Implementação:**
-```bash
-npm install nfewizard-io
-```
-
-```typescript
-// lib/nfe.ts
-import NFeWizard from 'nfewizard-io'
-
-const nfewizard = new NFeWizard()
-await nfewizard.NFE_LoadEnvironment({
-  config: {
-    dfe: {
-      pathCertificado: process.env.NFE_CERT_PATH,
-      senhaCertificado: process.env.NFE_CERT_SENHA,
-      UF: 'SP',
-      CPFCNPJ: process.env.NFE_CNPJ,
-      armazenarXMLAutorizacao: true,
-      pathXMLAutorizacao: 'storage/nfe/autorizadas',
-    },
-    nfe: {
-      ambiente: process.env.NODE_ENV === 'production' ? 1 : 2,
-      versaoDF: '4.00',
-    }
-  }
-})
-export { nfewizard }
-```
-
-**Rotas a criar:** `POST /api/pedidos/[id]/nfe`, `DELETE /api/nfe/[id]`
-**Schema:** adicionar model `NotaFiscal` ao Prisma
-**Consultar contador:** CFOP, CST e alíquotas corretas para a 3D Sinc
-
----
-
-### Fase 3 — Planejada
-
-- Portal do cliente para acompanhamento de pedidos
-- CRM leve com pipeline de vendas (PROSPECTO → NEGOCIACAO → FECHADO)
-- App nativo com React Native (reutiliza toda a API)
+- `npm install nfewizard-io`
+- Variáveis: `NFE_CERT_PATH`, `NFE_CERT_SENHA`, `NFE_CNPJ`
+- Rotas a criar: `POST /api/pedidos/[id]/nfe`, `DELETE /api/nfe/[id]`
+- Schema: adicionar model `NotaFiscal` ao Prisma
+- Consultar contador: CFOP, CST e alíquotas corretas para a 3D Sinc
 
 ---
 
