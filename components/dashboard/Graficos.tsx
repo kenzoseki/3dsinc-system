@@ -89,8 +89,8 @@ export function GraficoFilamentos({ dados }: { dados: DadoFilamento[] }) {
         <p style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Nenhum filamento cadastrado</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {dados.map((f) => (
-            <div key={f.nome}>
+          {dados.map((f, i) => (
+            <div key={i}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', fontWeight: 500 }}>
                   {f.nome}
