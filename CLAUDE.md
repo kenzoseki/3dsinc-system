@@ -575,26 +575,49 @@ NFE_CNPJ="00000000000000"
 
 ---
 
-### Fase 3 — Planejada (conforme necessidade)
+### Fase 3 — Em Andamento
 
-| Item | Pré-requisito | Observação |
-|------|--------------|------------|
-| NF-e (nfewizard-io) | Migrar para Railway | `nfewizard-io` requer acesso ao sistema de arquivos e conexão persistente com SEFAZ — incompatível com Vercel. MEI ativo, certificado A1 adquirido, credenciamento SEFAZ pendente. |
-| Portal do cliente | — | Acompanhamento de pedidos pelo cliente final |
-| CRM leve | — | Pipeline de vendas (PROSPECTO → NEGOCIACAO → FECHADO) |
-| App nativo | — | React Native reutilizando toda a API existente |
+| Prioridade | Item | Status | Observação |
+|------------|------|--------|------------|
+| 1 | Portal do cliente | ✅ 100% | Token único por pedido, página pública `/portal/pedido/[token]` |
+| 2 | CRM leve | ✅ 100% | Pipeline kanban PROSPECTO → NEGOCIACAO → FECHADO/PERDIDO |
 
-#### NF-e — detalhes técnicos (quando implementar)
+#### Portal do cliente
+
+- Campo `tokenPortal` (único) adicionado ao model `Pedido`
+- `POST /api/pedidos/[id]/token-portal` — gera/regenera token (requer sessão)
+- `GET /api/portal/pedido/[token]` — rota pública, retorna dados sem valores nem arquivos
+- `app/(portal)/portal/pedido/[token]/page.tsx` — página server-side com status, itens, histórico em timeline
+- Botão "Gerar link do portal" na página de detalhe do pedido — copia URL para clipboard
+
+#### CRM leve
+
+- Model `Lead` com enum `EtapaLead` (PROSPECTO, NEGOCIACAO, FECHADO, PERDIDO)
+- `GET/POST /api/leads` e `GET/PATCH/DELETE /api/leads/[id]`
+- `/dashboard/crm` — kanban com 4 colunas, receita por etapa, mover lead entre etapas, modal criar/editar
+
+---
+
+## Módulos Stand-by
+
+### NF-e (nfewizard-io)
+
+> Aguardando migração para Railway. Incompatível com Vercel (requer sistema de arquivos e conexão SEFAZ persistente).
+
+MEI ativo desde 2024, certificado A1 adquirido, credenciamento SEFAZ pendente.
 
 ```
 XML gerado → assinado com certificado A1 → transmitido SEFAZ → protocolo → DANFE PDF
 ```
 
-- `npm install nfewizard-io`
-- Variáveis: `NFE_CERT_PATH`, `NFE_CERT_SENHA`, `NFE_CNPJ`
+- `npm install nfewizard-io` · Variáveis: `NFE_CERT_PATH`, `NFE_CERT_SENHA`, `NFE_CNPJ`
 - Rotas a criar: `POST /api/pedidos/[id]/nfe`, `DELETE /api/nfe/[id]`
 - Schema: adicionar model `NotaFiscal` ao Prisma
 - Consultar contador: CFOP, CST e alíquotas corretas para a 3D Sinc
+
+### App Nativo (React Native)
+
+> Repositório separado. Reutiliza toda a API REST existente. Aguardando volume que justifique o desenvolvimento.
 
 ---
 

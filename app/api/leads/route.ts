@@ -1,0 +1,58 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { z } from 'zod'
+
+const schemaCriar = z.object({
+  nome:        z.string().min(1).max(120),
+  empresa:     z.string().max(120).optional().nullable(),
+  email:       z.string().email().optional().nullable(),
+  telefone:    z.string().max(30).optional().nullable(),
+  etapa:       z.enum(['PROSPECTO', 'NEGOCIACAO', 'FECHADO', 'PERDIDO']).optional(),
+  valor:       z.number().min(0).optional().nullable(),
+  observacoes: z.string().max(2000).optional().nullable(),
+  responsavel: z.string().max(80).optional().nullable(),
+})
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const etapa = searchParams.get('etapa')
+
+    const leads = await prisma.lead.findMany({
+      where: etapa ? { etapa: etapa as import('@prisma/client').EtapaLead } : {},
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    return NextResponse.json(leads)
+  } catch (erro) {
+    console.error('Erro ao listar leads:', erro)
+    return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+    if (session.user.cargo === 'VISUALIZADOR') {
+      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const validacao = schemaCriar.safeParse(body)
+    if (!validacao.success) {
+      return NextResponse.json({ erro: 'Dados inválidos', detalhes: validacao.error.flatten() }, { status: 400 })
+    }
+
+    const lead = await prisma.lead.create({ data: validacao.data })
+    return NextResponse.json(lead, { status: 201 })
+  } catch (erro) {
+    console.error('Erro ao criar lead:', erro)
+    return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
+  }
+}

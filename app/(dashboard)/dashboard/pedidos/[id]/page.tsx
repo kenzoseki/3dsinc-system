@@ -42,6 +42,7 @@ interface PedidoDetalhe {
   valorTotal: string | null
   observacoes: string | null
   createdAt: string
+  tokenPortal: string | null
   cliente: { id: string; nome: string; email: string | null; telefone: string | null }
   orcamento: { id: string; numero: number; revisao: number; status: string } | null
   itens: ItemPedido[]
@@ -86,6 +87,8 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
   const [pedido, setPedido] = useState<PedidoDetalhe | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [alterandoStatus, setAlterandoStatus] = useState(false)
+  const [gerandoToken, setGerandoToken] = useState(false)
+  const [linkCopiado, setLinkCopiado] = useState(false)
 
   const cargo = session?.user?.cargo as Cargo | undefined
   const podeEditar = cargo ? Permissoes.podeEscreverPedidos(cargo) : false
@@ -131,6 +134,22 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
       console.error('Erro ao alterar status:', erro)
     } finally {
       setAlterandoStatus(false)
+    }
+  }
+
+  async function gerarLinkPortal() {
+    if (!pedido) return
+    setGerandoToken(true)
+    try {
+      const token = pedido.tokenPortal ?? await fetch(`/api/pedidos/${id}/token-portal`, { method: 'POST' })
+        .then(r => r.json()).then(d => d.token)
+      const url = `${window.location.origin}/portal/pedido/${token}`
+      await navigator.clipboard.writeText(url)
+      if (!pedido.tokenPortal) setPedido(p => p ? { ...p, tokenPortal: token } : p)
+      setLinkCopiado(true)
+      setTimeout(() => setLinkCopiado(false), 3000)
+    } finally {
+      setGerandoToken(false)
     }
   }
 
@@ -221,6 +240,27 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
               </p>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Link do portal */}
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={gerarLinkPortal}
+          disabled={gerandoToken}
+          style={{
+            padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--border)',
+            background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--purple)',
+            cursor: gerandoToken ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          {linkCopiado ? '✓ Link copiado!' : gerandoToken ? 'Gerando...' : pedido.tokenPortal ? '🔗 Copiar link do portal' : '🔗 Gerar link do portal'}
+        </button>
+        {pedido.tokenPortal && (
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+            Link ativo — compartilhe com o cliente para rastrear o pedido
+          </span>
         )}
       </div>
 

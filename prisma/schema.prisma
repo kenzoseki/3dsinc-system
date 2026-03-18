@@ -73,6 +73,7 @@ model Pedido {
   observacoes  String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  tokenPortal  String?         @unique
   itens        ItemPedido[]
   historico    HistoricoPedido[]
   arquivos     ArquivoPedido[]
@@ -257,4 +258,25 @@ model ArquivoPedido {
   tamanhoBytes   Int
   conteudoBase64 String   @db.Text
   createdAt      DateTime @default(now())
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  nome        String
+  empresa     String?
+  email       String?
+  telefone    String?
+  etapa       EtapaLead  @default(PROSPECTO)
+  valor       Decimal?   @db.Decimal(10, 2)
+  observacoes String?    @db.Text
+  responsavel String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum EtapaLead {
+  PROSPECTO
+  NEGOCIACAO
+  FECHADO
+  PERDIDO
 }
