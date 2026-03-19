@@ -1,29 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Nunito, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import ProvedorSessao from '@/components/providers/SessionProvider'
 import PwaRegistrar from '@/components/providers/PwaRegistrar'
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-nunito',
-  display: 'swap',
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-mono',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: '3D Sinc — Sistema de Gestão',
@@ -44,8 +22,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${nunito.variable} ${jetbrainsMono.variable}`}>
+    <html lang="pt-BR">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap"
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body>
