@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ProvedorSessao from '@/components/providers/SessionProvider'
 import PwaRegistrar from '@/components/providers/PwaRegistrar'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
   title: '3D Sinc — Sistema de Gestão',
@@ -35,6 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ProvedorSessao>{children}</ProvedorSessao>
         <PwaRegistrar />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
