@@ -46,17 +46,18 @@ function ItemNav({ href, icone, label, ativo, onClick }: {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        padding: '8px 12px',
-        borderRadius: '7px',
-        marginBottom: '2px',
+        padding: '7px 12px',
+        borderRadius: '8px',
+        marginBottom: '1px',
         textDecoration: 'none',
         fontFamily: 'Inter, sans-serif',
-        fontSize: '13.5px',
+        fontSize: '13px',
         fontWeight: ativo ? 500 : 400,
         color: ativo ? 'var(--purple-text)' : 'var(--text-secondary)',
         backgroundColor: ativo ? 'var(--purple-light)' : 'transparent',
         borderLeft: ativo ? '3px solid var(--purple)' : '3px solid transparent',
-        transition: 'all 0.12s',
+        transition: 'background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast)',
+        boxShadow: ativo ? 'inset 0 0 0 1px rgba(91,71,200,0.10)' : 'none',
       }}
       onMouseEnter={(e) => {
         if (!ativo) {
@@ -71,8 +72,8 @@ function ItemNav({ href, icone, label, ativo, onClick }: {
         }
       }}
     >
-      <span style={{ fontSize: '14px' }}>{icone}</span>
-      <span>{label}</span>
+      <span style={{ fontSize: '13px', lineHeight: 1, flexShrink: 0 }}>{icone}</span>
+      <span style={{ letterSpacing: '0.01em' }}>{label}</span>
     </Link>
   )
 }
@@ -103,8 +104,17 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
 
   if (status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', fontSize: '14px' }}>Carregando...</p>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} className="animate-bounce" style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              backgroundColor: 'var(--purple)', opacity: 0.7,
+              animationDelay: `${i * 0.15}s`,
+            }} />
+          ))}
+        </div>
+        <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', fontSize: '13px' }}>Carregando...</p>
       </div>
     )
   }
@@ -219,12 +229,13 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
       <aside
         className={`layout-sidebar${sidebarAberta ? ' aberta' : ''}`}
         style={{
-          width: '220px',
+          width: '224px',
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--bg-surface)',
           borderRight: '1px solid var(--border)',
+          backgroundImage: 'linear-gradient(180deg, var(--bg-surface) 0%, #F7F5F1 100%)',
         }}
       >
         {conteudoSidebar}
@@ -239,9 +250,13 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 24px',
-          height: '56px',
+          height: '54px',
           backgroundColor: 'var(--bg-surface)',
           borderBottom: '1px solid var(--border)',
+          boxShadow: '0 1px 4px rgba(44,42,38,0.04)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
         }}>
           {/* Botão hambúrguer — visível apenas em mobile via CSS */}
           <button
@@ -281,9 +296,12 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
             >
               <div style={{
                 width: '30px', height: '30px', borderRadius: '50%',
-                backgroundColor: 'var(--purple)', color: '#fff',
+                background: 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif',
+                boxShadow: '0 1px 4px rgba(91,71,200,0.25)',
+                flexShrink: 0,
               }}>{iniciais}</div>
               <div style={{ textAlign: 'left' }}>
                 <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{user.nome}</p>
@@ -298,13 +316,15 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
                 <div
                   role="menu"
                   aria-label="Opções do usuário"
+                  className="animate-scale-in"
                   style={{
                   position: 'absolute', right: 0, top: '100%', marginTop: '6px',
-                  width: '180px', borderRadius: '8px', padding: '4px',
+                  width: '188px', borderRadius: '10px', padding: '4px',
                   backgroundColor: 'var(--bg-surface)',
                   border: '1px solid var(--border)',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                  boxShadow: 'var(--shadow-lg)',
                   zIndex: 20,
+                  transformOrigin: 'top right',
                 }}>
                   <Link
                     href="/dashboard/perfil"
@@ -337,7 +357,7 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
         </header>
 
         {/* Conteúdo */}
-        <main className="layout-main" style={{ flex: 1, padding: '32px 64px', overflow: 'auto' }}>
+        <main className="layout-main" style={{ flex: 1, padding: '28px 48px', overflow: 'auto' }}>
           {children}
         </main>
       </div>

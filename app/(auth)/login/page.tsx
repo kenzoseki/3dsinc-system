@@ -51,20 +51,20 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: 'var(--bg-page)',
+      background: 'radial-gradient(ellipse at 60% 0%, rgba(91,71,200,0.06) 0%, transparent 60%), var(--bg-page)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
     }}>
-      <main style={{
+      <main className="animate-fade-up" style={{
         width: '100%',
         maxWidth: '400px',
         backgroundColor: 'var(--bg-surface)',
         border: '1px solid var(--border)',
-        borderRadius: '12px',
-        padding: '40px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
+        borderRadius: '16px',
+        padding: '44px 40px',
+        boxShadow: 'var(--shadow-lg)',
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -130,8 +130,14 @@ export default function LoginPage() {
                 outline: 'none',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--purple)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(91,71,200,0.12)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             />
           </div>
 
@@ -169,8 +175,14 @@ export default function LoginPage() {
                 outline: 'none',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--purple)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(91,71,200,0.12)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             />
           </div>
 
@@ -197,19 +209,34 @@ export default function LoginPage() {
             aria-busy={carregando}
             style={{
               width: '100%',
-              padding: '10px',
-              backgroundColor: carregando ? 'var(--purple-dark)' : 'var(--purple)',
+              padding: '11px',
+              backgroundColor: 'var(--purple)',
               color: '#fff',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '9px',
               fontSize: '14px',
-              fontWeight: 600,
+              fontWeight: 700,
               fontFamily: 'Nunito, sans-serif',
               cursor: carregando ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.15s',
+              transition: 'background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast)',
+              boxShadow: 'var(--shadow-purple)',
+              opacity: carregando ? 0.75 : 1,
+              letterSpacing: '0.02em',
             }}
-            onMouseEnter={(e) => { if (!carregando) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--purple-dark)' }}
-            onMouseLeave={(e) => { if (!carregando) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--purple)' }}
+            onMouseEnter={(e) => {
+              if (!carregando) {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--purple-dark)'
+                ;(e.currentTarget as HTMLButtonElement).style.boxShadow = 'var(--shadow-purple-hover)'
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!carregando) {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--purple)'
+                ;(e.currentTarget as HTMLButtonElement).style.boxShadow = 'var(--shadow-purple)'
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
+              }
+            }}
           >
             {carregando ? 'Entrando...' : 'Entrar'}
           </button>
