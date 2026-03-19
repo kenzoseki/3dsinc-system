@@ -3,7 +3,7 @@ import { prisma } from './db'
 export async function getERPContext(): Promise<string> {
   const [pedidos, filamentos, alertas] = await Promise.all([
     prisma.pedido.findMany({
-      where: { status: { in: ['APROVADO', 'EM_PRODUCAO', 'PAUSADO'] } },
+      where: { status: { in: ['APROVADO', 'AGUARDANDO', 'EM_PRODUCAO', 'PAUSADO'] } },
       include: { cliente: true, itens: true },
       orderBy: { prazoEntrega: 'asc' },
       take: 50,

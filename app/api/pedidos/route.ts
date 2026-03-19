@@ -11,13 +11,13 @@ const schemaCriarPedido = z.object({
   clienteId:    z.string().min(1, 'Cliente obrigatorio'),
   orcamentoId:  z.string().optional().nullable(),
   tipo:         z.enum(['B2C', 'B2B']).default('B2C'),
-  categoria:    z.string().optional().nullable(),
-  descricao:    z.string().min(1, 'Descricao obrigatoria'),
+  categoria:    z.string().max(100).optional().nullable(),
+  descricao:    z.string().min(1, 'Descricao obrigatoria').max(1000),
   prioridade:   z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),
   prazoEntrega: z.string().datetime().optional().nullable(),
   valorTotal:   z.number().positive().optional().nullable(),
-  observacoes:  z.string().optional().nullable(),
-  arquivo3d:    z.string().optional().nullable(),
+  observacoes:  z.string().max(5000).optional().nullable(),
+  arquivo3d:    z.string().max(500).optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const pagina = parseInt(searchParams.get('pagina') ?? '1')
-    const limite = parseInt(searchParams.get('limite') ?? '20')
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1)
+    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '20', 10) || 20))
     const status = searchParams.get('status') as StatusPedido | null
 
     const where = status ? { status } : {}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { Permissoes } from '@/lib/permissoes'
+import { Cargo } from '@prisma/client'
 
 function calcularPeriodo(periodo: string): Date | null {
   const agora = new Date()
@@ -24,6 +26,9 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+    if (!Permissoes.podeVerRelatorios(session.user.cargo as Cargo)) {
+      return NextResponse.json({ erro: 'Sem permissão para acessar relatórios' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
     const periodo = searchParams.get('periodo') ?? 'mes'

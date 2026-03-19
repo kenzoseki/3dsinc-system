@@ -10,11 +10,11 @@ import { Cargo } from '@prisma/client'
 // Schema de validacao para mensagens do chat
 const schemaMensagem = z.object({
   role: z.enum(['user', 'assistant']),
-  content: z.string().min(1),
+  content: z.string().min(1).max(10000),
 })
 
 const schemaChat = z.object({
-  messages: z.array(schemaMensagem).min(1, 'Pelo menos uma mensagem e necessaria'),
+  messages: z.array(schemaMensagem).min(1, 'Pelo menos uma mensagem e necessaria').max(50),
 })
 
 export async function POST(request: NextRequest) {

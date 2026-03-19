@@ -5,14 +5,14 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 
 const schemaAtualizar = z.object({
-  nomeEmpresa:           z.string().min(1).optional(),
-  cnpj:                  z.string().optional().nullable(),
-  email:                 z.string().email().optional().nullable(),
-  telefone:              z.string().optional().nullable(),
-  endereco:              z.string().optional().nullable(),
-  cidade:                z.string().optional().nullable(),
-  estado:                z.string().optional().nullable(),
-  logoBase64:            z.string().optional().nullable(),
+  nomeEmpresa:           z.string().min(1).max(100).optional(),
+  cnpj:                  z.string().max(20).optional().nullable(),
+  email:                 z.string().email().max(200).optional().nullable(),
+  telefone:              z.string().max(30).optional().nullable(),
+  endereco:              z.string().max(300).optional().nullable(),
+  cidade:                z.string().max(100).optional().nullable(),
+  estado:                z.string().max(2).optional().nullable(),
+  logoBase64:            z.string().max(700_000).optional().nullable(), // ≈500KB
   alertaEstoqueBaixo:    z.boolean().optional(),
   alertaPedidoAtrasado:  z.boolean().optional(),
   alertaEmailHabilitado: z.boolean().optional(),

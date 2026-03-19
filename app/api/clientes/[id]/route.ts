@@ -104,6 +104,9 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ erro: 'Nao autenticado' }, { status: 401 })
     }
+    if (session.user.cargo === 'VISUALIZADOR' || session.user.cargo === 'OPERADOR') {
+      return NextResponse.json({ erro: 'Sem permissao para excluir clientes' }, { status: 403 })
+    }
 
     const { id } = await params
 

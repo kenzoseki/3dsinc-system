@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/db'
 import { enviarAlertaEstoqueBaixo, enviarAlertaPedidoAtrasado } from '@/lib/email'
 
@@ -6,8 +7,17 @@ import { enviarAlertaEstoqueBaixo, enviarAlertaPedidoAtrasado } from '@/lib/emai
 function autorizado(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
   if (!secret) return false
-  const auth = request.headers.get('authorization')
-  return auth === `Bearer ${secret}`
+  const auth = request.headers.get('authorization') ?? ''
+  const esperado = `Bearer ${secret}`
+  // timingSafeEqual evita timing attacks ao comparar o token
+  try {
+    const bufAuth = Buffer.from(auth)
+    const bufEsp  = Buffer.from(esperado)
+    if (bufAuth.length !== bufEsp.length) return false
+    return timingSafeEqual(bufAuth, bufEsp)
+  } catch {
+    return false
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -64,7 +74,7 @@ export async function GET(request: NextRequest) {
       const pedidosAtrasados = await prisma.pedido.findMany({
         where: {
           prazoEntrega: { lt: hoje },
-          status: { notIn: ['ENTREGUE', 'CANCELADO'] },
+          status: { notIn: ['ENTREGUE', 'CANCELADO', 'CONCLUIDO'] },
         },
         include: { cliente: true },
         orderBy: { prazoEntrega: 'asc' },

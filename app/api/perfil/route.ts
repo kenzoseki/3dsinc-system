@@ -6,14 +6,14 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 
 const schemaAtualizarPerfil = z.object({
-  nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').optional(),
-  telefone: z.string().optional().nullable(),
-  avatarUrl: z.string().optional().nullable(), // aceita URL ou base64
+  nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').max(100).optional(),
+  telefone: z.string().max(30).optional().nullable(),
+  avatarUrl: z.string().max(700_000).optional().nullable(), // aceita URL ou base64 (≤500KB)
 })
 
 const schemaAlterarSenha = z.object({
   senhaAtual: z.string().min(1, 'Senha atual obrigatória'),
-  novaSenha: z.string().min(6, 'Nova senha deve ter ao menos 6 caracteres'),
+  novaSenha: z.string().min(6, 'Nova senha deve ter ao menos 6 caracteres').max(128),
 })
 
 export async function GET() {

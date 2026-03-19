@@ -28,17 +28,12 @@ export async function POST(request: NextRequest) {
     // Buscar e validar o convite
     const convite = await prisma.convite.findUnique({ where: { token } })
 
-    if (!convite) {
-      return NextResponse.json({ erro: 'Convite invalido' }, { status: 404 })
-    }
+    // Mensagem unificada para evitar enumeração de estado do convite
+    const erroConvite = NextResponse.json({ erro: 'Convite inválido, expirado ou já utilizado' }, { status: 400 })
 
-    if (convite.usado) {
-      return NextResponse.json({ erro: 'Convite ja foi utilizado' }, { status: 400 })
-    }
-
-    if (convite.expiresAt < new Date()) {
-      return NextResponse.json({ erro: 'Convite expirado' }, { status: 400 })
-    }
+    if (!convite) return erroConvite
+    if (convite.usado) return erroConvite
+    if (convite.expiresAt < new Date()) return erroConvite
 
     // Verificar se email ja foi cadastrado
     const usuarioExistente = await prisma.usuario.findUnique({ where: { email: convite.email } })

@@ -5,11 +5,11 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 
 const schemaCriarCliente = z.object({
-  nome: z.string().min(1, 'Nome obrigatorio'),
-  email: z.string().email().optional().nullable(),
-  telefone: z.string().optional().nullable(),
-  empresa: z.string().optional().nullable(),
-  cpfCnpj: z.string().optional().nullable(),
+  nome: z.string().min(1, 'Nome obrigatorio').max(200),
+  email: z.string().email().max(200).optional().nullable(),
+  telefone: z.string().max(30).optional().nullable(),
+  empresa: z.string().max(200).optional().nullable(),
+  cpfCnpj: z.string().max(30).optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ erro: 'Nao autenticado' }, { status: 401 })
+    }
+    if (session.user.cargo === 'VISUALIZADOR') {
+      return NextResponse.json({ erro: 'Sem permissao para criar clientes' }, { status: 403 })
     }
 
     const body = await request.json()
