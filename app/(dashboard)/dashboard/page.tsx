@@ -149,8 +149,8 @@ async function getDados(periodo: string) {
   const b2c = pedidosPeriodo.filter(p => (p as any).tipo === 'B2C' || !(p as any).tipo).length
   const b2b = pedidosPeriodo.filter(p => (p as any).tipo === 'B2B').length
   const dadosTipo: DadoTipoPedido[] = [
-    { tipo: 'B2C', valor: b2c },
-    { tipo: 'B2B', valor: b2b },
+    { tipo: 'Pessoa Física', valor: b2c },
+    { tipo: 'Pessoa Jurídica', valor: b2b },
   ]
 
   // Chart 4 — receita por período
@@ -317,7 +317,7 @@ export default async function PaginaDashboard({
                       <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{pedido.cliente.nome}</td>
                       <td style={{ padding: '12px 24px' }}>
                         <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, fontFamily: 'Inter, sans-serif', backgroundColor: tipo === 'B2B' ? '#E8F5EE' : '#EDE9FC', color: tipo === 'B2B' ? '#1A6B42' : '#4C3DB5' }}>
-                          {tipo}
+                          {tipo === 'B2B' ? 'Pessoa Jurídica' : 'Pessoa Física'}
                         </span>
                       </td>
                       <td style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pedido.descricao}</td>

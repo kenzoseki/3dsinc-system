@@ -130,7 +130,7 @@ export function GraficoTipoPedido({ dados }: { dados: DadoTipoPedido[] }) {
   const total = dados.reduce((s, d) => s + d.valor, 0)
   return (
     <div style={estiloCartao}>
-      <p style={estiloTitulo}>Pedidos B2C vs B2B</p>
+      <p style={estiloTitulo}>Pessoa Física vs Jurídica</p>
       {total === 0 ? (
         <p style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Sem pedidos no período</p>
       ) : (

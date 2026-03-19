@@ -251,7 +251,7 @@ export default function PaginaNovoPedido() {
                 backgroundColor: tipo === t ? 'var(--purple-light)' : 'transparent',
                 color: tipo === t ? 'var(--purple-text)' : 'var(--text-secondary)',
               }}>
-                {t === 'B2C' ? 'B2C — Pessoa Física' : 'B2B — Empresa'}
+                {t === 'B2C' ? 'Pessoa Física' : 'Pessoa Jurídica'}
               </button>
             ))}
           </div>
@@ -311,7 +311,7 @@ export default function PaginaNovoPedido() {
                     </div>
                   </div>
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ ...estiloLabel, fontSize: '12px' }}>Empresa (B2B)</label>
+                    <label style={{ ...estiloLabel, fontSize: '12px' }}>Empresa / Razão Social</label>
                     <input style={estiloInput} value={novoClienteEmpresa} onChange={e => setNovoClienteEmpresa(e.target.value)}
                       onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
                       onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
