@@ -47,5 +47,5 @@ ${alertas.map(a => `- ${a.tipoAlerta}: ${a.filamento.marca} ${a.filamento.cor}`)
   `
   },
   ['erp-context'],
-  { revalidate: 30 }
+  { revalidate: 300 }
 )

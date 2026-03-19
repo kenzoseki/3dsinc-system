@@ -18,13 +18,14 @@ const buscarLogo = unstable_cache(
 )
 
 export default async function LayoutDashboard({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions)
+  const [session, logoBase64] = await Promise.all([
+    getServerSession(authOptions),
+    buscarLogo(),
+  ])
 
   if (!session?.user) {
     redirect('/login')
   }
-
-  const logoBase64 = await buscarLogo()
 
   return (
     <LayoutShell session={session} logoEmpresa={logoBase64}>
