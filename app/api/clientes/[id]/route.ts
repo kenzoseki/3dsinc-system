@@ -63,6 +63,9 @@ export async function PATCH(
     if (!session?.user) {
       return NextResponse.json({ erro: 'Nao autenticado' }, { status: 401 })
     }
+    if (session.user.cargo === 'VISUALIZADOR') {
+      return NextResponse.json({ erro: 'Sem permissao para editar clientes' }, { status: 403 })
+    }
 
     const { id } = await params
     const body = await request.json()

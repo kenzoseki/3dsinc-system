@@ -8,21 +8,56 @@ import { Permissoes } from '@/lib/permissoes'
 import type { Cargo } from '@prisma/client'
 import type { Session } from 'next-auth'
 
-const itensNavegacao = [
-  { href: '/dashboard', label: 'Dashboard', icone: '⊞' },
-  { href: '/dashboard/pedidos', label: 'Pedidos', icone: '📋' },
-  { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '📄' },
-  { href: '/dashboard/clientes', label: 'Clientes', icone: '👥' },
-  { href: '/dashboard/producao', label: 'Produção', icone: '⚙️' },
-  { href: '/dashboard/estoque', label: 'Estoque', icone: '🧵' },
-  { href: '/dashboard/crm', label: 'CRM', icone: '🎯' },
-  { href: '/dashboard/relatorios', label: 'Relatórios', icone: '📊' },
-  { href: '/dashboard/assistente', label: 'Assistente IA', icone: '✦' },
-  { href: '/dashboard/perfil', label: 'Perfil', icone: '👤' },
-]
+type ItemNav = {
+  href: string
+  label: string
+  icone: string
+  verificar?: (cargo: Cargo) => boolean
+}
 
-const itemEquipe = { href: '/dashboard/equipe', label: 'Equipe', icone: '👥' }
-const itemConfig = { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⚙' }
+type GrupoNav = {
+  titulo: string
+  itens: ItemNav[]
+}
+
+const gruposNavegacao: GrupoNav[] = [
+  {
+    titulo: 'Principal',
+    itens: [
+      { href: '/dashboard', label: 'Dashboard', icone: '⊞' },
+    ],
+  },
+  {
+    titulo: 'Comercial',
+    itens: [
+      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '📋' },
+      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '📄' },
+      { href: '/dashboard/clientes', label: 'Clientes', icone: '👥' },
+      { href: '/dashboard/crm', label: 'CRM', icone: '🎯', verificar: Permissoes.podeVerCRM },
+    ],
+  },
+  {
+    titulo: 'Operacional',
+    itens: [
+      { href: '/dashboard/producao', label: 'Produção', icone: '⚙️', verificar: Permissoes.podeVerProducao },
+      { href: '/dashboard/estoque', label: 'Estoque', icone: '🧵' },
+    ],
+  },
+  {
+    titulo: 'Ferramentas',
+    itens: [
+      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '✦', verificar: Permissoes.podeUsarIA },
+      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '📊', verificar: Permissoes.podeVerRelatorios },
+    ],
+  },
+  {
+    titulo: 'Administração',
+    itens: [
+      { href: '/dashboard/equipe', label: 'Equipe', icone: '👥', verificar: Permissoes.podeVerEquipe },
+      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⚙', verificar: Permissoes.podeAcessarSistema },
+    ],
+  },
+]
 
 const labelCargo: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -32,7 +67,7 @@ const labelCargo: Record<string, string> = {
   VISUALIZADOR: 'Visualizador',
 }
 
-function ItemNav({ href, icone, label, ativo, onClick }: {
+function ItemNavLink({ href, icone, label, ativo, onClick }: {
   href: string
   icone: string
   label: string
@@ -79,6 +114,23 @@ function ItemNav({ href, icone, label, ativo, onClick }: {
   )
 }
 
+function LabelGrupo({ titulo }: { titulo: string }) {
+  return (
+    <p style={{
+      fontSize: '10px',
+      fontWeight: 600,
+      fontFamily: 'Inter, sans-serif',
+      color: 'var(--text-secondary)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      padding: '12px 12px 4px',
+      marginBottom: '0',
+    }}>
+      {titulo}
+    </p>
+  )
+}
+
 export default function LayoutShell({
   children,
   session,
@@ -99,14 +151,23 @@ export default function LayoutShell({
 
   const { user } = session
   const cargo = user.cargo as Cargo
-  const podeVerEquipe = Permissoes.podeVerEquipe(cargo)
-  const isAdmin = cargo === 'ADMIN'
   const iniciais = user.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
 
   function isAtivo(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname.startsWith(href)
   }
+
+  // Item fixo: Perfil (sempre visível, fora dos grupos)
+  const itemPerfil = { href: '/dashboard/perfil', label: 'Perfil', icone: '👤' }
+
+  // Filtra grupos e itens por permissão do cargo
+  const gruposVisiveis = gruposNavegacao
+    .map((grupo) => ({
+      ...grupo,
+      itens: grupo.itens.filter((item) => !item.verificar || item.verificar(cargo)),
+    }))
+    .filter((grupo) => grupo.itens.length > 0)
 
   const conteudoSidebar = (
     <>
@@ -135,38 +196,34 @@ export default function LayoutShell({
         </button>
       </div>
 
-      {/* Navegação */}
-      <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        {itensNavegacao.map((item) => (
-          <ItemNav
-            key={item.href}
-            href={item.href}
-            icone={item.icone}
-            label={item.label}
-            ativo={isAtivo(item.href)}
-            onClick={() => setSidebarAberta(false)}
-          />
+      {/* Navegação categorizada */}
+      <nav style={{ flex: 1, padding: '4px 10px', overflowY: 'auto' }}>
+        {gruposVisiveis.map((grupo) => (
+          <div key={grupo.titulo}>
+            <LabelGrupo titulo={grupo.titulo} />
+            {grupo.itens.map((item) => (
+              <ItemNavLink
+                key={item.href}
+                href={item.href}
+                icone={item.icone}
+                label={item.label}
+                ativo={isAtivo(item.href)}
+                onClick={() => setSidebarAberta(false)}
+              />
+            ))}
+          </div>
         ))}
 
-        {podeVerEquipe && (
-          <ItemNav
-            href={itemEquipe.href}
-            icone={itemEquipe.icone}
-            label={itemEquipe.label}
-            ativo={pathname.startsWith(itemEquipe.href)}
+        {/* Perfil — sempre visível, separado */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: '8px', paddingTop: '8px' }}>
+          <ItemNavLink
+            href={itemPerfil.href}
+            icone={itemPerfil.icone}
+            label={itemPerfil.label}
+            ativo={isAtivo(itemPerfil.href)}
             onClick={() => setSidebarAberta(false)}
           />
-        )}
-
-        {isAdmin && (
-          <ItemNav
-            href={itemConfig.href}
-            icone={itemConfig.icone}
-            label={itemConfig.label}
-            ativo={pathname.startsWith(itemConfig.href)}
-            onClick={() => setSidebarAberta(false)}
-          />
-        )}
+        </div>
       </nav>
 
       {/* Info do usuário */}

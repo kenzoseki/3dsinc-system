@@ -12,6 +12,9 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+    if (session.user.cargo === 'VISUALIZADOR') {
+      return NextResponse.json({ erro: 'Sem permissão para gerar token do portal' }, { status: 403 })
+    }
 
     const { id } = await params
 
