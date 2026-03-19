@@ -316,7 +316,7 @@ export default function ConfiguracoesPage() {
               }} />
             </button>
           </div>
-        ])}
+        ))}
 
         {/* E-mail de destino dos alertas */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '4px' }}>
