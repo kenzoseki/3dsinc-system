@@ -34,13 +34,20 @@ export async function GET(
     const pedido = await prisma.pedido.findUnique({
       where: { id },
       include: {
-        cliente: true,
+        cliente: { select: { id: true, nome: true, email: true, telefone: true } },
         orcamento: { select: { id: true, numero: true, revisao: true, status: true } },
         itens: {
-          include: { filamento: true },
+          select: {
+            id: true, filamentoId: true, descricao: true, quantidade: true,
+            pesoGramas: true, tempoHoras: true, valorUnitario: true,
+            filamento: { select: { marca: true, cor: true, material: true } },
+          },
         },
         historico: {
-          include: { usuario: true },
+          select: {
+            id: true, status: true, nota: true, createdAt: true,
+            usuario: { select: { nome: true } },
+          },
           orderBy: { createdAt: 'desc' },
         },
         arquivos: { select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
@@ -118,11 +125,20 @@ export async function PATCH(
           ...(dados.orcamentoId !== undefined && { orcamentoId: dados.orcamentoId }),
         },
         include: {
-          cliente: true,
+          cliente: { select: { id: true, nome: true, email: true, telefone: true } },
           orcamento: { select: { id: true, numero: true, revisao: true, status: true } },
-          itens: { include: { filamento: true } },
+          itens: {
+            select: {
+              id: true, filamentoId: true, descricao: true, quantidade: true,
+              pesoGramas: true, tempoHoras: true, valorUnitario: true,
+              filamento: { select: { marca: true, cor: true, material: true } },
+            },
+          },
           historico: {
-            include: { usuario: true },
+            select: {
+              id: true, status: true, nota: true, createdAt: true,
+              usuario: { select: { nome: true } },
+            },
             orderBy: { createdAt: 'desc' },
           },
           arquivos: { select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true }, orderBy: { createdAt: 'asc' } },

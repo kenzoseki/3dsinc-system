@@ -66,11 +66,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Modo compatibilidade — retorna array plano
+    // Modo compatibilidade — retorna array plano (sem imagens base64)
     const orcamentos = await prisma.orcamento.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { itens: { include: { imagens: true } } },
+      take: 50,
+      select: {
+        id: true, numero: true, revisao: true, status: true,
+        clienteNome: true, clienteEmpresa: true, dataEmissao: true, createdAt: true,
+        itens: { select: { valorUnitario: true, quantidade: true } },
+      },
     })
     return NextResponse.json(orcamentos)
   } catch (erro) {

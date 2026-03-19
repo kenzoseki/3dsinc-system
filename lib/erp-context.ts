@@ -19,6 +19,7 @@ export const getERPContext = unstable_cache(
         where: { ativo: true },
         select: { marca: true, material: true, cor: true, pesoAtual: true, pesoTotal: true },
         orderBy: { pesoAtual: 'asc' },
+        take: 50,
       }),
       prisma.alertaEstoque.findMany({
         where: { lido: false },

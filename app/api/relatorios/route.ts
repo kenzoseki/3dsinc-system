@@ -36,23 +36,20 @@ export async function GET(request: NextRequest) {
 
     const whereData = dataInicio ? { createdAt: { gte: dataInicio } } : {}
 
-    const [pedidos, clientes, filamentos] = await Promise.all([
+    const [pedidos, filamentos] = await Promise.all([
       prisma.pedido.findMany({
         where: whereData,
-        include: { cliente: { select: { nome: true } } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.cliente.findMany({
-        include: {
-          pedidos: {
-            where: whereData,
-            select: { valorTotal: true },
-          },
+        select: {
+          id: true, numero: true, descricao: true, status: true,
+          valorTotal: true, createdAt: true, prazoEntrega: true,
+          clienteId: true,
+          cliente: { select: { nome: true, empresa: true } },
         },
-        orderBy: { nome: 'asc' },
+        orderBy: { createdAt: 'desc' },
       }),
       prisma.filamento.findMany({
         where: { ativo: true },
+        select: { id: true, marca: true, material: true, cor: true, pesoAtual: true, pesoTotal: true },
         orderBy: { pesoAtual: 'asc' },
       }),
     ])
@@ -62,16 +59,17 @@ export async function GET(request: NextRequest) {
     const pedidosConcluidos = pedidos.filter(p => ['CONCLUIDO', 'ENTREGUE'].includes(p.status))
     const receitaTotal = pedidos.reduce((s, p) => s + Number(p.valorTotal ?? 0), 0)
 
-    // Top clientes por receita (apenas quem tem pedidos no período)
-    const clientesComPedidos = clientes
-      .map(c => ({
-        id:          c.id,
-        nome:        c.nome,
-        empresa:     c.empresa,
-        totalPedidos: c.pedidos.length,
-        receitaTotal: c.pedidos.reduce((s, p) => s + Number(p.valorTotal ?? 0), 0),
-      }))
-      .filter(c => c.totalPedidos > 0)
+    // Top clientes derivado dos pedidos já carregados (sem query extra)
+    const mapaClientes = new Map<string, { id: string; nome: string; empresa: string | null; totalPedidos: number; receitaTotal: number }>()
+    for (const p of pedidos) {
+      if (!mapaClientes.has(p.clienteId)) {
+        mapaClientes.set(p.clienteId, { id: p.clienteId, nome: p.cliente.nome, empresa: p.cliente.empresa ?? null, totalPedidos: 0, receitaTotal: 0 })
+      }
+      const c = mapaClientes.get(p.clienteId)!
+      c.totalPedidos++
+      c.receitaTotal += Number(p.valorTotal ?? 0)
+    }
+    const clientesComPedidos = [...mapaClientes.values()]
       .sort((a, b) => b.receitaTotal - a.receitaTotal)
       .slice(0, 20)
 

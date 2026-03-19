@@ -75,19 +75,13 @@ async function getDados(periodo: string) {
   const { dataInicio, dataFim } = calcularPeriodo(periodo)
   const gran = granularidade(periodo)
 
-  const [pedidosPeriodo, pedidosEmProducao, filamentos, filamentosEstoqueCritico, totalClientes, ultimosPedidos, ultimosOrcamentos] = await Promise.all([
+  const [pedidosPeriodo, pedidosEmProducao, filamentos, totalClientes, ultimosPedidos, ultimosOrcamentos] = await Promise.all([
     prisma.pedido.findMany({
       where: { createdAt: { gte: dataInicio, lte: dataFim } },
       select: { id: true, numero: true, status: true, tipo: true, valorTotal: true, createdAt: true },
     }),
     prisma.pedido.count({ where: { status: 'EM_PRODUCAO' } }),
     prisma.filamento.findMany({ where: { ativo: true }, orderBy: { pesoAtual: 'asc' } }),
-    prisma.filamento.count({
-      where: {
-        ativo: true,
-        pesoTotal: { gt: 0 },
-      },
-    }),
     prisma.cliente.count(),
     prisma.pedido.findMany({
       take: 5,
