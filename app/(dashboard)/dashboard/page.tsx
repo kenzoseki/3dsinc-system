@@ -75,10 +75,10 @@ async function getDados(periodo: string) {
   const { dataInicio, dataFim } = calcularPeriodo(periodo)
   const gran = granularidade(periodo)
 
-  const [pedidosPeriodo, pedidosEmProducao, filamentos, filamentosEstoqueCritico, totalClientes] = await Promise.all([
+  const [pedidosPeriodo, pedidosEmProducao, filamentos, filamentosEstoqueCritico, totalClientes, ultimosPedidos, ultimosOrcamentos] = await Promise.all([
     prisma.pedido.findMany({
       where: { createdAt: { gte: dataInicio, lte: dataFim } },
-      include: { cliente: true },
+      select: { id: true, numero: true, status: true, tipo: true, valorTotal: true, createdAt: true },
     }),
     prisma.pedido.count({ where: { status: 'EM_PRODUCAO' } }),
     prisma.filamento.findMany({ where: { ativo: true }, orderBy: { pesoAtual: 'asc' } }),
@@ -89,6 +89,35 @@ async function getDados(periodo: string) {
       },
     }),
     prisma.cliente.count(),
+    prisma.pedido.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        numero: true,
+        descricao: true,
+        status: true,
+        tipo: true,
+        createdAt: true,
+        cliente: { select: { nome: true } },
+      },
+    }),
+    prisma.orcamento.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        numero: true,
+        revisao: true,
+        clienteNome: true,
+        clienteEmpresa: true,
+        frete: true,
+        bonusPercentual: true,
+        status: true,
+        createdAt: true,
+        itens: { select: { valorUnitario: true, quantidade: true } },
+      },
+    }),
   ])
 
   // Filamentos com menos de 20%
@@ -139,20 +168,6 @@ async function getDados(periodo: string) {
   const dadosReceita: DadoReceita[] = Object.entries(mapaReceita).map(
     ([data, valor]) => ({ data, valor: Math.round(valor * 100) / 100 })
   )
-
-  // Últimos pedidos e orçamentos
-  const [ultimosPedidos, ultimosOrcamentos] = await Promise.all([
-    prisma.pedido.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { cliente: true },
-    }),
-    prisma.orcamento.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { itens: true },
-    }),
-  ])
 
   return {
     totalPedidos,
