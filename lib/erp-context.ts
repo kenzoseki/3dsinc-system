@@ -1,24 +1,35 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from './db'
 
-export async function getERPContext(): Promise<string> {
-  const [pedidos, filamentos, alertas] = await Promise.all([
-    prisma.pedido.findMany({
-      where: { status: { in: ['APROVADO', 'AGUARDANDO', 'EM_PRODUCAO', 'PAUSADO'] } },
-      include: { cliente: true, itens: true },
-      orderBy: { prazoEntrega: 'asc' },
-      take: 50,
-    }),
-    prisma.filamento.findMany({
-      where: { ativo: true },
-      orderBy: { pesoAtual: 'asc' },
-    }),
-    prisma.alertaEstoque.findMany({
-      where: { lido: false },
-      include: { filamento: true },
-    }),
-  ])
+export const getERPContext = unstable_cache(
+  async (): Promise<string> => {
+    const [pedidos, filamentos, alertas] = await Promise.all([
+      prisma.pedido.findMany({
+        where: { status: { in: ['APROVADO', 'AGUARDANDO', 'EM_PRODUCAO', 'PAUSADO'] } },
+        select: {
+          numero: true,
+          status: true,
+          prazoEntrega: true,
+          cliente: { select: { nome: true } },
+        },
+        orderBy: { prazoEntrega: 'asc' },
+        take: 50,
+      }),
+      prisma.filamento.findMany({
+        where: { ativo: true },
+        select: { marca: true, material: true, cor: true, pesoAtual: true, pesoTotal: true },
+        orderBy: { pesoAtual: 'asc' },
+      }),
+      prisma.alertaEstoque.findMany({
+        where: { lido: false },
+        select: {
+          tipoAlerta: true,
+          filamento: { select: { marca: true, cor: true } },
+        },
+      }),
+    ])
 
-  return `
+    return `
 === DADOS ERP 3D SINC (tempo real) ===
 PEDIDOS ATIVOS: ${pedidos.length}
 ${pedidos.map(p =>
@@ -33,4 +44,7 @@ ${filamentos.map(f =>
 ALERTAS NAO LIDOS: ${alertas.length}
 ${alertas.map(a => `- ${a.tipoAlerta}: ${a.filamento.marca} ${a.filamento.cor}`).join('\n')}
   `
-}
+  },
+  ['erp-context'],
+  { revalidate: 30 }
+)

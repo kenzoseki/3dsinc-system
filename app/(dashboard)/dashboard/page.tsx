@@ -3,15 +3,15 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { SeletorPeriodo } from '@/components/dashboard/SeletorPeriodo'
 import {
-  GraficioPedidosStatus,
-  GraficoFilamentos,
-  GraficoTipoPedido,
-  GraficoReceita,
+  GraficioPedidosStatusDynamic as GraficioPedidosStatus,
+  GraficoReceitaDynamic as GraficoReceita,
+  GraficoFilamentosDynamic as GraficoFilamentos,
+  GraficoTipoPedidoDynamic as GraficoTipoPedido,
   type DadoPedidoStatusTempo,
   type DadoFilamento,
   type DadoTipoPedido,
   type DadoReceita,
-} from '@/components/dashboard/Graficos'
+} from '@/components/dashboard/GraficosDynamic'
 
 // ---------- helpers de período ----------
 

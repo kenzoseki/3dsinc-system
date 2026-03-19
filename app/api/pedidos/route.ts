@@ -38,11 +38,17 @@ export async function GET(request: NextRequest) {
     const [pedidos, total] = await Promise.all([
       prisma.pedido.findMany({
         where,
-        include: {
-          cliente: true,
-          itens: {
-            include: { filamento: true },
-          },
+        select: {
+          id: true,
+          numero: true,
+          descricao: true,
+          status: true,
+          prioridade: true,
+          prazoEntrega: true,
+          valorTotal: true,
+          tipo: true,
+          createdAt: true,
+          cliente: { select: { id: true, nome: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
