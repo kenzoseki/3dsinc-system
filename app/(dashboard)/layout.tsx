@@ -128,7 +128,7 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
           {logoEmpresa ? (
-            <img src={logoEmpresa} alt="Logo" style={{ maxHeight: '36px', maxWidth: '140px', objectFit: 'contain' }} />
+            <img src={logoEmpresa} alt="Logo 3D Sinc" style={{ maxHeight: '36px', maxWidth: '140px', objectFit: 'contain' }} />
           ) : (
             <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--purple)', letterSpacing: '-0.3px' }}>
               3D Sinc
@@ -146,7 +146,7 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
           }}
           aria-label="Fechar menu"
         >
-          ✕
+          <span aria-hidden="true">✕</span>
         </button>
       </div>
 
@@ -260,13 +260,16 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
             }}
             aria-label="Abrir menu"
           >
-            ☰
+            <span aria-hidden="true">☰</span>
           </button>
 
           {/* Avatar + dropdown */}
           <div style={{ position: 'relative', marginLeft: 'auto' }}>
             <button
               onClick={() => setDropdownAberto(!dropdownAberto)}
+              aria-label={`Menu do usuário: ${user.nome}`}
+              aria-expanded={dropdownAberto}
+              aria-haspopup="menu"
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '6px 10px', borderRadius: '8px',
@@ -286,13 +289,16 @@ export default function LayoutDashboard({ children }: { children: React.ReactNod
                 <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{user.nome}</p>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>{labelCargo[user.cargo] ?? user.cargo}</p>
               </div>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>▾</span>
+              <span aria-hidden="true" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>▾</span>
             </button>
 
             {dropdownAberto && (
               <>
                 <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setDropdownAberto(false)} />
-                <div style={{
+                <div
+                  role="menu"
+                  aria-label="Opções do usuário"
+                  style={{
                   position: 'absolute', right: 0, top: '100%', marginTop: '6px',
                   width: '180px', borderRadius: '8px', padding: '4px',
                   backgroundColor: 'var(--bg-surface)',

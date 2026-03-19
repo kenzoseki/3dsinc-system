@@ -99,7 +99,14 @@ export function GraficoFilamentos({ dados }: { dados: DadoFilamento[] }) {
                   {f.pesoAtual}g / {f.pesoTotal}g
                 </span>
               </div>
-              <div style={{ height: '8px', borderRadius: '4px', backgroundColor: 'var(--border)', overflow: 'hidden' }}>
+              <div
+                role="progressbar"
+                aria-valuenow={Math.round(f.percentual)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${f.nome}: ${Math.round(f.percentual)}% restante`}
+                style={{ height: '8px', borderRadius: '4px', backgroundColor: 'var(--border)', overflow: 'hidden' }}
+              >
                 <div style={{
                   height: '100%',
                   width: `${Math.min(f.percentual, 100)}%`,

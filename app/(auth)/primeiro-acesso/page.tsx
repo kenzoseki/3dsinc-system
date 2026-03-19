@@ -156,12 +156,14 @@ function FormularioPrimeiroAcesso() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '16px' }}>
-          <label style={estiloLabel}>Seu Nome</label>
+          <label htmlFor="pa-nome" style={estiloLabel}>Seu Nome</label>
           <input
+            id="pa-nome"
             type="text"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             required
+            autoComplete="name"
             placeholder="Nome completo"
             style={estiloInput}
             onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
@@ -170,12 +172,14 @@ function FormularioPrimeiroAcesso() {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={estiloLabel}>Criar Senha</label>
+          <label htmlFor="pa-senha" style={estiloLabel}>Criar Senha</label>
           <input
+            id="pa-senha"
             type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
+            autoComplete="new-password"
             placeholder="Mínimo 6 caracteres"
             style={estiloInput}
             onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
@@ -184,12 +188,14 @@ function FormularioPrimeiroAcesso() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={estiloLabel}>Confirmar Senha</label>
+          <label htmlFor="pa-confirmar-senha" style={estiloLabel}>Confirmar Senha</label>
           <input
+            id="pa-confirmar-senha"
             type="password"
             value={confirmarSenha}
             onChange={(e) => setConfirmarSenha(e.target.value)}
             required
+            autoComplete="new-password"
             placeholder="Repita a senha"
             style={estiloInput}
             onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
@@ -198,7 +204,7 @@ function FormularioPrimeiroAcesso() {
         </div>
 
         {erro && (
-          <p style={{
+          <p role="alert" style={{
             color: 'var(--red)',
             fontSize: '13px',
             fontFamily: 'Inter, sans-serif',
@@ -214,6 +220,7 @@ function FormularioPrimeiroAcesso() {
         <button
           type="submit"
           disabled={carregando}
+          aria-busy={carregando}
           style={{
             width: '100%',
             padding: '10px',

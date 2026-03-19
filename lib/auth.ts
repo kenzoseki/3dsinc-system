@@ -36,7 +36,6 @@ export const authOptions: NextAuthOptions = {
           nome: usuario.nome,
           email: usuario.email,
           cargo: usuario.cargo as Cargo,
-          avatarUrl: usuario.avatarUrl,
         }
       },
     }),
@@ -53,7 +52,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.nome = (user as { nome: string }).nome
         token.cargo = (user as { cargo: Cargo }).cargo
-        token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl
+        // avatarUrl não é armazenado no JWT para evitar cookie grande demais
       }
       return token
     },
@@ -62,7 +61,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.nome = token.nome as string
         session.user.cargo = token.cargo as Cargo
-        session.user.avatarUrl = token.avatarUrl as string | null | undefined
+        session.user.avatarUrl = null
       }
       return session
     },

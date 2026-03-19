@@ -7,6 +7,7 @@ const ROTAS_PUBLICAS_API = [
   '/api/convite/validar',
   '/api/convite/aceitar',
   '/api/portal',
+  '/api/public',
 ]
 
 export async function proxy(request: NextRequest) {

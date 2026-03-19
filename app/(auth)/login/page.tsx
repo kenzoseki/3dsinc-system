@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -10,6 +10,18 @@ export default function LoginPage() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [logoBase64, setLogoBase64] = useState<string | null>(null)
+  const [nomeEmpresa, setNomeEmpresa] = useState('3D Sinc')
+
+  useEffect(() => {
+    fetch('/api/public/logo')
+      .then(r => r.json())
+      .then(d => {
+        setLogoBase64(d.logoBase64 ?? null)
+        setNomeEmpresa(d.nomeEmpresa ?? '3D Sinc')
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -45,7 +57,7 @@ export default function LoginPage() {
       justifyContent: 'center',
       padding: '24px',
     }}>
-      <div style={{
+      <main style={{
         width: '100%',
         maxWidth: '400px',
         backgroundColor: 'var(--bg-surface)',
@@ -56,16 +68,24 @@ export default function LoginPage() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{
-            fontFamily: 'Nunito, sans-serif',
-            fontWeight: 700,
-            fontSize: '28px',
-            color: 'var(--purple)',
-            letterSpacing: '-0.5px',
-            marginBottom: '4px',
-          }}>
-            3D Sinc
-          </h1>
+          {logoBase64 ? (
+            <img
+              src={logoBase64}
+              alt={`Logo ${nomeEmpresa}`}
+              style={{ maxHeight: '56px', maxWidth: '180px', objectFit: 'contain', marginBottom: '8px' }}
+            />
+          ) : (
+            <p style={{
+              fontFamily: 'Nunito, sans-serif',
+              fontWeight: 700,
+              fontSize: '28px',
+              color: 'var(--purple)',
+              letterSpacing: '-0.5px',
+              marginBottom: '4px',
+            }}>
+              {nomeEmpresa}
+            </p>
+          )}
           <p style={{
             fontFamily: 'Inter, sans-serif',
             fontSize: '13px',
@@ -75,23 +95,28 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{
-              display: 'block',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              marginBottom: '6px',
-            }}>
+            <label
+              htmlFor="login-email"
+              style={{
+                display: 'block',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                marginBottom: '6px',
+              }}
+            >
               Email
             </label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               placeholder="seu@email.com"
               style={{
                 width: '100%',
@@ -111,21 +136,26 @@ export default function LoginPage() {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              marginBottom: '6px',
-            }}>
+            <label
+              htmlFor="login-senha"
+              style={{
+                display: 'block',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                marginBottom: '6px',
+              }}
+            >
               Senha
             </label>
             <input
+              id="login-senha"
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
+              autoComplete="current-password"
               placeholder="••••••••"
               style={{
                 width: '100%',
@@ -145,15 +175,18 @@ export default function LoginPage() {
           </div>
 
           {erro && (
-            <p style={{
-              color: 'var(--red)',
-              fontSize: '13px',
-              fontFamily: 'Inter, sans-serif',
-              marginBottom: '16px',
-              padding: '10px 12px',
-              backgroundColor: 'var(--red-light)',
-              borderRadius: '6px',
-            }}>
+            <p
+              role="alert"
+              style={{
+                color: 'var(--red)',
+                fontSize: '13px',
+                fontFamily: 'Inter, sans-serif',
+                marginBottom: '16px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--red-light)',
+                borderRadius: '6px',
+              }}
+            >
               {erro}
             </p>
           )}
@@ -161,6 +194,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={carregando}
+            aria-busy={carregando}
             style={{
               width: '100%',
               padding: '10px',
@@ -188,9 +222,9 @@ export default function LoginPage() {
           color: 'var(--text-secondary)',
           fontFamily: 'Inter, sans-serif',
         }}>
-          Acesso restrito a membros da equipe 3D Sinc
+          Acesso restrito a membros da equipe {nomeEmpresa}
         </p>
-      </div>
+      </main>
     </div>
   )
 }
