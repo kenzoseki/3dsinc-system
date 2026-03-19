@@ -72,7 +72,6 @@ export default function PaginaEditarFilamento() {
   const [temperatura, setTemperatura] = useState('')
   const [velocidade, setVelocidade] = useState('')
   const [localizacao, setLocalizacao] = useState('')
-  const [ativo, setAtivo] = useState(true)
 
   const [erros, setErros] = useState<ErrosFormulario>({})
   const [erroGeral, setErroGeral] = useState('')
@@ -97,7 +96,6 @@ export default function PaginaEditarFilamento() {
         setTemperatura(dados.temperatura ? String(dados.temperatura) : '')
         setVelocidade(dados.velocidade ? String(dados.velocidade) : '')
         setLocalizacao(dados.localizacao ?? '')
-        setAtivo(dados.ativo)
       } catch {
         setErroCarregamento('Erro ao carregar filamento')
       } finally {
@@ -134,7 +132,6 @@ export default function PaginaEditarFilamento() {
         diametro: parseFloat(diametro),
         pesoTotal: parseFloat(pesoTotal),
         pesoAtual: parseFloat(pesoAtual),
-        ativo,
       }
 
       if (temperatura) payload.temperatura = parseInt(temperatura)
@@ -363,33 +360,6 @@ export default function PaginaEditarFilamento() {
               onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
             />
-          </div>
-
-          {/* Status ativo */}
-          <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={() => setAtivo(!ativo)}
-              style={{
-                width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                backgroundColor: ativo ? 'var(--purple)' : 'var(--border-strong)',
-                position: 'relative', transition: 'background-color 0.2s', flexShrink: 0,
-              }}
-            >
-              <span style={{
-                position: 'absolute', top: '3px', width: '18px', height: '18px', borderRadius: '50%',
-                backgroundColor: '#fff', transition: 'left 0.2s',
-                left: ativo ? '23px' : '3px',
-              }} />
-            </button>
-            <span style={{ fontSize: '13px', fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)' }}>
-              Filamento ativo
-            </span>
-            {!ativo && (
-              <span style={{ fontSize: '12px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)' }}>
-                (inativo — não aparece no estoque)
-              </span>
-            )}
           </div>
 
           {/* Erro geral */}

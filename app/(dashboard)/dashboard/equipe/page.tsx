@@ -49,6 +49,9 @@ export default function PaginaEquipe() {
   const [linkGerado, setLinkGerado] = useState('')
 
   const isAdmin = cargo === 'ADMIN'
+  const isSocio = cargo === 'SOCIO'
+  const podeConvidar = isAdmin || isSocio
+  const podeGerenciar = isAdmin
 
   const buscarMembros = useCallback(async () => {
     setCarregando(true)
@@ -134,9 +137,9 @@ export default function PaginaEquipe() {
             {membros.length} membro{membros.length !== 1 ? 's' : ''} cadastrado{membros.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {isAdmin && (
+        {podeConvidar && (
           <button
-            onClick={() => { setModalConvite(true); setLinkGerado('') }}
+            onClick={() => { setModalConvite(true); setLinkGerado(''); setCargoConvite('OPERADOR') }}
             style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontFamily: 'Nunito, sans-serif', fontWeight: 600, backgroundColor: 'var(--purple)', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             + Convidar Membro
@@ -155,7 +158,7 @@ export default function PaginaEquipe() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--bg-hover)' }}>
-              {['Membro', 'Email', 'Cargo', 'Status', 'Desde', ...(isAdmin ? ['Ações'] : [])].map(col => (
+              {['Membro', 'Email', 'Cargo', 'Status', 'Desde', ...(podeGerenciar ? ['Ações'] : [])].map(col => (
                 <th key={col} style={{ textAlign: 'left', padding: '10px 20px', fontSize: '11px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {col}
                 </th>
@@ -164,7 +167,7 @@ export default function PaginaEquipe() {
           </thead>
           <tbody>
             {carregando ? (
-              <tr><td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Carregando...</td></tr>
+              <tr><td colSpan={podeGerenciar ? 6 : 5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Carregando...</td></tr>
             ) : membros.map(membro => (
               <tr key={membro.id} style={{ borderBottom: '1px solid var(--border)', opacity: membro.ativo ? 1 : 0.5 }}>
                 {/* Membro */}
@@ -184,13 +187,12 @@ export default function PaginaEquipe() {
                 <td style={{ padding: '12px 20px', fontSize: '13px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)' }}>{membro.email}</td>
                 {/* Cargo */}
                 <td style={{ padding: '12px 20px' }}>
-                  {isAdmin && membro.cargo !== 'ADMIN' && membro.id !== session?.user?.id ? (
+                  {podeGerenciar && membro.cargo !== 'ADMIN' && membro.id !== session?.user?.id ? (
                     <select
                       value={membro.cargo}
                       onChange={(e) => alterarCargo(membro.id, e.target.value)}
                       style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif', border: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)', cursor: 'pointer' }}
                     >
-                      <option value="SOCIO">Sócio</option>
                       <option value="GERENTE">Gerente</option>
                       <option value="OPERADOR">Operador</option>
                       <option value="VISUALIZADOR">Visualizador</option>
@@ -212,7 +214,7 @@ export default function PaginaEquipe() {
                   {new Date(membro.createdAt).toLocaleDateString('pt-BR')}
                 </td>
                 {/* Ações */}
-                {isAdmin && (
+                {podeGerenciar && (
                   <td style={{ padding: '12px 20px' }}>
                     {membro.id !== session?.user?.id && membro.cargo !== 'ADMIN' && (
                       <button
@@ -232,8 +234,11 @@ export default function PaginaEquipe() {
 
       {/* Modal de convite */}
       {modalConvite && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '440px', padding: '28px', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+        <div
+          onClick={e => { if (e.target === e.currentTarget) { setModalConvite(false); setLinkGerado('') } }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+        >
+          <div style={{ width: '100%', maxWidth: '440px', padding: '28px', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid var(--border)' }}>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px' }}>
               Convidar Membro
             </h2>
@@ -266,7 +271,7 @@ export default function PaginaEquipe() {
                   <select value={cargoConvite} onChange={(e) => setCargoConvite(e.target.value as typeof cargoConvite)} style={estiloInput}
                     onFocus={(e) => e.currentTarget.style.borderColor = 'var(--purple)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
-                    <option value="SOCIO">Sócio</option>
+                    {isAdmin && <option value="SOCIO">Sócio</option>}
                     <option value="GERENTE">Gerente</option>
                     <option value="OPERADOR">Operador</option>
                     <option value="VISUALIZADOR">Visualizador</option>

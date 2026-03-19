@@ -60,7 +60,24 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string
         session.user.nome = token.nome as string
-        session.user.cargo = token.cargo as Cargo
+        // Re-busca cargo do banco para refletir alterações em tempo real
+        try {
+          const usuario = await prisma.usuario.findUnique({
+            where: { id: token.id as string },
+            select: { cargo: true, nome: true, ativo: true },
+          })
+          if (usuario && usuario.ativo) {
+            session.user.cargo = usuario.cargo as Cargo
+            session.user.nome = usuario.nome
+          } else if (usuario && !usuario.ativo) {
+            // Usuário desativado — sessão será invalidada
+            session.user.cargo = 'VISUALIZADOR' as Cargo
+          } else {
+            session.user.cargo = token.cargo as Cargo
+          }
+        } catch {
+          session.user.cargo = token.cargo as Cargo
+        }
         session.user.avatarUrl = null
       }
       return session

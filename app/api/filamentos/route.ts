@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           where: { lido: false },
         },
       },
-      orderBy: { marca: 'asc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json(filamentos)
@@ -70,19 +70,33 @@ export async function POST(request: NextRequest) {
 
     const dados = validacao.data
 
-    const filamento = await prisma.filamento.create({
-      data: {
-        marca: dados.marca,
-        material: dados.material,
-        cor: dados.cor,
-        corHex: dados.corHex ?? null,
-        diametro: dados.diametro,
-        pesoTotal: dados.pesoTotal,
-        pesoAtual: dados.pesoAtual,
-        temperatura: dados.temperatura ?? null,
-        velocidade: dados.velocidade ?? null,
-        localizacao: dados.localizacao ?? null,
-      },
+    const filamento = await prisma.$transaction(async (tx) => {
+      const criado = await tx.filamento.create({
+        data: {
+          marca: dados.marca,
+          material: dados.material,
+          cor: dados.cor,
+          corHex: dados.corHex ?? null,
+          diametro: dados.diametro,
+          pesoTotal: dados.pesoTotal,
+          pesoAtual: dados.pesoAtual,
+          temperatura: dados.temperatura ?? null,
+          velocidade: dados.velocidade ?? null,
+          localizacao: dados.localizacao ?? null,
+        },
+      })
+
+      // Criar alerta de estoque baixo se cadastrado com < 20%
+      if (dados.pesoTotal > 0 && (dados.pesoAtual / dados.pesoTotal) < 0.2) {
+        await tx.alertaEstoque.create({
+          data: {
+            filamentoId: criado.id,
+            tipoAlerta: 'ESTOQUE_BAIXO',
+          },
+        })
+      }
+
+      return criado
     })
 
     return NextResponse.json(filamento, { status: 201 })

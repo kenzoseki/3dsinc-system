@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Permissoes } from '@/lib/permissoes'
+import type { Cargo } from '@prisma/client'
 
 interface AlertaEstoque {
   id: string
@@ -25,6 +28,9 @@ interface Filamento {
   ativo: boolean
   alertas: AlertaEstoque[]
 }
+
+type FiltroStatus = 'ativos' | 'inativos' | 'todos'
+type FiltroPercentual = 'todos' | 'critico' | 'baixo' | 'normal'
 
 function BarraProgresso({ pesoAtual, pesoTotal }: { pesoAtual: number; pesoTotal: number }) {
   const percentual = pesoTotal > 0 ? Math.min(100, (pesoAtual / pesoTotal) * 100) : 0
@@ -49,13 +55,19 @@ function BarraProgresso({ pesoAtual, pesoTotal }: { pesoAtual: number; pesoTotal
 
 export default function PaginaEstoque() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const cargo = session?.user?.cargo as Cargo | undefined
+  const podeEditar = cargo ? Permissoes.podeEscreverEstoque(cargo) : false
+
   const [filamentos, setFilamentos] = useState<Filamento[]>([])
   const [carregando, setCarregando] = useState(true)
   const [excluindo, setExcluindo] = useState<string | null>(null)
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('ativos')
+  const [filtroPercentual, setFiltroPercentual] = useState<FiltroPercentual>('todos')
 
   async function carregarFilamentos() {
     try {
-      const resposta = await fetch('/api/filamentos')
+      const resposta = await fetch('/api/filamentos?incluirInativos=true')
       if (resposta.ok) setFilamentos(await resposta.json())
     } catch (erro) {
       console.error('Erro ao carregar filamentos:', erro)
@@ -81,12 +93,52 @@ export default function PaginaEstoque() {
     }
   }
 
+  // Filamentos filtrados
+  const filamentosFiltrados = useMemo(() => {
+    let lista = filamentos
+
+    // Filtro ativo/inativo — inativo = zerado (pesoAtual = 0) ou ativo = false
+    if (filtroStatus === 'ativos') {
+      lista = lista.filter(f => f.ativo && parseFloat(f.pesoAtual) > 0)
+    } else if (filtroStatus === 'inativos') {
+      lista = lista.filter(f => !f.ativo || parseFloat(f.pesoAtual) === 0)
+    }
+
+    // Filtro percentual
+    if (filtroPercentual !== 'todos') {
+      lista = lista.filter(f => {
+        const pesoAtual = parseFloat(f.pesoAtual)
+        const pesoTotal = parseFloat(f.pesoTotal)
+        const pct = pesoTotal > 0 ? (pesoAtual / pesoTotal) * 100 : 0
+        if (filtroPercentual === 'critico') return pct < 20
+        if (filtroPercentual === 'baixo') return pct >= 20 && pct < 40
+        if (filtroPercentual === 'normal') return pct >= 40
+        return true
+      })
+    }
+
+    return lista
+  }, [filamentos, filtroStatus, filtroPercentual])
+
   const filamentosComAlerta = filamentos.filter(f => f.alertas.some(a => !a.lido))
+
+  const estiloFiltro = (ativo: boolean): React.CSSProperties => ({
+    padding: '5px 12px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: ativo ? 500 : 400,
+    cursor: 'pointer',
+    border: ativo ? '1px solid var(--purple)' : '1px solid var(--border)',
+    backgroundColor: ativo ? 'var(--purple-light)' : 'transparent',
+    color: ativo ? 'var(--purple-text)' : 'var(--text-secondary)',
+    transition: 'all 0.15s',
+  })
 
   return (
     <div>
       {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)' }}>
             Estoque
@@ -95,24 +147,55 @@ export default function PaginaEstoque() {
             Gerenciamento de filamentos
           </p>
         </div>
-        <Link
-          href="/dashboard/estoque/novo"
-          style={{
-            padding: '9px 16px',
-            backgroundColor: 'var(--purple)',
-            color: '#fff',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 600,
-            fontFamily: 'Nunito, sans-serif',
-            transition: 'background-color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple-dark)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple)' }}
-        >
-          + Novo Filamento
-        </Link>
+        {podeEditar && (
+          <Link
+            href="/dashboard/estoque/novo"
+            style={{
+              padding: '9px 16px',
+              backgroundColor: 'var(--purple)',
+              color: '#fff',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'Nunito, sans-serif',
+              transition: 'background-color 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple-dark)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple)' }}
+          >
+            + Novo Filamento
+          </Link>
+        )}
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', fontWeight: 500 }}>Status:</span>
+          {([
+            { valor: 'ativos' as FiltroStatus, label: 'Ativos' },
+            { valor: 'inativos' as FiltroStatus, label: 'Inativos' },
+            { valor: 'todos' as FiltroStatus, label: 'Todos' },
+          ]).map(op => (
+            <button key={op.valor} onClick={() => setFiltroStatus(op.valor)} style={estiloFiltro(filtroStatus === op.valor)}>
+              {op.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', fontWeight: 500 }}>Nível:</span>
+          {([
+            { valor: 'todos' as FiltroPercentual, label: 'Todos' },
+            { valor: 'critico' as FiltroPercentual, label: '< 20% (Crítico)' },
+            { valor: 'baixo' as FiltroPercentual, label: '20-40% (Baixo)' },
+            { valor: 'normal' as FiltroPercentual, label: '≥ 40% (Normal)' },
+          ]).map(op => (
+            <button key={op.valor} onClick={() => setFiltroPercentual(op.valor)} style={estiloFiltro(filtroPercentual === op.valor)}>
+              {op.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Alertas de estoque baixo */}
@@ -153,7 +236,7 @@ export default function PaginaEstoque() {
         <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>
           Carregando filamentos...
         </div>
-      ) : filamentos.length === 0 ? (
+      ) : filamentosFiltrados.length === 0 ? (
         <div style={{
           textAlign: 'center',
           padding: '64px',
@@ -163,17 +246,22 @@ export default function PaginaEstoque() {
           color: 'var(--text-secondary)',
           fontFamily: 'Inter, sans-serif',
         }}>
-          <p style={{ fontSize: '15px', marginBottom: '8px' }}>Nenhum filamento cadastrado</p>
-          <Link href="/dashboard/estoque/novo" style={{ color: 'var(--purple)', fontSize: '13px' }}>
-            Adicionar primeiro filamento →
-          </Link>
+          <p style={{ fontSize: '15px', marginBottom: '8px' }}>
+            {filamentos.length === 0 ? 'Nenhum filamento cadastrado' : 'Nenhum filamento encontrado com os filtros selecionados'}
+          </p>
+          {filamentos.length === 0 && podeEditar && (
+            <Link href="/dashboard/estoque/novo" style={{ color: 'var(--purple)', fontSize: '13px' }}>
+              Adicionar primeiro filamento →
+            </Link>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {filamentos.map((filamento) => {
+          {filamentosFiltrados.map((filamento) => {
             const temAlerta = filamento.alertas.some(a => !a.lido)
             const pesoAtual = parseFloat(filamento.pesoAtual)
             const pesoTotal = parseFloat(filamento.pesoTotal)
+            const isInativo = !filamento.ativo || pesoAtual === 0
 
             return (
               <div
@@ -184,6 +272,7 @@ export default function PaginaEstoque() {
                   backgroundColor: 'var(--bg-surface)',
                   border: `1px solid ${temAlerta ? '#F5C6C6' : 'var(--border)'}`,
                   boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  opacity: isInativo ? 0.6 : 1,
                 }}
               >
                 {/* Cabeçalho do card */}
@@ -203,19 +292,26 @@ export default function PaginaEstoque() {
                       </p>
                     </div>
                   </div>
-                  {temAlerta && (
-                    <span style={{
-                      fontSize: '11px',
-                      padding: '3px 8px',
-                      borderRadius: '20px',
-                      backgroundColor: 'var(--red-light)',
-                      color: 'var(--red)',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 500,
-                    }}>
-                      Baixo
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {isInativo && (
+                      <span style={{
+                        fontSize: '11px', padding: '3px 8px', borderRadius: '20px',
+                        backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                      }}>
+                        Inativo
+                      </span>
+                    )}
+                    {temAlerta && (
+                      <span style={{
+                        fontSize: '11px', padding: '3px 8px', borderRadius: '20px',
+                        backgroundColor: 'var(--red-light)', color: 'var(--red)',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                      }}>
+                        Baixo
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Barra de progresso */}
@@ -241,37 +337,39 @@ export default function PaginaEstoque() {
                   )}
                 </div>
 
-                {/* Botões editar / excluir */}
-                <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => router.push(`/dashboard/estoque/${filamento.id}/editar`)}
-                    style={{
-                      flex: 1, padding: '7px', borderRadius: '7px', fontSize: '13px',
-                      fontFamily: 'Inter, sans-serif', fontWeight: 500,
-                      border: '1px solid var(--border)', backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)', cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--purple)'; e.currentTarget.style.color = 'var(--purple)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => excluirFilamento(filamento.id, `${filamento.marca} ${filamento.cor}`)}
-                    disabled={excluindo === filamento.id}
-                    style={{
-                      padding: '7px 12px', borderRadius: '7px', fontSize: '13px',
-                      fontFamily: 'Inter, sans-serif', fontWeight: 500,
-                      border: '1px solid var(--red-light)', backgroundColor: 'transparent',
-                      color: 'var(--red)', cursor: excluindo === filamento.id ? 'not-allowed' : 'pointer',
-                      opacity: excluindo === filamento.id ? 0.5 : 1,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--red-light)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-                  >
-                    {excluindo === filamento.id ? '...' : 'Excluir'}
-                  </button>
-                </div>
+                {/* Botões editar / excluir — somente para quem pode */}
+                {podeEditar && (
+                  <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => router.push(`/dashboard/estoque/${filamento.id}/editar`)}
+                      style={{
+                        flex: 1, padding: '7px', borderRadius: '7px', fontSize: '13px',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                        border: '1px solid var(--border)', backgroundColor: 'transparent',
+                        color: 'var(--text-secondary)', cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--purple)'; e.currentTarget.style.color = 'var(--purple)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => excluirFilamento(filamento.id, `${filamento.marca} ${filamento.cor}`)}
+                      disabled={excluindo === filamento.id}
+                      style={{
+                        padding: '7px 12px', borderRadius: '7px', fontSize: '13px',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                        border: '1px solid var(--red-light)', backgroundColor: 'transparent',
+                        color: 'var(--red)', cursor: excluindo === filamento.id ? 'not-allowed' : 'pointer',
+                        opacity: excluindo === filamento.id ? 0.5 : 1,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--red-light)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      {excluindo === filamento.id ? '...' : 'Excluir'}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}

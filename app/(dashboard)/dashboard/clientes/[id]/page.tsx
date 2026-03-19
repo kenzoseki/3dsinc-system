@@ -2,6 +2,9 @@
 
 import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Permissoes } from '@/lib/permissoes'
+import { Cargo } from '@prisma/client'
 
 const STATUS_LABEL: Record<string, string> = {
   ORCAMENTO: 'Orçamento', APROVADO: 'Aprovado', AGUARDANDO: 'Aguardando',
@@ -45,6 +48,9 @@ interface Cliente {
 export default function PaginaDetalheCliente({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const { data: session } = useSession()
+  const cargo = session?.user?.cargo as Cargo | undefined
+  const podeEditar = cargo ? Permissoes.podeEscreverClientes(cargo) : false
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [editando, setEditando] = useState(false)
@@ -162,43 +168,45 @@ export default function PaginaDetalheCliente({ params }: { params: Promise<{ id:
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {!editando ? (
-            <>
+        {podeEditar && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {!editando ? (
+              <>
+                <button
+                  onClick={() => { setEditando(true); setErro('') }}
+                  style={{
+                    padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border)',
+                    background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-primary)',
+                    cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => setConfirmarExclusao(true)}
+                  style={{
+                    padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--red-light)',
+                    background: 'var(--red-light)', fontSize: '13px', color: 'var(--red)',
+                    cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  Excluir
+                </button>
+              </>
+            ) : (
               <button
-                onClick={() => { setEditando(true); setErro('') }}
+                onClick={() => { setEditando(false); setErro('') }}
                 style={{
                   padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border)',
-                  background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-primary)',
+                  background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-secondary)',
                   cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                 }}
               >
-                Editar
+                Cancelar
               </button>
-              <button
-                onClick={() => setConfirmarExclusao(true)}
-                style={{
-                  padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--red-light)',
-                  background: 'var(--red-light)', fontSize: '13px', color: 'var(--red)',
-                  cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                }}
-              >
-                Excluir
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => { setEditando(false); setErro('') }}
-              style={{
-                padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border)',
-                background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--text-secondary)',
-                cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              }}
-            >
-              Cancelar
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dados do cliente */}

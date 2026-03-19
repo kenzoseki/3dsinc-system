@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Permissoes } from '@/lib/permissoes'
+import { Cargo } from '@prisma/client'
 
 interface Cliente {
   id: string
@@ -25,6 +28,9 @@ const LIMITE = 25
 
 export default function PaginaClientes() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const cargo = session?.user?.cargo as Cargo | undefined
+  const podeEditar = cargo ? Permissoes.podeEscreverClientes(cargo) : false
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [paginacao, setPaginacao] = useState<Paginacao | null>(null)
   const [pagina, setPagina] = useState(1)
@@ -115,16 +121,18 @@ export default function PaginaClientes() {
             </p>
           )}
         </div>
-        <button
-          onClick={abrirModal}
-          style={{
-            background: 'var(--purple)', color: '#fff', border: 'none',
-            borderRadius: '8px', padding: '10px 18px', fontSize: '14px',
-            fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-          }}
-        >
-          + Novo Cliente
-        </button>
+        {podeEditar && (
+          <button
+            onClick={abrirModal}
+            style={{
+              background: 'var(--purple)', color: '#fff', border: 'none',
+              borderRadius: '8px', padding: '10px 18px', fontSize: '14px',
+              fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            + Novo Cliente
+          </button>
+        )}
       </div>
 
       {/* Busca */}

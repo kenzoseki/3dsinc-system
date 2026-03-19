@@ -1,7 +1,16 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+
+interface ClienteExistente {
+  id: string
+  nome: string
+  empresa: string | null
+  email: string | null
+  telefone: string | null
+  cpfCnpj: string | null
+}
 
 interface Item {
   ordem: number
@@ -48,7 +57,39 @@ export default function NovoOrcamentoPage() {
   const router = useRouter()
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
+  const [erroEmail, setErroEmail] = useState('')
   const inputImagemRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [clientesExistentes, setClientesExistentes] = useState<ClienteExistente[]>([])
+  const [clienteSelecionado, setClienteSelecionado] = useState('')
+
+  useEffect(() => {
+    fetch('/api/clientes')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setClientesExistentes(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
+  function preencherCliente(id: string) {
+    setClienteSelecionado(id)
+    if (!id) return
+    const c = clientesExistentes.find(cl => cl.id === id)
+    if (c) {
+      setForm(f => ({
+        ...f,
+        clienteNome: c.nome,
+        clienteEmpresa: c.empresa ?? '',
+        clienteCnpj: c.cpfCnpj ?? '',
+        clienteEmail: c.email ?? '',
+        clienteTelefone: c.telefone ?? '',
+      }))
+    }
+  }
+
+  function validarEmail(email: string) {
+    if (!email) { setErroEmail(''); return }
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    setErroEmail(regex.test(email) ? '' : 'Formato de email inválido')
+  }
 
   const [form, setForm] = useState({
     clienteNome: '',
@@ -115,6 +156,7 @@ export default function NovoOrcamentoPage() {
 
   async function salvar() {
     if (!form.clienteNome.trim()) { setErro('Informe o nome do cliente.'); return }
+    if (form.clienteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clienteEmail)) { setErro('Formato de email inválido.'); return }
     if (itens.some(i => !i.descricao.trim())) { setErro('Todos os itens precisam de descrição.'); return }
     setSalvando(true)
     setErro('')
@@ -160,19 +202,43 @@ export default function NovoOrcamentoPage() {
 
       {/* Dados do cliente */}
       <div style={estiloCard}>
-        <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Dados do cliente
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Dados do cliente
+          </h2>
+        </div>
+
+        {/* Selecionar cliente existente */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={estiloLabel}>Selecionar cliente cadastrado</label>
+          <select
+            style={estiloInput}
+            value={clienteSelecionado}
+            onChange={e => preencherCliente(e.target.value)}
+            onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+            onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            <option value="">Preencher manualmente</option>
+            {clientesExistentes.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.nome}{c.empresa ? ` (${c.empresa})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={estiloGrade2}>
           <div>
             <label style={estiloLabel}>Nome / Responsável *</label>
             <input style={estiloInput} value={form.clienteNome} onChange={e => setField('clienteNome', e.target.value)}
+              placeholder="Nome completo do cliente"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>
           <div>
             <label style={estiloLabel}>Empresa</label>
             <input style={estiloInput} value={form.clienteEmpresa} onChange={e => setField('clienteEmpresa', e.target.value)}
+              placeholder="Razão social"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>
@@ -181,18 +247,21 @@ export default function NovoOrcamentoPage() {
           <div>
             <label style={estiloLabel}>CNPJ</label>
             <input style={estiloInput} value={form.clienteCnpj} onChange={e => setField('clienteCnpj', e.target.value)}
+              placeholder="00.000.000/0000-00"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>
           <div>
             <label style={estiloLabel}>CEP</label>
             <input style={estiloInput} value={form.clienteCep} onChange={e => setField('clienteCep', e.target.value)}
+              placeholder="00000-000"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>
           <div>
             <label style={estiloLabel}>Telefone</label>
             <input style={estiloInput} value={form.clienteTelefone} onChange={e => setField('clienteTelefone', e.target.value)}
+              placeholder="(11) 99999-0000"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
           </div>
@@ -200,15 +269,19 @@ export default function NovoOrcamentoPage() {
         <div style={{ marginBottom: '16px' }}>
           <label style={estiloLabel}>Endereço</label>
           <input style={estiloInput} value={form.clienteEndereco} onChange={e => setField('clienteEndereco', e.target.value)}
+            placeholder="Rua, número, bairro"
             onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
             onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
         </div>
         <div style={estiloGrade2}>
           <div>
             <label style={estiloLabel}>E-mail</label>
-            <input style={estiloInput} type="email" value={form.clienteEmail} onChange={e => setField('clienteEmail', e.target.value)}
+            <input style={estiloInput} type="email" value={form.clienteEmail}
+              onChange={e => { setField('clienteEmail', e.target.value); validarEmail(e.target.value) }}
+              placeholder="email@exemplo.com"
               onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'} />
+            {erroEmail && <p style={{ fontSize: '11px', color: 'var(--red)', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>{erroEmail}</p>}
           </div>
           <div>
             <label style={estiloLabel}>Responsável pelo contato</label>

@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
+import { Permissoes } from '@/lib/permissoes'
+import { Cargo } from '@prisma/client'
 
 interface Cliente {
   id: string
@@ -39,6 +42,9 @@ const prioridadeCor: Record<string, string> = {
 }
 
 export default function PaginaPedidos() {
+  const { data: session } = useSession()
+  const cargo = session?.user?.cargo as Cargo | undefined
+  const podeEditar = cargo ? Permissoes.podeEscreverPedidos(cargo) : false
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -81,24 +87,26 @@ export default function PaginaPedidos() {
             Gerencie todos os pedidos
           </p>
         </div>
-        <Link
-          href="/dashboard/pedidos/novo"
-          style={{
-            padding: '9px 16px',
-            backgroundColor: 'var(--purple)',
-            color: '#fff',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 600,
-            fontFamily: 'Nunito, sans-serif',
-            transition: 'background-color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple-dark)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple)' }}
-        >
-          + Novo Pedido
-        </Link>
+        {podeEditar && (
+          <Link
+            href="/dashboard/pedidos/novo"
+            style={{
+              padding: '9px 16px',
+              backgroundColor: 'var(--purple)',
+              color: '#fff',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'Nunito, sans-serif',
+              transition: 'background-color 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple-dark)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--purple)' }}
+          >
+            + Novo Pedido
+          </Link>
+        )}
       </div>
 
       {/* Filtros de status */}

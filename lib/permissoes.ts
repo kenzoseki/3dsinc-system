@@ -2,7 +2,7 @@ import { Cargo } from '@prisma/client'
 
 export const Permissoes = {
   podeGerenciarEquipe:   (cargo: Cargo) => cargo === 'ADMIN',
-  podeAcessarSistema:    (cargo: Cargo) => cargo === 'ADMIN',
+  podeAcessarSistema:    (cargo: Cargo) => (['ADMIN', 'SOCIO'] as Cargo[]).includes(cargo),
   podeVerRelatorios:     (cargo: Cargo) => (['ADMIN', 'SOCIO'] as Cargo[]).includes(cargo),
   podeEscreverPedidos:   (cargo: Cargo) => (['ADMIN', 'SOCIO', 'GERENTE', 'OPERADOR'] as Cargo[]).includes(cargo),
   podeEscreverEstoque:   (cargo: Cargo) => (['ADMIN', 'SOCIO', 'GERENTE', 'OPERADOR'] as Cargo[]).includes(cargo),

@@ -17,9 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erro: 'Nao autenticado' }, { status: 401 })
     }
 
-    // Somente ADMIN pode gerar convites
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Somente ADMIN pode gerar convites' }, { status: 403 })
+    // ADMIN e SOCIO podem gerar convites
+    const cargoUsuario = session.user.cargo
+    if (cargoUsuario !== 'ADMIN' && cargoUsuario !== 'SOCIO') {
+      return NextResponse.json({ erro: 'Sem permissão para gerar convites' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, cargo } = validacao.data
+
+    // SOCIO só pode convidar GERENTE, OPERADOR e VISUALIZADOR
+    if (cargoUsuario === 'SOCIO' && (cargo === 'SOCIO')) {
+      return NextResponse.json({ erro: 'Sócio não pode convidar outro Sócio' }, { status: 403 })
+    }
 
     // Verificar se usuario com esse email ja existe
     const usuarioExistente = await prisma.usuario.findUnique({ where: { email } })

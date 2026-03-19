@@ -10,6 +10,10 @@ export default function LoginForm({ logoBase64, nomeEmpresa }: { logoBase64: str
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [modoEsqueci, setModoEsqueci] = useState(false)
+  const [emailEsqueci, setEmailEsqueci] = useState('')
+  const [enviandoReset, setEnviandoReset] = useState(false)
+  const [resetEnviado, setResetEnviado] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -230,16 +234,114 @@ export default function LoginForm({ logoBase64, nomeEmpresa }: { logoBase64: str
           </button>
         </form>
 
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button
+            type="button"
+            onClick={() => setModoEsqueci(true)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--purple)',
+              fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+              padding: 0,
+            }}
+          >
+            Esqueci minha senha
+          </button>
+        </div>
+
         <p style={{
           textAlign: 'center',
           fontSize: '12px',
-          marginTop: '24px',
+          marginTop: '16px',
           color: 'var(--text-secondary)',
           fontFamily: 'Inter, sans-serif',
         }}>
           Acesso restrito a membros da equipe {nomeEmpresa}
         </p>
       </main>
+
+      {/* Modal Esqueci Minha Senha */}
+      {modoEsqueci && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) { setModoEsqueci(false); setResetEnviado(false) } }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+        >
+          <div style={{ background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '400px', border: '1px solid var(--border)' }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif' }}>
+              Redefinir Senha
+            </h2>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+              {resetEnviado
+                ? 'Se o email estiver cadastrado, você receberá um link para redefinir a senha.'
+                : 'Informe seu email para receber o link de redefinição.'}
+            </p>
+
+            {resetEnviado ? (
+              <button
+                onClick={() => { setModoEsqueci(false); setResetEnviado(false) }}
+                style={{
+                  width: '100%', padding: '11px', backgroundColor: 'var(--purple)', color: '#fff',
+                  border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700,
+                  fontFamily: 'Nunito, sans-serif', cursor: 'pointer',
+                }}
+              >
+                Fechar
+              </button>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                setEnviandoReset(true)
+                try {
+                  await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailEsqueci }),
+                  })
+                  setResetEnviado(true)
+                } finally {
+                  setEnviandoReset(false)
+                }
+              }}>
+                <input
+                  type="email"
+                  value={emailEsqueci}
+                  onChange={e => setEmailEsqueci(e.target.value)}
+                  required
+                  placeholder="seu@email.com"
+                  style={{
+                    width: '100%', padding: '9px 12px', border: '1px solid var(--border)',
+                    borderRadius: '8px', fontSize: '14px', fontFamily: 'Inter, sans-serif',
+                    color: 'var(--text-primary)', backgroundColor: '#fff', outline: 'none',
+                    marginBottom: '16px', boxSizing: 'border-box',
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setModoEsqueci(false); setResetEnviado(false) }}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-page)', fontSize: '14px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={enviandoReset}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                      background: enviandoReset ? 'var(--border)' : 'var(--purple)', color: '#fff',
+                      fontSize: '14px', fontWeight: 600, cursor: enviandoReset ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {enviandoReset ? 'Enviando...' : 'Enviar Link'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -247,25 +247,27 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Link do portal */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <button
-          onClick={gerarLinkPortal}
-          disabled={gerandoToken}
-          style={{
-            padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--border)',
-            background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--purple)',
-            cursor: gerandoToken ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
-            display: 'flex', alignItems: 'center', gap: '6px',
-          }}
-        >
-          {linkCopiado ? '✓ Link copiado!' : gerandoToken ? 'Gerando...' : pedido.tokenPortal ? '🔗 Copiar link do portal' : '🔗 Gerar link do portal'}
-        </button>
-        {pedido.tokenPortal && (
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-            Link ativo — compartilhe com o cliente para rastrear o pedido
-          </span>
-        )}
-      </div>
+      {podeEditar && (
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={gerarLinkPortal}
+            disabled={gerandoToken}
+            style={{
+              padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--border)',
+              background: 'var(--bg-surface)', fontSize: '13px', color: 'var(--purple)',
+              cursor: gerandoToken ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            {linkCopiado ? '✓ Link copiado!' : gerandoToken ? 'Gerando...' : pedido.tokenPortal ? '🔗 Copiar link do portal' : '🔗 Gerar link do portal'}
+          </button>
+          {pedido.tokenPortal && (
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+              Link ativo — compartilhe com o cliente para rastrear o pedido
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
         {/* Info principal */}

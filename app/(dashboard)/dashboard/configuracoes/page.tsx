@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 
 interface Config {
   nomeEmpresa: string
@@ -61,6 +62,7 @@ export default function ConfiguracoesPage() {
   const inputLogoRef = useRef<HTMLInputElement>(null)
 
   const isAdmin = session?.user.cargo === 'ADMIN'
+  const isAdminOuSocio = isAdmin || session?.user.cargo === 'SOCIO'
 
   useEffect(() => {
     fetch('/api/configuracoes')
@@ -135,6 +137,30 @@ export default function ConfiguracoesPage() {
           color: mensagem.includes('Erro') ? 'var(--red)' : 'var(--green)',
           fontSize: '13px', fontFamily: 'Inter, sans-serif',
         }}>{mensagem}</div>
+      )}
+
+      {/* Acessos e Permissões */}
+      {isAdminOuSocio && (
+        <Link
+          href="/dashboard/configuracoes/permissoes"
+          style={{
+            ...estiloCard,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            textDecoration: 'none', cursor: 'pointer', transition: 'border-color 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+          <div>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: 'var(--text-primary)' }}>
+              Acessos e Permissões
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+              Visualize as permissões de cada cargo no sistema.
+            </p>
+          </div>
+          <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>→</span>
+        </Link>
       )}
 
       {/* Logo da empresa */}
