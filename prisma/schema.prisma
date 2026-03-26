@@ -21,6 +21,7 @@ model Usuario {
   updatedAt     DateTime      @updatedAt
   historicos    HistoricoPedido[]
   convitesEnviados Convite[]  @relation("ConviteEnviador")
+  sugestoes     Sugestao[]
 }
 
 enum Cargo {
@@ -280,4 +281,28 @@ enum EtapaLead {
   NEGOCIACAO
   FECHADO
   PERDIDO
+}
+
+model Sugestao {
+  id          String        @id @default(cuid())
+  tipo        TipoSugestao
+  titulo      String
+  descricao   String        @db.Text
+  status      StatusSugestao @default(PENDENTE)
+  usuarioId   String
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum TipoSugestao {
+  MELHORIA
+  BUG
+}
+
+enum StatusSugestao {
+  PENDENTE
+  EM_ANALISE
+  IMPLEMENTADO
+  DESCARTADO
 }

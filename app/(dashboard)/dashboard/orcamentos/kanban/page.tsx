@@ -1,10 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { Cargo } from '@prisma/client'
-import { Permissoes } from '@/lib/permissoes'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Orcamento {
   id: string
@@ -37,16 +35,13 @@ function calcularTotal(orc: Orcamento): number {
   return subtotal + frete + bonus
 }
 
-export default function PaginaCRM() {
-  const { data: session } = useSession()
+export default function KanbanOrcamentos() {
+  const router = useRouter()
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
   const [carregando, setCarregando] = useState(true)
   const [movendo, setMovendo] = useState<string | null>(null)
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
   const [colunaAlvo, setColunaAlvo] = useState<StatusOrc | null>(null)
-
-  const cargo = session?.user?.cargo as Cargo | undefined
-  const podeEditar = cargo ? Permissoes.podeEscreverPedidos(cargo) : false
 
   const carregar = useCallback(async () => {
     try {
@@ -86,32 +81,33 @@ export default function PaginaCRM() {
 
   return (
     <div>
-      {/* Cabeçalho */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            CRM — Pipeline de Orçamentos
-          </h1>
-          {!carregando && (
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: 'Inter, sans-serif' }}>
-              {orcamentos.filter(o => o.status !== 'REPROVADO').length} orçamento{orcamentos.filter(o => o.status !== 'REPROVADO').length !== 1 ? 's' : ''} ativos
-              {totalStatus('APROVADO') > 0 && ` · ${brl(totalStatus('APROVADO'))} aprovados`}
-            </p>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '18px' }}>←</button>
+          <div>
+            <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Kanban de Orçamentos
+            </h1>
+            {!carregando && (
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: 'Inter, sans-serif' }}>
+                {orcamentos.length} orçamento{orcamentos.length !== 1 ? 's' : ''}
+                {totalStatus('APROVADO') > 0 && ` · ${brl(totalStatus('APROVADO'))} aprovados`}
+              </p>
+            )}
+          </div>
         </div>
-        {podeEditar && (
-          <Link
-            href="/dashboard/orcamentos/novo"
-            style={{
-              background: 'var(--purple)', color: '#fff', border: 'none',
-              borderRadius: '8px', padding: '9px 18px', fontSize: '13px',
-              fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              textDecoration: 'none',
-            }}
-          >
-            + Novo Orçamento
-          </Link>
-        )}
+        <Link
+          href="/dashboard/orcamentos/novo"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '9px 18px', borderRadius: '8px',
+            backgroundColor: 'var(--purple)', color: '#fff',
+            textDecoration: 'none', fontSize: '13px', fontWeight: 500,
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          + Novo orçamento
+        </Link>
       </div>
 
       {carregando ? (
@@ -133,19 +129,17 @@ export default function PaginaCRM() {
                   e.preventDefault()
                   setColunaAlvo(null)
                   const orc = orcamentos.find(o => o.id === arrastandoId)
-                  if (orc && orc.status !== col.valor && podeEditar) moverStatus(orc, col.valor)
+                  if (orc && orc.status !== col.valor) moverStatus(orc, col.valor)
                   setArrastandoId(null)
                 }}
               >
-                {/* Cabeçalho da coluna */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
                     {col.label}
                   </span>
                   <span style={{
                     marginLeft: 'auto', padding: '2px 8px', borderRadius: '10px',
-                    fontSize: '11px', fontWeight: 600,
-                    background: col.bg, color: col.cor,
+                    fontSize: '11px', fontWeight: 600, background: col.bg, color: col.cor,
                   }}>
                     {lista.length}
                   </span>
@@ -156,7 +150,6 @@ export default function PaginaCRM() {
                   </p>
                 )}
 
-                {/* Cards */}
                 <div style={{
                   display: 'flex', flexDirection: 'column', gap: '8px',
                   minHeight: '60px', borderRadius: '10px', padding: '4px',
@@ -176,15 +169,14 @@ export default function PaginaCRM() {
                     <Link
                       key={orc.id}
                       href={`/dashboard/orcamentos/${orc.id}`}
-                      draggable={podeEditar}
+                      draggable
                       onDragStart={() => setArrastandoId(orc.id)}
                       onDragEnd={() => { setArrastandoId(null); setColunaAlvo(null) }}
                       style={{
                         background: 'var(--bg-surface)', border: '1px solid var(--border)',
                         borderRadius: '10px', padding: '14px', textDecoration: 'none',
                         opacity: (movendo === orc.id || arrastandoId === orc.id) ? 0.4 : 1,
-                        transition: 'opacity 0.15s',
-                        cursor: podeEditar ? 'grab' : 'default', display: 'block',
+                        transition: 'opacity 0.15s', cursor: 'grab', display: 'block',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
@@ -208,7 +200,6 @@ export default function PaginaCRM() {
                           )}
                         </div>
                       </div>
-
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
                           {new Date(orc.dataEmissao).toLocaleDateString('pt-BR')}

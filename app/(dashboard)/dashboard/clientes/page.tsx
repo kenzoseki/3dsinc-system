@@ -285,6 +285,7 @@ export default function PaginaClientes() {
           <div style={{
             background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
+            maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Nunito, sans-serif' }}>

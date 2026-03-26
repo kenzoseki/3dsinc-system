@@ -11,4 +11,5 @@ export const Permissoes = {
   podeVerEquipe:         (cargo: Cargo) => (['ADMIN', 'SOCIO', 'GERENTE'] as Cargo[]).includes(cargo),
   podeVerCRM:            (cargo: Cargo) => (['ADMIN', 'SOCIO', 'GERENTE', 'OPERADOR'] as Cargo[]).includes(cargo),
   podeVerProducao:       (cargo: Cargo) => (['ADMIN', 'SOCIO', 'GERENTE', 'OPERADOR'] as Cargo[]).includes(cargo),
+  podeVerSugestoes:      (cargo: Cargo) => (['ADMIN', 'SOCIO'] as Cargo[]).includes(cargo),
 }

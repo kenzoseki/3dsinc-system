@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signOut } from 'next-auth/react'
 import { Permissoes } from '@/lib/permissoes'
+import { BotaoSugestao } from '@/components/dashboard/BotaoSugestao'
 import type { Cargo } from '@prisma/client'
 import type { Session } from 'next-auth'
 
@@ -24,37 +25,38 @@ const gruposNavegacao: GrupoNav[] = [
   {
     titulo: 'Principal',
     itens: [
-      { href: '/dashboard', label: 'Dashboard', icone: '⊞' },
+      { href: '/dashboard', label: 'Dashboard', icone: '①' },
     ],
   },
   {
     titulo: 'Comercial',
     itens: [
-      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '📋' },
-      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '📄' },
-      { href: '/dashboard/clientes', label: 'Clientes', icone: '👥' },
-      { href: '/dashboard/crm', label: 'CRM', icone: '🎯', verificar: Permissoes.podeVerCRM },
+      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '②' },
+      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '③' },
+      { href: '/dashboard/clientes', label: 'Clientes', icone: '④' },
+      { href: '/dashboard/crm', label: 'CRM', icone: '⑤', verificar: Permissoes.podeVerCRM },
     ],
   },
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/dashboard/producao', label: 'Produção', icone: '⚙️', verificar: Permissoes.podeVerProducao },
-      { href: '/dashboard/estoque', label: 'Estoque', icone: '🧵' },
+      { href: '/dashboard/producao', label: 'Produção', icone: '⑥', verificar: Permissoes.podeVerProducao },
+      { href: '/dashboard/estoque', label: 'Estoque', icone: '⑦' },
     ],
   },
   {
     titulo: 'Ferramentas',
     itens: [
-      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '✦', verificar: Permissoes.podeUsarIA },
-      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '📊', verificar: Permissoes.podeVerRelatorios },
+      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '⑧', verificar: Permissoes.podeUsarIA },
+      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '⑨', verificar: Permissoes.podeVerRelatorios },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { href: '/dashboard/equipe', label: 'Equipe', icone: '👥', verificar: Permissoes.podeVerEquipe },
-      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⚙', verificar: Permissoes.podeAcessarSistema },
+      { href: '/dashboard/equipe', label: 'Equipe', icone: '⑩', verificar: Permissoes.podeVerEquipe },
+      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⑪', verificar: Permissoes.podeAcessarSistema },
+      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '⑫', verificar: Permissoes.podeVerSugestoes },
     ],
   },
 ]
@@ -392,6 +394,9 @@ export default function LayoutShell({
           {children}
         </main>
       </div>
+
+      {/* FAB — Sugestão / Bug */}
+      {cargo !== 'VISUALIZADOR' && <BotaoSugestao />}
     </div>
   )
 }

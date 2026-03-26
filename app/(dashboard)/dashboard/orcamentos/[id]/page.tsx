@@ -58,10 +58,9 @@ interface ConfigEmpresa {
 
 const labelStatus: Record<string, { label: string; bg: string; cor: string }> = {
   RASCUNHO:  { label: 'Rascunho',  bg: '#F3F2EF', cor: '#6B6860' },
-  ENVIADO:   { label: 'Enviado',   bg: 'var(--amber-light)', cor: 'var(--amber)' },
+  ENVIADO:   { label: 'Andamento', bg: 'var(--amber-light)', cor: 'var(--amber)' },
   APROVADO:  { label: 'Aprovado',  bg: 'var(--green-light)', cor: 'var(--green)' },
   REPROVADO: { label: 'Reprovado', bg: 'var(--red-light)', cor: 'var(--red)' },
-  EXPIRADO:  { label: 'Expirado',  bg: '#F3F2EF', cor: '#6B6860' },
 }
 
 export default function OrcamentoDetalhe() {
@@ -79,6 +78,12 @@ export default function OrcamentoDetalhe() {
   }, [id])
 
   async function alterarStatus(novoStatus: string) {
+    if (novoStatus === 'ENVIADO' && orc) {
+      if (!orc.clienteNome.trim()) { alert('O orçamento precisa ter o nome do cliente preenchido.'); return }
+      if (!orc.itens.some(i => i.descricao.trim() && Number(i.valorUnitario) > 0)) {
+        alert('O orçamento precisa ter ao menos um produto com valor unitário.'); return
+      }
+    }
     setAlterandoStatus(true)
     const res = await fetch(`/api/orcamentos/${id}`, {
       method: 'PATCH',

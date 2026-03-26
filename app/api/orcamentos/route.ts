@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true, numero: true, revisao: true, status: true,
         clienteNome: true, clienteEmpresa: true, dataEmissao: true, createdAt: true,
+        frete: true, bonusPercentual: true,
         itens: { select: { valorUnitario: true, quantidade: true } },
       },
     })
@@ -100,30 +101,72 @@ export async function POST(request: NextRequest) {
 
     const { itens, dataEmissao, frete, aliquotaImposto, bonusPercentual, ...dadosOrcamento } = validacao.data
 
-    const orcamento = await prisma.orcamento.create({
-      data: {
-        ...dadosOrcamento,
-        dataEmissao:     dataEmissao ? new Date(dataEmissao) : new Date(),
-        frete:           frete ?? null,
-        aliquotaImposto: aliquotaImposto ?? null,
-        bonusPercentual: bonusPercentual ?? null,
-        itens: {
-          create: itens.map((item, i) => ({
-            ordem:         item.ordem ?? i,
-            descricao:     item.descricao,
-            detalhamento:  item.detalhamento,
-            quantidade:    item.quantidade,
-            valorUnitario: item.valorUnitario,
-            imagens: {
-              create: (item.imagensBase64 ?? []).map((b64, j) => ({
-                imagemBase64: b64,
-                nomeArquivo:  `imagem-${j + 1}`,
-              })),
-            },
-          })),
+    const orcamento = await prisma.$transaction(async (tx) => {
+      const novoOrc = await tx.orcamento.create({
+        data: {
+          ...dadosOrcamento,
+          dataEmissao:     dataEmissao ? new Date(dataEmissao) : new Date(),
+          frete:           frete ?? null,
+          aliquotaImposto: aliquotaImposto ?? null,
+          bonusPercentual: bonusPercentual ?? null,
+          itens: {
+            create: itens.map((item, i) => ({
+              ordem:         item.ordem ?? i,
+              descricao:     item.descricao,
+              detalhamento:  item.detalhamento,
+              quantidade:    item.quantidade,
+              valorUnitario: item.valorUnitario,
+              imagens: {
+                create: (item.imagensBase64 ?? []).map((b64, j) => ({
+                  imagemBase64: b64,
+                  nomeArquivo:  `imagem-${j + 1}`,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: { itens: { include: { imagens: true } } },
+        include: { itens: { include: { imagens: true } } },
+      })
+
+      // Sincronizar cliente na tabela de Clientes
+      if (dadosOrcamento.clienteNome) {
+        const cpfCnpj = dadosOrcamento.clienteCnpj?.trim() || null
+        if (cpfCnpj) {
+          await tx.cliente.upsert({
+            where: { cpfCnpj },
+            update: {
+              nome: dadosOrcamento.clienteNome,
+              empresa: dadosOrcamento.clienteEmpresa ?? null,
+              email: dadosOrcamento.clienteEmail ?? null,
+              telefone: dadosOrcamento.clienteTelefone ?? null,
+            },
+            create: {
+              nome: dadosOrcamento.clienteNome,
+              empresa: dadosOrcamento.clienteEmpresa ?? null,
+              cpfCnpj,
+              email: dadosOrcamento.clienteEmail ?? null,
+              telefone: dadosOrcamento.clienteTelefone ?? null,
+            },
+          })
+        } else {
+          // Sem CPF/CNPJ — criar se não existe um cliente com mesmo nome
+          const existente = await tx.cliente.findFirst({
+            where: { nome: dadosOrcamento.clienteNome },
+          })
+          if (!existente) {
+            await tx.cliente.create({
+              data: {
+                nome: dadosOrcamento.clienteNome,
+                empresa: dadosOrcamento.clienteEmpresa ?? null,
+                email: dadosOrcamento.clienteEmail ?? null,
+                telefone: dadosOrcamento.clienteTelefone ?? null,
+              },
+            })
+          }
+        }
+      }
+
+      return novoOrc
     })
 
     return NextResponse.json(orcamento, { status: 201 })

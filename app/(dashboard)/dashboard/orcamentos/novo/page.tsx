@@ -71,7 +71,22 @@ export default function NovoOrcamentoPage() {
 
   function preencherCliente(id: string) {
     setClienteSelecionado(id)
-    if (!id) return
+    if (!id) {
+      setForm(f => ({
+        ...f,
+        clienteNome: '',
+        clienteEmpresa: '',
+        clienteCnpj: '',
+        clienteEmail: '',
+        clienteTelefone: '',
+        clienteEndereco: '',
+        clienteCep: '',
+        clienteResponsavel: '',
+        clienteCodInterno: '',
+      }))
+      setErroEmail('')
+      return
+    }
     const c = clientesExistentes.find(cl => cl.id === id)
     if (c) {
       setForm(f => ({
@@ -158,6 +173,7 @@ export default function NovoOrcamentoPage() {
     if (!form.clienteNome.trim()) { setErro('Informe o nome do cliente.'); return }
     if (form.clienteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clienteEmail)) { setErro('Formato de email inválido.'); return }
     if (itens.some(i => !i.descricao.trim())) { setErro('Todos os itens precisam de descrição.'); return }
+    if (!itens.some(i => i.descricao.trim() && Number(i.valorUnitario) > 0)) { setErro('Ao menos um produto precisa ter valor unitário preenchido.'); return }
     setSalvando(true)
     setErro('')
     try {

@@ -26,18 +26,16 @@ interface Paginacao {
 const FILTROS = [
   { valor: '', label: 'Todos' },
   { valor: 'RASCUNHO', label: 'Rascunho' },
-  { valor: 'ENVIADO', label: 'Enviado' },
+  { valor: 'ENVIADO', label: 'Andamento' },
   { valor: 'APROVADO', label: 'Aprovado' },
   { valor: 'REPROVADO', label: 'Reprovado' },
-  { valor: 'EXPIRADO', label: 'Expirado' },
 ]
 
 const labelStatus: Record<string, { label: string; bg: string; cor: string }> = {
   RASCUNHO:  { label: 'Rascunho',  bg: '#F3F2EF', cor: '#6B6860' },
-  ENVIADO:   { label: 'Enviado',   bg: 'var(--amber-light)', cor: 'var(--amber)' },
+  ENVIADO:   { label: 'Andamento', bg: 'var(--amber-light)', cor: 'var(--amber)' },
   APROVADO:  { label: 'Aprovado',  bg: 'var(--green-light)', cor: 'var(--green)' },
   REPROVADO: { label: 'Reprovado', bg: 'var(--red-light)', cor: 'var(--red)' },
-  EXPIRADO:  { label: 'Expirado',  bg: '#F3F2EF', cor: '#6B6860' },
 }
 
 function calcularTotal(orc: Orcamento): number {
@@ -94,18 +92,32 @@ export default function OrcamentosPage() {
             </p>
           )}
         </div>
-        <Link
-          href="/dashboard/orcamentos/novo"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '9px 18px', borderRadius: '8px',
-            backgroundColor: 'var(--purple)', color: '#fff',
-            textDecoration: 'none', fontSize: '13px', fontWeight: 500,
-            fontFamily: 'Inter, sans-serif',
-          }}
-        >
-          + Novo orçamento
-        </Link>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Link
+            href="/dashboard/orcamentos/kanban"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '9px 18px', borderRadius: '8px',
+              backgroundColor: 'var(--bg-surface)', color: 'var(--purple)',
+              textDecoration: 'none', fontSize: '13px', fontWeight: 500,
+              fontFamily: 'Inter, sans-serif', border: '1px solid var(--purple-light)',
+            }}
+          >
+            Kanban
+          </Link>
+          <Link
+            href="/dashboard/orcamentos/novo"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '9px 18px', borderRadius: '8px',
+              backgroundColor: 'var(--purple)', color: '#fff',
+              textDecoration: 'none', fontSize: '13px', fontWeight: 500,
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            + Novo orçamento
+          </Link>
+        </div>
       </div>
 
       {/* Filtros de status */}
