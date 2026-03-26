@@ -8,6 +8,7 @@ type Sugestao = {
   tipo: 'MELHORIA' | 'BUG'
   titulo: string
   descricao: string
+  imagemBase64: string | null
   status: 'PENDENTE' | 'EM_ANALISE' | 'IMPLEMENTADO' | 'DESCARTADO'
   createdAt: string
   usuario: { nome: string; cargo: string }
@@ -260,6 +261,19 @@ export default function PaginaSugestoes() {
                     }}>
                       {s.descricao}
                     </div>
+
+                    {s.imagemBase64 && (
+                      <div style={{
+                        marginTop: '10px', borderRadius: '8px', overflow: 'hidden',
+                        border: '1px solid var(--border)', background: 'var(--bg-page)',
+                      }}>
+                        <img
+                          src={s.imagemBase64}
+                          alt="Anexo da sugestão"
+                          style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block' }}
+                        />
+                      </div>
+                    )}
 
                     {/* Ações */}
                     <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap', alignItems: 'center' }}>

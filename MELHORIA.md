@@ -14,7 +14,7 @@
 - Pop-ups de Novo Lead e Novo Membro centralizados com click-outside-to-close
 - Estoque: ordenado por data de cadastro, filtro de percentual, toggle ativo removido do editar, filtro ativo/inativo, alerta na criação com baixo estoque
 
-### Lote 2 (commit atual)
+### Lote 2 (commit 4869deb)
 - ORÇAMENTOS:
     - Filtros: "Enviado" renomeado para "Andamento"
     - Filtro "Expirado" removido
@@ -30,10 +30,28 @@
     - Pedidos já sincronizavam via seleção obrigatória de cliente
 - POP-UPS:
     - Modal de Novo Cliente com `maxHeight: 90vh` e `overflowY: auto` para não cortar campos em telas menores
+- FAB DE SUGESTÕES:
+    - Botão flutuante (canto inferior direito) para enviar melhorias e bugs
+    - Modal com seletor de tipo, título, descrição e upload de imagem
+    - API `/api/sugestoes` (CRUD) com validação Zod
+    - Página `/dashboard/sugestoes` para ADMIN/SOCIO gerenciar sugestões
+
+### Lote 3 (commit atual)
+- CRM:
+    - Revertido para pipeline de Leads (PROSPECTO → NEGOCIAÇÃO → FECHADO → PERDIDO)
+    - Sincronização automática Lead → Cliente ao criar lead (upsert por nome)
+    - Modal de criar/editar lead no padrão centralizado
+- MODAIS:
+    - Modal de Novo Cliente (Clientes) e Novo Lead (CRM) padronizados: overlay escuro, div centralizada, boxShadow, focus/blur nos inputs — mesmo estilo do modal de Sugestões
+- SUGESTÕES:
+    - Botão de upload de imagem abaixo da Descrição (máx. 4 MB, pré-visualização com remoção)
+    - Campo `imagemBase64` no model Sugestao e na API
+    - Página admin exibe imagens anexadas nas sugestões
+- SIDEBAR:
+    - Números trocados de ①②③ para 1, 2, 3 com badges estilizadas (fundo roxo quando ativo)
 
 ---
 
 ## Melhorias e correções para implementar
 
 _(Preencher novos itens aqui)_
-

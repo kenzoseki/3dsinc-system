@@ -278,7 +278,7 @@ export default function PaginaClientes() {
         <div
           onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100,
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
           }}
         >
@@ -286,6 +286,7 @@ export default function PaginaClientes() {
             background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
             maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Nunito, sans-serif' }}>
@@ -322,6 +323,8 @@ export default function PaginaClientes() {
                       fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif',
                       outline: 'none', boxSizing: 'border-box',
                     }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
                   />
                 </div>
               ))}

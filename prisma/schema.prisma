@@ -284,15 +284,16 @@ enum EtapaLead {
 }
 
 model Sugestao {
-  id          String        @id @default(cuid())
-  tipo        TipoSugestao
-  titulo      String
-  descricao   String        @db.Text
-  status      StatusSugestao @default(PENDENTE)
-  usuarioId   String
-  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String         @id @default(cuid())
+  tipo         TipoSugestao
+  titulo       String
+  descricao    String         @db.Text
+  imagemBase64 String?        @db.Text
+  status       StatusSugestao @default(PENDENTE)
+  usuarioId    String
+  usuario      Usuario        @relation(fields: [usuarioId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 enum TipoSugestao {

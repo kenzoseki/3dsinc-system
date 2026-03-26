@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 type Tipo = 'MELHORIA' | 'BUG'
 
@@ -9,14 +9,19 @@ export function BotaoSugestao() {
   const [tipo, setTipo] = useState<Tipo>('MELHORIA')
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
+  const [imagemBase64, setImagemBase64] = useState<string | null>(null)
+  const [nomeImagem, setNomeImagem] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function resetar() {
     setTipo('MELHORIA')
     setTitulo('')
     setDescricao('')
+    setImagemBase64(null)
+    setNomeImagem('')
     setErro('')
     setEnviado(false)
   }
@@ -24,6 +29,35 @@ export function BotaoSugestao() {
   function fechar() {
     setAberto(false)
     setTimeout(resetar, 200)
+  }
+
+  function handleImagem(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setErro('Apenas imagens são permitidas.')
+      return
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      setErro('Imagem deve ter no máximo 4 MB.')
+      return
+    }
+
+    setErro('')
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImagemBase64(reader.result as string)
+      setNomeImagem(file.name)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function removerImagem() {
+    setImagemBase64(null)
+    setNomeImagem('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function enviar(e: React.FormEvent) {
@@ -36,7 +70,12 @@ export function BotaoSugestao() {
       const res = await fetch('/api/sugestoes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo, titulo: titulo.trim(), descricao: descricao.trim() }),
+        body: JSON.stringify({
+          tipo,
+          titulo: titulo.trim(),
+          descricao: descricao.trim(),
+          imagemBase64: imagemBase64 ?? null,
+        }),
       })
       if (res.ok) {
         setEnviado(true)
@@ -222,6 +261,87 @@ export function BotaoSugestao() {
                     <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace' }}>
                       {descricao.length}/2000
                     </p>
+                  </div>
+
+                  {/* Upload de imagem */}
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: 600,
+                      color: 'var(--text-secondary)', marginBottom: '6px',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif',
+                    }}>
+                      Anexar imagem
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImagem}
+                      style={{ display: 'none' }}
+                    />
+                    {imagemBase64 ? (
+                      <div style={{
+                        borderRadius: '8px', border: '1px solid var(--border)',
+                        background: 'var(--bg-page)', overflow: 'hidden',
+                      }}>
+                        <div style={{ position: 'relative' }}>
+                          <img
+                            src={imagemBase64}
+                            alt="Pré-visualização"
+                            style={{
+                              width: '100%', maxHeight: '180px', objectFit: 'contain',
+                              display: 'block', background: 'var(--bg-page)',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={removerImagem}
+                            style={{
+                              position: 'absolute', top: '6px', right: '6px',
+                              width: '24px', height: '24px', borderRadius: '50%',
+                              border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff',
+                              fontSize: '12px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div style={{
+                          padding: '8px 10px', borderTop: '1px solid var(--border)',
+                          fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {nomeImagem}
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          width: '100%', padding: '14px', borderRadius: '8px',
+                          border: '1px dashed var(--border)', background: 'var(--bg-page)',
+                          fontSize: '13px', color: 'var(--text-secondary)',
+                          fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          transition: 'border-color 0.12s, background 0.12s',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = 'var(--purple)'
+                          e.currentTarget.style.background = 'var(--purple-light)'
+                          e.currentTarget.style.color = 'var(--purple-text)'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'var(--border)'
+                          e.currentTarget.style.background = 'var(--bg-page)'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                        }}
+                      >
+                        <span style={{ fontSize: '16px' }}>📎</span>
+                        Clique para anexar uma imagem (máx. 4 MB)
+                      </button>
+                    )}
                   </div>
 
                   {erro && <p style={{ color: 'var(--red)', fontSize: '13px', margin: 0 }}>{erro}</p>}

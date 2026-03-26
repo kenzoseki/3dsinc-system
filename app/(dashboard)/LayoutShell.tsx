@@ -25,38 +25,38 @@ const gruposNavegacao: GrupoNav[] = [
   {
     titulo: 'Principal',
     itens: [
-      { href: '/dashboard', label: 'Dashboard', icone: '①' },
+      { href: '/dashboard', label: 'Dashboard', icone: '1' },
     ],
   },
   {
     titulo: 'Comercial',
     itens: [
-      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '②' },
-      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '③' },
-      { href: '/dashboard/clientes', label: 'Clientes', icone: '④' },
-      { href: '/dashboard/crm', label: 'CRM', icone: '⑤', verificar: Permissoes.podeVerCRM },
+      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '2' },
+      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '3' },
+      { href: '/dashboard/clientes', label: 'Clientes', icone: '4' },
+      { href: '/dashboard/crm', label: 'CRM', icone: '5', verificar: Permissoes.podeVerCRM },
     ],
   },
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/dashboard/producao', label: 'Produção', icone: '⑥', verificar: Permissoes.podeVerProducao },
-      { href: '/dashboard/estoque', label: 'Estoque', icone: '⑦' },
+      { href: '/dashboard/producao', label: 'Produção', icone: '6', verificar: Permissoes.podeVerProducao },
+      { href: '/dashboard/estoque', label: 'Estoque', icone: '7' },
     ],
   },
   {
     titulo: 'Ferramentas',
     itens: [
-      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '⑧', verificar: Permissoes.podeUsarIA },
-      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '⑨', verificar: Permissoes.podeVerRelatorios },
+      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '8', verificar: Permissoes.podeUsarIA },
+      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '9', verificar: Permissoes.podeVerRelatorios },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { href: '/dashboard/equipe', label: 'Equipe', icone: '⑩', verificar: Permissoes.podeVerEquipe },
-      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '⑪', verificar: Permissoes.podeAcessarSistema },
-      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '⑫', verificar: Permissoes.podeVerSugestoes },
+      { href: '/dashboard/equipe', label: 'Equipe', icone: '10', verificar: Permissoes.podeVerEquipe },
+      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '11', verificar: Permissoes.podeAcessarSistema },
+      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '12', verificar: Permissoes.podeVerSugestoes },
     ],
   },
 ]
@@ -110,7 +110,15 @@ function ItemNavLink({ href, icone, label, ativo, onClick }: {
         }
       }}
     >
-      <span style={{ fontSize: '13px', lineHeight: 1, flexShrink: 0 }}>{icone}</span>
+      <span style={{
+        fontSize: '10px', lineHeight: 1, flexShrink: 0,
+        fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+        width: '20px', height: '20px', borderRadius: '6px',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: ativo ? 'var(--purple)' : 'var(--bg-hover)',
+        color: ativo ? '#fff' : 'var(--text-secondary)',
+        transition: 'background var(--t-fast), color var(--t-fast)',
+      }}>{icone}</span>
       <span style={{ letterSpacing: '0.01em' }}>{label}</span>
     </Link>
   )

@@ -8,6 +8,7 @@ const schemaCriar = z.object({
   tipo: z.enum(['MELHORIA', 'BUG']),
   titulo: z.string().min(1, 'Título obrigatório').max(200),
   descricao: z.string().min(1, 'Descrição obrigatória').max(2000),
+  imagemBase64: z.string().max(5_300_000).optional().nullable(), // ~4MB imagem
 })
 
 export async function GET() {
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
         tipo: validacao.data.tipo,
         titulo: validacao.data.titulo,
         descricao: validacao.data.descricao,
+        imagemBase64: validacao.data.imagemBase64 ?? null,
         usuarioId: session.user.id,
       },
     })

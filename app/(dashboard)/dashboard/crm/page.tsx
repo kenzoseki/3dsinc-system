@@ -4,56 +4,61 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { Cargo } from '@prisma/client'
 import { Permissoes } from '@/lib/permissoes'
-import Link from 'next/link'
 
-interface Orcamento {
+interface Lead {
   id: string
-  numero: number
-  revisao: number
-  clienteNome: string
-  clienteEmpresa: string | null
-  status: string
-  dataEmissao: string
-  itens: { valorUnitario: number; quantidade: number }[]
-  frete: number | null
-  bonusPercentual: number | null
+  nome: string
+  empresa: string | null
+  email: string | null
+  telefone: string | null
+  etapa: EtapaLead
+  valor: number | null
+  observacoes: string | null
+  responsavel: string | null
+  createdAt: string
+  updatedAt: string
 }
 
-type StatusOrc = 'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'REPROVADO'
+type EtapaLead = 'PROSPECTO' | 'NEGOCIACAO' | 'FECHADO' | 'PERDIDO'
 
-const COLUNAS: { valor: StatusOrc; label: string; bg: string; cor: string }[] = [
-  { valor: 'RASCUNHO',  label: 'Rascunho',  bg: '#F3F2EF', cor: '#6B6860' },
-  { valor: 'ENVIADO',   label: 'Andamento',  bg: 'var(--amber-light)', cor: 'var(--amber)' },
-  { valor: 'APROVADO',  label: 'Aprovado',   bg: 'var(--green-light)', cor: 'var(--green)' },
-  { valor: 'REPROVADO', label: 'Reprovado',  bg: 'var(--red-light)', cor: 'var(--red)' },
+const COLUNAS: { valor: EtapaLead; label: string; bg: string; cor: string }[] = [
+  { valor: 'PROSPECTO',  label: 'Prospecto',   bg: 'var(--purple-light)', cor: 'var(--purple)' },
+  { valor: 'NEGOCIACAO', label: 'Negociação',   bg: 'var(--amber-light)',  cor: 'var(--amber)' },
+  { valor: 'FECHADO',    label: 'Fechado',      bg: 'var(--green-light)',  cor: 'var(--green)' },
+  { valor: 'PERDIDO',    label: 'Perdido',      bg: 'var(--red-light)',    cor: 'var(--red)' },
 ]
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-function calcularTotal(orc: Orcamento): number {
-  const subtotal = orc.itens.reduce((s, i) => s + Number(i.valorUnitario) * i.quantidade, 0)
-  const frete = Number(orc.frete ?? 0)
-  const bonus = subtotal * (Number(orc.bonusPercentual ?? 0) / 100)
-  return subtotal + frete + bonus
+const formVazio = {
+  nome: '', empresa: '', email: '', telefone: '',
+  valor: '', observacoes: '', responsavel: '',
 }
 
 export default function PaginaCRM() {
   const { data: session } = useSession()
-  const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
   const [carregando, setCarregando] = useState(true)
   const [movendo, setMovendo] = useState<string | null>(null)
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
-  const [colunaAlvo, setColunaAlvo] = useState<StatusOrc | null>(null)
+  const [colunaAlvo, setColunaAlvo] = useState<EtapaLead | null>(null)
+
+  // Modal
+  const [modalAberto, setModalAberto] = useState(false)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [form, setForm] = useState(formVazio)
+  const [salvando, setSalvando] = useState(false)
+  const [erroModal, setErroModal] = useState('')
 
   const cargo = session?.user?.cargo as Cargo | undefined
   const podeEditar = cargo ? Permissoes.podeEscreverPedidos(cargo) : false
 
   const carregar = useCallback(async () => {
     try {
-      const res = await fetch('/api/orcamentos')
+      const res = await fetch('/api/leads')
       if (res.ok) {
         const dados = await res.json()
-        setOrcamentos(Array.isArray(dados) ? dados : dados.orcamentos ?? [])
+        setLeads(Array.isArray(dados) ? dados : [])
       }
     } finally {
       setCarregando(false)
@@ -62,18 +67,89 @@ export default function PaginaCRM() {
 
   useEffect(() => { carregar() }, [carregar])
 
-  async function moverStatus(orc: Orcamento, novoStatus: StatusOrc) {
-    if (orc.status === novoStatus) return
-    if (novoStatus === 'ENVIADO') {
-      if (!orc.clienteNome.trim()) { alert('Orçamento precisa ter nome do cliente.'); return }
-      if (!orc.itens.some(i => Number(i.valorUnitario) > 0)) { alert('Orçamento precisa ter ao menos um item com valor.'); return }
+  function abrirNovoLead() {
+    setEditandoId(null)
+    setForm(formVazio)
+    setErroModal('')
+    setModalAberto(true)
+  }
+
+  function abrirEditarLead(lead: Lead) {
+    setEditandoId(lead.id)
+    setForm({
+      nome: lead.nome,
+      empresa: lead.empresa ?? '',
+      email: lead.email ?? '',
+      telefone: lead.telefone ?? '',
+      valor: lead.valor != null ? String(lead.valor) : '',
+      observacoes: lead.observacoes ?? '',
+      responsavel: lead.responsavel ?? '',
+    })
+    setErroModal('')
+    setModalAberto(true)
+  }
+
+  function fecharModal() {
+    setModalAberto(false)
+    setTimeout(() => {
+      setForm(formVazio)
+      setEditandoId(null)
+      setErroModal('')
+    }, 200)
+  }
+
+  async function salvarLead(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.nome.trim()) { setErroModal('Nome é obrigatório.'); return }
+    setSalvando(true)
+    setErroModal('')
+
+    const payload = {
+      nome: form.nome.trim(),
+      empresa: form.empresa.trim() || null,
+      email: form.email.trim() || null,
+      telefone: form.telefone.trim() || null,
+      valor: form.valor ? Number(form.valor) : null,
+      observacoes: form.observacoes.trim() || null,
+      responsavel: form.responsavel.trim() || null,
     }
-    setMovendo(orc.id)
+
     try {
-      const res = await fetch(`/api/orcamentos/${orc.id}`, {
+      const url = editandoId ? `/api/leads/${editandoId}` : '/api/leads'
+      const method = editandoId ? 'PATCH' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        setErroModal(d.erro ?? 'Erro ao salvar.')
+        return
+      }
+      fecharModal()
+      carregar()
+    } catch {
+      setErroModal('Erro de conexão.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function excluirLead(id: string) {
+    if (!confirm('Excluir este lead permanentemente?')) return
+    await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    carregar()
+  }
+
+  async function moverEtapa(lead: Lead, novaEtapa: EtapaLead) {
+    if (lead.etapa === novaEtapa) return
+    setMovendo(lead.id)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: novoStatus }),
+        body: JSON.stringify({ etapa: novaEtapa }),
       })
       if (res.ok) carregar()
     } finally {
@@ -81,8 +157,8 @@ export default function PaginaCRM() {
     }
   }
 
-  const porStatus = (status: StatusOrc) => orcamentos.filter(o => o.status === status)
-  const totalStatus = (status: StatusOrc) => porStatus(status).reduce((s, o) => s + calcularTotal(o), 0)
+  const porEtapa = (etapa: EtapaLead) => leads.filter(l => l.etapa === etapa)
+  const totalEtapa = (etapa: EtapaLead) => porEtapa(etapa).reduce((s, l) => s + Number(l.valor ?? 0), 0)
 
   return (
     <div>
@@ -90,27 +166,26 @@ export default function PaginaCRM() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            CRM — Pipeline de Orçamentos
+            CRM — Pipeline de Leads
           </h1>
           {!carregando && (
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: 'Inter, sans-serif' }}>
-              {orcamentos.filter(o => o.status !== 'REPROVADO').length} orçamento{orcamentos.filter(o => o.status !== 'REPROVADO').length !== 1 ? 's' : ''} ativos
-              {totalStatus('APROVADO') > 0 && ` · ${brl(totalStatus('APROVADO'))} aprovados`}
+              {leads.filter(l => l.etapa !== 'PERDIDO').length} lead{leads.filter(l => l.etapa !== 'PERDIDO').length !== 1 ? 's' : ''} ativo{leads.filter(l => l.etapa !== 'PERDIDO').length !== 1 ? 's' : ''}
+              {totalEtapa('FECHADO') > 0 && ` · ${brl(totalEtapa('FECHADO'))} fechados`}
             </p>
           )}
         </div>
         {podeEditar && (
-          <Link
-            href="/dashboard/orcamentos/novo"
+          <button
+            onClick={abrirNovoLead}
             style={{
               background: 'var(--purple)', color: '#fff', border: 'none',
               borderRadius: '8px', padding: '9px 18px', fontSize: '13px',
               fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              textDecoration: 'none',
             }}
           >
-            + Novo Orçamento
-          </Link>
+            + Novo Lead
+          </button>
         )}
       </div>
 
@@ -121,8 +196,8 @@ export default function PaginaCRM() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', alignItems: 'start' }}>
           {COLUNAS.map(col => {
-            const lista = porStatus(col.valor)
-            const total = totalStatus(col.valor)
+            const lista = porEtapa(col.valor)
+            const total = totalEtapa(col.valor)
             const ehAlvo = colunaAlvo === col.valor && arrastandoId !== null
             return (
               <div
@@ -132,8 +207,8 @@ export default function PaginaCRM() {
                 onDrop={e => {
                   e.preventDefault()
                   setColunaAlvo(null)
-                  const orc = orcamentos.find(o => o.id === arrastandoId)
-                  if (orc && orc.status !== col.valor && podeEditar) moverStatus(orc, col.valor)
+                  const lead = leads.find(l => l.id === arrastandoId)
+                  if (lead && lead.etapa !== col.valor && podeEditar) moverEtapa(lead, col.valor)
                   setArrastandoId(null)
                 }}
               >
@@ -170,59 +245,203 @@ export default function PaginaCRM() {
                       border: '1px dashed var(--border)', textAlign: 'center',
                       fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif',
                     }}>
-                      Nenhum orçamento
+                      Nenhum lead
                     </div>
-                  ) : lista.map(orc => (
-                    <Link
-                      key={orc.id}
-                      href={`/dashboard/orcamentos/${orc.id}`}
+                  ) : lista.map(lead => (
+                    <div
+                      key={lead.id}
                       draggable={podeEditar}
-                      onDragStart={() => setArrastandoId(orc.id)}
+                      onDragStart={() => setArrastandoId(lead.id)}
                       onDragEnd={() => { setArrastandoId(null); setColunaAlvo(null) }}
                       style={{
                         background: 'var(--bg-surface)', border: '1px solid var(--border)',
-                        borderRadius: '10px', padding: '14px', textDecoration: 'none',
-                        opacity: (movendo === orc.id || arrastandoId === orc.id) ? 0.4 : 1,
+                        borderRadius: '10px', padding: '14px',
+                        opacity: (movendo === lead.id || arrastandoId === lead.id) ? 0.4 : 1,
                         transition: 'opacity 0.15s',
-                        cursor: podeEditar ? 'grab' : 'default', display: 'block',
+                        cursor: podeEditar ? 'grab' : 'default',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{
-                            margin: '0 0 2px', fontSize: '11px', fontWeight: 600, color: 'var(--purple)',
-                            fontFamily: 'JetBrains Mono, monospace',
-                          }}>
-                            ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
-                          </p>
-                          <p style={{
                             margin: '0 0 2px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)',
                             fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
-                            {orc.clienteNome}
+                            {lead.nome}
                           </p>
-                          {orc.clienteEmpresa && (
+                          {lead.empresa && (
                             <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-                              {orc.clienteEmpresa}
+                              {lead.empresa}
                             </p>
                           )}
                         </div>
+                        {podeEditar && (
+                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                            <button
+                              onClick={() => abrirEditarLead(lead)}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                fontSize: '12px', color: 'var(--text-secondary)', padding: '2px 4px',
+                                borderRadius: '4px',
+                              }}
+                              title="Editar lead"
+                              onMouseEnter={e => e.currentTarget.style.color = 'var(--purple)'}
+                              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              onClick={() => excluirLead(lead.id)}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                fontSize: '12px', color: 'var(--text-secondary)', padding: '2px 4px',
+                                borderRadius: '4px',
+                              }}
+                              title="Excluir lead"
+                              onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+                              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-                          {new Date(orc.dataEmissao).toLocaleDateString('pt-BR')}
+                          {lead.responsavel ?? '—'}
                         </span>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--green)', fontFamily: 'JetBrains Mono, monospace' }}>
-                          {brl(calcularTotal(orc))}
-                        </span>
+                        {lead.valor != null && Number(lead.valor) > 0 && (
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--green)', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {brl(Number(lead.valor))}
+                          </span>
+                        )}
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Modal — Novo / Editar Lead */}
+      {modalAberto && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) fecharModal() }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+          }}
+        >
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
+            width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
+            maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Nunito, sans-serif' }}>
+                {editandoId ? 'Editar Lead' : 'Novo Lead'}
+              </h2>
+              <button onClick={fecharModal} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={salvarLead} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {[
+                { campo: 'nome', label: 'Nome *', placeholder: 'Nome do lead', tipo: 'text' },
+                { campo: 'empresa', label: 'Empresa', placeholder: 'Razão social ou nome fantasia', tipo: 'text' },
+                { campo: 'email', label: 'Email', placeholder: 'email@exemplo.com', tipo: 'email' },
+                { campo: 'telefone', label: 'Telefone', placeholder: '(11) 99999-0000', tipo: 'text' },
+                { campo: 'valor', label: 'Valor estimado (R$)', placeholder: '0,00', tipo: 'number' },
+                { campo: 'responsavel', label: 'Responsável', placeholder: 'Quem está cuidando', tipo: 'text' },
+              ].map(({ campo, label, placeholder, tipo }) => (
+                <div key={campo}>
+                  <label style={{
+                    display: 'block', fontSize: '12px', fontWeight: 600,
+                    color: 'var(--text-secondary)', marginBottom: '6px',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif',
+                  }}>
+                    {label}
+                  </label>
+                  <input
+                    type={tipo}
+                    placeholder={placeholder}
+                    value={form[campo as keyof typeof form]}
+                    onChange={e => setForm(f => ({ ...f, [campo]: e.target.value }))}
+                    step={tipo === 'number' ? '0.01' : undefined}
+                    min={tipo === 'number' ? '0' : undefined}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: '8px',
+                      border: '1px solid var(--border)', background: 'var(--bg-page)',
+                      fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                  />
+                </div>
+              ))}
+
+              {/* Observações (textarea) */}
+              <div>
+                <label style={{
+                  display: 'block', fontSize: '12px', fontWeight: 600,
+                  color: 'var(--text-secondary)', marginBottom: '6px',
+                  textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif',
+                }}>
+                  Observações
+                </label>
+                <textarea
+                  placeholder="Notas, contexto, próximos passos..."
+                  value={form.observacoes}
+                  onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
+                  maxLength={2000}
+                  rows={3}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: '8px',
+                    border: '1px solid var(--border)', background: 'var(--bg-page)',
+                    fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif',
+                    outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                />
+              </div>
+
+              {erroModal && <p style={{ color: 'var(--red)', fontSize: '13px', margin: 0 }}>{erroModal}</p>}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={fecharModal}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '8px',
+                    border: '1px solid var(--border)', background: 'var(--bg-page)',
+                    fontSize: '14px', color: 'var(--text-secondary)', cursor: 'pointer',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={salvando}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                    background: salvando ? 'var(--border)' : 'var(--purple)', color: '#fff',
+                    fontSize: '14px', fontWeight: 600, cursor: salvando ? 'not-allowed' : 'pointer',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  {salvando ? 'Salvando...' : (editandoId ? 'Salvar' : 'Criar Lead')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

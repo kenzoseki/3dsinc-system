@@ -49,7 +49,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erro: 'Dados inválidos', detalhes: validacao.error.flatten() }, { status: 400 })
     }
 
-    const lead = await prisma.lead.create({ data: validacao.data })
+    const dados = validacao.data
+    const lead = await prisma.$transaction(async (tx) => {
+      const novoLead = await tx.lead.create({ data: dados })
+
+      // Sincronizar Lead → Cliente
+      if (dados.nome) {
+        const dadosCliente = {
+          nome: dados.nome,
+          email: dados.email ?? null,
+          telefone: dados.telefone ?? null,
+          empresa: dados.empresa ?? null,
+        }
+        // Não temos CPF/CNPJ no Lead, então busca por nome exato para evitar duplicatas
+        const existente = await tx.cliente.findFirst({
+          where: { nome: dados.nome },
+        })
+        if (existente) {
+          await tx.cliente.update({
+            where: { id: existente.id },
+            data: {
+              email: dados.email ?? existente.email,
+              telefone: dados.telefone ?? existente.telefone,
+              empresa: dados.empresa ?? existente.empresa,
+            },
+          })
+        } else {
+          await tx.cliente.create({ data: dadosCliente })
+        }
+      }
+
+      return novoLead
+    })
     return NextResponse.json(lead, { status: 201 })
   } catch (erro) {
     console.error('Erro ao criar lead:', erro)
