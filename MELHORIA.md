@@ -36,7 +36,25 @@
     - API `/api/sugestoes` (CRUD) com validação Zod
     - Página `/dashboard/sugestoes` para ADMIN/SOCIO gerenciar sugestões
 
-### Lote 3 (commit atual)
+### Lote 4 (commit atual)
+- SIDEBAR:
+    - Páginas CRM, Workspace, Produção, Estoque e Assistente IA visíveis apenas para ADMIN
+    - Relatórios, Equipe, Configurações e Sugestões visíveis para todos os cargos (sem guard de sidebar)
+    - Workspace adicionado ao grupo Operacional (ícone 6)
+- EQUIPE:
+    - ADMIN pode alterar cargo de membros para Sócio (opção estava ausente no select)
+- CONFIGURAÇÕES > ACESSOS:
+    - Matriz de permissões agora é editável (clique nas células para ciclar Total → Leitura → Sem Acesso)
+    - ADMIN pode editar todos os cargos; SÓCIO pode editar todos exceto ADMIN
+    - Permissões salvas em `ConfiguracaoEmpresa.permissoesJson` via `PATCH /api/configuracoes/permissoes`
+- WORKSPACE (NOVO):
+    - Página `/dashboard/workspace` com kanban de 5 colunas ativas: Solicitação, Custo e Viabilidade, Aprovação, Produção, Enviado
+    - Abas separadas para Finalizado e Cancelado
+    - Modal de criação com campos de cliente (nome*, email, telefone, PF/PJ), itens (descrição, qtd, referência) e observações
+    - Modal de detalhe com avanço de etapa, edição de informações adicionais e cancelamento
+    - Models `Workspace` e `ItemWorkspace` no Prisma; API CRUD em `/api/workspace` e `/api/workspace/[id]`
+
+### Lote 3 (commit 57804e8)
 - CRM:
     - Revertido para pipeline de Leads (PROSPECTO → NEGOCIAÇÃO → FECHADO → PERDIDO)
     - Sincronização automática Lead → Cliente ao criar lead (upsert por nome)
@@ -53,5 +71,8 @@
 ---
 
 ## Melhorias e correções para implementar
+        
 
-_(Preencher novos itens aqui)_
+## Ideias. Não implementar.
+Futuro(Stand-by):
+    Página de Formulário de solicitação de pedido pelo Cliente > Dados entram no fluxo de Solicitação para o Seidão aprovar ou recusar.

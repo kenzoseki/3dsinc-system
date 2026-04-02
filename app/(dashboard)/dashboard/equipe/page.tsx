@@ -193,6 +193,7 @@ export default function PaginaEquipe() {
                       onChange={(e) => alterarCargo(membro.id, e.target.value)}
                       style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif', border: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)', cursor: 'pointer' }}
                     >
+                      <option value="SOCIO">Sócio</option>
                       <option value="GERENTE">Gerente</option>
                       <option value="OPERADOR">Operador</option>
                       <option value="VISUALIZADOR">Visualizador</option>

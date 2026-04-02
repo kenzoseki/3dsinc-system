@@ -21,6 +21,8 @@ type GrupoNav = {
   itens: ItemNav[]
 }
 
+const soAdmin = (c: Cargo) => c === 'ADMIN'
+
 const gruposNavegacao: GrupoNav[] = [
   {
     titulo: 'Principal',
@@ -34,29 +36,30 @@ const gruposNavegacao: GrupoNav[] = [
       { href: '/dashboard/pedidos', label: 'Pedidos', icone: '2' },
       { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '3' },
       { href: '/dashboard/clientes', label: 'Clientes', icone: '4' },
-      { href: '/dashboard/crm', label: 'CRM', icone: '5', verificar: Permissoes.podeVerCRM },
+      { href: '/dashboard/crm', label: 'CRM', icone: '5', verificar: soAdmin },
     ],
   },
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/dashboard/producao', label: 'Produção', icone: '6', verificar: Permissoes.podeVerProducao },
-      { href: '/dashboard/estoque', label: 'Estoque', icone: '7' },
+      { href: '/dashboard/workspace', label: 'Workspace', icone: '6', verificar: soAdmin },
+      { href: '/dashboard/producao', label: 'Produção', icone: '7', verificar: soAdmin },
+      { href: '/dashboard/estoque', label: 'Estoque', icone: '8', verificar: soAdmin },
     ],
   },
   {
     titulo: 'Ferramentas',
     itens: [
-      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '8', verificar: Permissoes.podeUsarIA },
-      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '9', verificar: Permissoes.podeVerRelatorios },
+      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '9', verificar: soAdmin },
+      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '10' },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { href: '/dashboard/equipe', label: 'Equipe', icone: '10', verificar: Permissoes.podeVerEquipe },
-      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '11', verificar: Permissoes.podeAcessarSistema },
-      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '12', verificar: Permissoes.podeVerSugestoes },
+      { href: '/dashboard/equipe', label: 'Equipe', icone: '11' },
+      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '12' },
+      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '13' },
     ],
   },
 ]

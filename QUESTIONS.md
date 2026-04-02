@@ -13,6 +13,10 @@
 
 **Isso é intencional (todos na empresa podem ver tudo) ou deveria haver row-level security (ex: OPERADOR só vê pedidos que criou)?**
 
+**Decisão:** Melhoria futura
+**Prioridade:** Backlog
+**O que fazer:** O Visualizador e o Operador devem apenas visualizar os pedidos e não gerar/alterar nada.
+
 ---
 
 ### Q1.2 — Ausência de CSRF explícito em rotas state-changing
@@ -21,6 +25,10 @@ O `proxy.ts` valida JWT para autenticação, mas nenhuma rota POST/PATCH/DELETE 
 
 **Devemos adicionar validação de CSRF nos endpoints que alteram dados, ou o padrão SameSite cookie do NextAuth já é suficiente para o cenário de uso?**
 
+**Decisão:** Bug
+**Prioridade:** Crítica
+**O que fazer:** Adicione validador CSRF para impedir acessos maliciosos.
+
 ---
 
 ### Q1.3 — Validação de imagem apenas no client-side (BotaoSugestao)
@@ -28,6 +36,10 @@ O `proxy.ts` valida JWT para autenticação, mas nenhuma rota POST/PATCH/DELETE 
 O `BotaoSugestao.tsx` valida tipo MIME e tamanho (4 MB) no frontend, mas o backend em `/api/sugestoes` só valida `.max(5_300_000)` no string base64. Um atacante pode enviar qualquer conteúdo (não-imagem, HTML, SVG com XSS) via DevTools/curl.
 
 **Devemos adicionar validação server-side do MIME type (verificar magic bytes do base64) e rejeitar tipos que não sejam image/*?**
+
+**Decisão:** Bug
+**Prioridade:** Crítica
+**O que fazer:** Sim
 
 ---
 
@@ -41,6 +53,10 @@ Não existe rate limiting em nenhuma rota da API. Um atacante poderia:
 
 **Qual a estratégia desejada? Rate limit global no proxy? Por rota? Por IP? Por usuário? Usar headers (`X-RateLimit-*`) ou apenas bloquear?**
 
+**Decisão:** Bug
+**Prioridade:** Crítica
+**O que fazer:** Cada IP pode fazer 30 requisições por hora
+
 ---
 
 ### Q1.5 — Sem headers de segurança no next.config.ts
@@ -48,6 +64,10 @@ Não existe rate limiting em nenhuma rota da API. Um atacante poderia:
 O `next.config.ts` está vazio. Não há Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, nem HSTS.
 
 **Devemos adicionar security headers via `next.config.ts` → `headers()`? Alguma restrição específica (ex: permitir iframes de algum domínio)?**
+
+**Decisão:** Bug
+**Prioridade:** Crítica
+**O que fazer:** Sim, adicione.
 
 ---
 
@@ -57,6 +77,10 @@ Em `lib/auth.ts`, a config de sessão usa `strategy: 'jwt'` mas não define `max
 
 **30 dias é aceitável? Devemos reduzir para algo como 24h ou 7 dias? Ou implementar uma blacklist de tokens?**
 
+**Decisão:** Melhoria futura
+**Prioridade:** Média
+**O que fazer:** 30 dias é aceitável por ser um sistema interno de gestão. Porém implemente uma blacklist de tokens para quando desativar/ativar e/ou excluir o usuário do sistema. Além disso, desenvolva um botão ao lado de desativar usuário para exclusão do usuário do sistema.
+
 ---
 
 ### Q1.7 — Senha padrão do seed em texto no código
@@ -64,6 +88,10 @@ Em `lib/auth.ts`, a config de sessão usa `strategy: 'jwt'` mas não define `max
 `prisma/seed.ts` tem `admin123` hardcoded como senha do admin inicial.
 
 **Isso é apenas para dev/staging ou vai para produção? Devemos forçar troca de senha no primeiro login (o campo `primeiroAcesso` existe mas não sei se é usado para isso)?**
+
+**Decisão:** 
+**Prioridade:** 
+**O que fazer:** 
 
 ---
 
@@ -641,6 +669,10 @@ Nenhuma listagem permite exportar dados. O relatório usa `window.print()` para 
 O chat do assistente IA perde todo o histórico quando o usuário sai da página. Não há persistência no banco.
 
 **Devemos salvar conversas do chat no banco para consulta futura?**
+
+**Decisão:** 
+**Prioridade:** 
+**O que fazer:** 
 
 ---
 
