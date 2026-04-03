@@ -42,7 +42,7 @@ const gruposNavegacao: GrupoNav[] = [
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/dashboard/workspace', label: 'Workspace', icone: '6', verificar: soAdmin },
+      { href: '/dashboard/workspace', label: 'Workspace', icone: '6' },
       { href: '/dashboard/producao', label: 'Produção', icone: '7', verificar: soAdmin },
       { href: '/dashboard/estoque', label: 'Estoque', icone: '8', verificar: soAdmin },
     ],

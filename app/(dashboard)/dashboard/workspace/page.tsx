@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 type Etapa = 'SOLICITACAO' | 'CUSTO_VIABILIDADE' | 'APROVACAO' | 'PRODUCAO' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO'
 
@@ -95,10 +96,6 @@ export default function PaginaWorkspace() {
 
   const cargo = session?.user?.cargo
 
-  useEffect(() => {
-    if (cargo && cargo !== 'ADMIN') router.push('/dashboard')
-  }, [cargo, router])
-
   const carregar = useCallback(async () => {
     setCarregando(true)
     try {
@@ -110,10 +107,10 @@ export default function PaginaWorkspace() {
   }, [])
 
   useEffect(() => {
-    if (cargo === 'ADMIN') carregar()
+    if (cargo) carregar()
   }, [cargo, carregar])
 
-  if (!cargo || cargo !== 'ADMIN') return null
+  if (!cargo) return null
 
   function soliPorEtapa(etapa: Etapa) {
     return solicitacoes.filter(s => s.etapa === etapa)
@@ -385,8 +382,8 @@ export default function PaginaWorkspace() {
         </div>
       )}
 
-      {/* Modal — nova solicitação */}
-      {modalAberto && (
+      {/* Modal — nova solicitação (portaled to body) */}
+      {modalAberto && createPortal(
         <div
           onClick={e => { if (e.target === e.currentTarget) { setModalAberto(false) } }}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
@@ -491,11 +488,12 @@ export default function PaginaWorkspace() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal — detalhe / edição */}
-      {detalheAberto && (
+      {/* Modal — detalhe / edição (portaled to body) */}
+      {detalheAberto && createPortal(
         <div
           onClick={e => { if (e.target === e.currentTarget) setDetalheAberto(null) }}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
@@ -608,7 +606,8 @@ export default function PaginaWorkspace() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

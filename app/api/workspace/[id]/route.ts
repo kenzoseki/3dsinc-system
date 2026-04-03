@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { Permissoes } from '@/lib/permissoes'
 import { z } from 'zod'
-import { EtapaWorkspace } from '@prisma/client'
+import { Cargo, EtapaWorkspace } from '@prisma/client'
 
 const schemaItem = z.object({
   id:           z.string().optional(),
@@ -33,9 +34,6 @@ export async function GET(
     if (!session?.user) {
       return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
     }
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
-    }
 
     const { id } = await params
     const solicitacao = await prisma.workspace.findUnique({
@@ -63,8 +61,8 @@ export async function PATCH(
     if (!session?.user) {
       return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
     }
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
+    if (!Permissoes.podeEscreverPedidos(session.user.cargo as Cargo)) {
+      return NextResponse.json({ erro: 'Sem permissão para editar solicitações' }, { status: 403 })
     }
 
     const { id } = await params

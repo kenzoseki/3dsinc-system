@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { Permissoes } from '@/lib/permissoes'
 import { z } from 'zod'
-import { EtapaWorkspace } from '@prisma/client'
+import { Cargo, EtapaWorkspace } from '@prisma/client'
 
 const schemaItem = z.object({
   descricao:    z.string().min(1).max(500),
@@ -26,9 +27,6 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
-    }
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -57,8 +55,8 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
     }
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
+    if (!Permissoes.podeEscreverPedidos(session.user.cargo as Cargo)) {
+      return NextResponse.json({ erro: 'Sem permissão para criar solicitações' }, { status: 403 })
     }
 
     const body = await request.json()

@@ -36,6 +36,20 @@
     - API `/api/sugestoes` (CRUD) com validação Zod
     - Página `/dashboard/sugestoes` para ADMIN/SOCIO gerenciar sugestões
 
+### Lote 3 (commit 57804e8)
+- CRM:
+    - Revertido para pipeline de Leads (PROSPECTO → NEGOCIAÇÃO → FECHADO → PERDIDO)
+    - Sincronização automática Lead → Cliente ao criar lead (upsert por nome)
+    - Modal de criar/editar lead no padrão centralizado
+- MODAIS:
+    - Modal de Novo Cliente (Clientes) e Novo Lead (CRM) padronizados: overlay escuro, div centralizada, boxShadow, focus/blur nos inputs — mesmo estilo do modal de Sugestões
+- SUGESTÕES:
+    - Botão de upload de imagem abaixo da Descrição (máx. 4 MB, pré-visualização com remoção)
+    - Campo `imagemBase64` no model Sugestao e na API
+    - Página admin exibe imagens anexadas nas sugestões
+- SIDEBAR:
+    - Números trocados de ①②③ para 1, 2, 3 com badges estilizadas (fundo roxo quando ativo)
+
 ### Lote 4 (commit atual)
 - SIDEBAR:
     - Páginas CRM, Workspace, Produção, Estoque e Assistente IA visíveis apenas para ADMIN
@@ -53,25 +67,19 @@
     - Modal de criação com campos de cliente (nome*, email, telefone, PF/PJ), itens (descrição, qtd, referência) e observações
     - Modal de detalhe com avanço de etapa, edição de informações adicionais e cancelamento
     - Models `Workspace` e `ItemWorkspace` no Prisma; API CRUD em `/api/workspace` e `/api/workspace/[id]`
-
-### Lote 3 (commit 57804e8)
-- CRM:
-    - Revertido para pipeline de Leads (PROSPECTO → NEGOCIAÇÃO → FECHADO → PERDIDO)
-    - Sincronização automática Lead → Cliente ao criar lead (upsert por nome)
-    - Modal de criar/editar lead no padrão centralizado
-- MODAIS:
-    - Modal de Novo Cliente (Clientes) e Novo Lead (CRM) padronizados: overlay escuro, div centralizada, boxShadow, focus/blur nos inputs — mesmo estilo do modal de Sugestões
-- SUGESTÕES:
-    - Botão de upload de imagem abaixo da Descrição (máx. 4 MB, pré-visualização com remoção)
-    - Campo `imagemBase64` no model Sugestao e na API
-    - Página admin exibe imagens anexadas nas sugestões
-- SIDEBAR:
-    - Números trocados de ①②③ para 1, 2, 3 com badges estilizadas (fundo roxo quando ativo)
+### Lote 4.1 (correções)
+- SIDEBAR: Workspace agora visível para todos os cargos (guard ADMIN removido)
+- WORKSPACE: modais de criação e detalhe renderizados via `createPortal(document.body)` para escapar do `overflow` da layout main
+- WORKSPACE API: GET liberado para todos os cargos autenticados; POST/PATCH usam `podeEscreverPedidos`; DELETE permanece ADMIN-only
 
 ---
 
 ## Melhorias e correções para implementar
-        
+
+- WORKSPACE:
+    - Sincronize as solicitações do Workspace para Pedidos, Orçamentos, Clientes e Produção
+
+- Remova os dados de Pedidos, Orçamentos e Estoque
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):
