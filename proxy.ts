@@ -35,8 +35,8 @@ export async function proxy(request: NextRequest) {
     return resposta
   }
 
-  // Protege todas as rotas /api/* e /dashboard/*
-  if (pathname.startsWith('/api/') || pathname.startsWith('/dashboard/')) {
+  // Protege todas as rotas /api/*, /workspace/* e /home
+  if (pathname.startsWith('/api/') || pathname.startsWith('/workspace/') || pathname === '/home') {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
 
     if (!token) {
@@ -55,5 +55,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*'],
+  matcher: ['/api/:path*', '/workspace/:path*', '/home'],
 }

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: '3D Sinc — Sistema de Gestão',
     short_name: '3D Sinc',
     description: 'ERP integrado com IA para impressão 3D por encomenda',
-    start_url: '/dashboard',
+    start_url: '/home',
     display: 'standalone',
     background_color: '#F5F3EE',
     theme_color: '#5B47C8',

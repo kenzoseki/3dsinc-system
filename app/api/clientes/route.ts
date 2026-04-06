@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Modo compatibilidade — retorna array plano (usado pelo seletor de clientes em pedidos)
+    // Modo compatibilidade — retorna array plano (usado pelo seletor de clientes em pedidos e autocomplete)
     const clientes = await prisma.cliente.findMany({
       where,
       orderBy: { nome: 'asc' },
-      take: 50,
+      take: limite,
     })
 
     return NextResponse.json(clientes)

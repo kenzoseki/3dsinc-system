@@ -72,15 +72,84 @@
 - WORKSPACE: modais de criação e detalhe renderizados via `createPortal(document.body)` para escapar do `overflow` da layout main
 - WORKSPACE API: GET liberado para todos os cargos autenticados; POST/PATCH usam `podeEscreverPedidos`; DELETE permanece ADMIN-only
 
+### Lote 5 (commit atual)
+- URL:
+    - Estrutura alterada: `/dashboard` → `/home` (Início) e `/dashboard/X` → `/workspace/X`
+    - Clique no logo redireciona para `/home`
+    - Sidebar, proxy.ts, manifest.ts, LoginForm e todas as ~20 páginas internas atualizadas
+    - `.next` cache limpo para evitar referências órfãs
+- DASHBOARD (agora "Início" em `/home`):
+    - Card "Estoque Crítico" substituído por "Workspace Ativos" (solicitações em andamento)
+    - Nova seção "Workspace — Fluxo" com barras visuais por etapa (SOL → C&V → APR → PROD → FRETE → ENV) e contagem em tempo real
+    - Link "Abrir Workspace →" direto para `/workspace`
+- WORKSPACE:
+    - Kanban expandido para 6 colunas ativas: Solicitação, Custo e Viabilidade, Aguardando Aprovação, Produção, Cálculo de Frete, Enviado
+    - Etapa CALCULO_FRETE adicionada ao enum `EtapaWorkspace` no Prisma (entre PRODUCAO e ENVIADO)
+    - Custo e Viabilidade: campos valor unitário (obrigatório para avançar) e custo unitário por item com cálculos de Total, Custo Total e Lucro Líquido
+    - Itens editáveis inline na etapa de Solicitação; read-only a partir de Aguardando Aprovação
+    - Aguardando Aprovação: 3 botões — Aprovar (→ Produção), Editar Pedido (→ volta para Solicitação), Cancelar Pedido
+    - Produção: registra `dataInicioProducao` automaticamente ao entrar; `dataFimProducao` ao avançar para Cálculo de Frete
+    - Cálculo de Frete: campo Frete obrigatório para avançar (validação API 422)
+    - Enviado: campos data/hora de envio e código de rastreio; botão "Gerar Link Portal" (token via `/api/workspace/[id]/token-portal`); botão "Finalizar" com confirmação
+    - Fix delete: botão funcional com try/catch e mensagem de erro; restrito a ADMIN
+    - Botão "Ver Orçamento" no detalhe de cada solicitação (link para `/workspace/orcamentos/[id]`)
+    - Auto-create na criação: POST `/api/workspace` agora cria automaticamente Cliente (upsert por nome), Orçamento (RASCUNHO) e Pedido (ORCAMENTO) via `$transaction`
+    - Sync etapas: PATCH `/api/workspace/[id]` sincroniza etapa → status do Pedido vinculado (ex.: APROVACAO → APROVADO, PRODUCAO → EM_PRODUCAO)
+    - Sync itens/frete: ao editar itens ou frete no Workspace, os dados são replicados para o Orçamento vinculado
+    - Campos `frete`, `dataInicioProducao`, `dataFimProducao`, `dataEnvio`, `horaEnvio`, `codigoRastreio`, `tokenPortal`, `clienteId`, `pedidoId`, `orcamentoId` adicionados ao model Workspace
+    - Campo `custoUnitario` adicionado ao model ItemWorkspace
+- PEDIDOS:
+    - Sincronizados com Workspace via FK `pedidoId` (status atualizado automaticamente ao mover etapas)
+    - Exclusão permitida para ADMIN e SOCIO (antes era só ADMIN)
+    - Coluna "Ações" com botão Excluir visível para ADMIN/SOCIO na listagem
+- ORÇAMENTOS:
+    - Sincronizados com Workspace: itens e frete replicados automaticamente ao editar no Workspace
+    - Orçamento criado em RASCUNHO junto com a solicitação
+- PRODUÇÃO:
+    - Fonte de dados alterada de API de Pedidos para API de Workspace
+    - 3 seções: Aguardando Produção (SOL + C&V + APR), Em Produção (PRODUCAO), Produção Finalizada (FRETE + ENV + FINAL)
+    - Exibe data de início de produção por solicitação
+    - Acesso liberado para todos os cargos (`podeVerProducao` retorna `true` para todos)
+    - Guard `soAdmin` removido da sidebar para Produção
+- CLIENTES:
+    - Sincronizados com Workspace: cliente criado automaticamente na criação da solicitação
+    - Modal de criação manual com `createPortal(document.body)` (fix overflow)
+- EQUIPE:
+    - Botão "Excluir" membro adicionado com hierarquia:
+        - ADMIN pode excluir qualquer cargo exceto ADMIN
+        - SOCIO pode excluir GERENTE, OPERADOR e VISUALIZADOR
+    - DELETE handler em `/api/equipe/[id]` com validação de hierarquia
+    - Coluna Ações visível para ADMIN e SOCIO
+- LIMPEZA:
+    - Script `scripts/limpar-dados.ts` para zerar Pedidos, Orçamentos, Filamentos e Workspaces (respeitando ordem de FK)
+    - Dados zerados com sucesso
+
 ---
 
-## Melhorias e correções para implementar
-
+### Lote 6 (commit atual)
+- ESTOQUE:
+    - Removido da sidebar (link e ícone)
+    - Queries e gráficos de filamentos removidos do Dashboard/Home
+    - Páginas de estoque mantidas no código mas inacessíveis pela navegação
 - WORKSPACE:
-    - Sincronize as solicitações do Workspace para Pedidos, Orçamentos, Clientes e Produção
+    - Editar Dados Avançados do Orçamento: nova página em `/workspace/orcamento/[id]` com editor completo — numeração e revisão editáveis (ORC-XXXX-XX em tempo real), dados do cliente, itens com imagens, financeiro, condições e observações. Botão "Editar Dados Avançados" no modal de detalhe do Workspace (ao lado de "Ver Orçamento"). API PATCH de orçamentos atualizada para aceitar campo `numero`.
+    - Nova Solicitação — Autocomplete de Cliente: ao digitar o nome do cliente, busca clientes existentes (fetch `/api/clientes?busca=X&limite=6`) e exibe dropdown de sugestões. Ao selecionar, preenche automaticamente email, telefone e tipo de pessoa. Opção "+ Novo cliente" para preencher manualmente.
+    - Prioridade: campo `prioridade` (BAIXA, NORMAL, ALTA, URGENTE) adicionado ao model Workspace. Seletor no formulário de criação. Badge colorido nos cards do Kanban (apenas se diferente de NORMAL). Filtro de prioridade no header do Kanban com ordenação automática (URGENTE > ALTA > NORMAL > BAIXA). Prioridade visível no modal de detalhe.
+    - Data de Entrega: campo `dataEntrega DateTime?` adicionado ao model Workspace. Input de data no formulário de criação. Exibida nos cards do Kanban (com destaque vermelho se vencida). Badge no modal de detalhe.
+    - AGENDA PRODUÇÃO (NOVO): página `/workspace/agenda-producao` com timeline mensal. Cada solicitação exibe barra colorida da data de criação até o prazo de entrega. Navegação por mês (◀ ▶ Hoje). Marcador vertical do dia atual. Info lateral com número, etapa, cliente e itens. Legenda de etapas por cor. Destaque vermelho para entregas atrasadas.
+- MARKETING (NOVO):
+    - Schema Prisma: enum `EtapaMarketing` (IDEIA → PLANEJAMENTO → PRODUCAO → REVISAO → AGENDADO → PUBLICADO) e model `CardMarketing` (título, descrição, etapa, plataforma, responsável, dataPublicação, imagemBase64, observações)
+    - API CRUD: `GET/POST /api/marketing` e `GET/PATCH/DELETE /api/marketing/[id]` com validação Zod e guards por cargo
+    - Kanban (`/workspace/marketing`): 6 colunas com drag & drop (HTML5 Drag API). Cards arrastáveis entre etapas. Modal de criação com título, descrição, plataforma, responsável, data de publicação, observações. Modal de detalhe com edição inline, botões Avançar/Voltar etapa, excluir (ADMIN/SOCIO). Link para Agenda.
+    - Agenda Marketing (`/workspace/agenda-marketing`): calendário mensal com grid 7×N. Cards com data de publicação exibidos no dia correspondente, coloridos por etapa. Navegação por mês. Seção "Sem data de publicação" para cards sem data definida.
+- SIDEBAR:
+    - Grupo "Marketing" adicionado com itens Kanban (9) e Agenda (10)
+    - Ícones renumerados: Ferramentas 11-12, Administração 13-15
 
-- Remova os dados de Pedidos, Orçamentos e Estoque
+---
+
+## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):
-    Página de Formulário de solicitação de pedido pelo Cliente > Dados entram no fluxo de Solicitação para o Seidão aprovar ou recusar.
+    Página de Formulário de solicitação de pedido pelo Cliente > Dados entram no fluxo de Solicitação para o Seidão aprovar ou recusar. Página pensada para otimização de Rotina, otimizando o registro das Solicitações pelo Cliente incluindo as principais informações com exceção de valores.

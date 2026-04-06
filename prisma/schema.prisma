@@ -51,9 +51,10 @@ model Cliente {
   telefone  String?
   empresa   String?
   cpfCnpj   String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  pedidos   Pedido[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  pedidos     Pedido[]
+  workspaces  Workspace[]
 }
 
 model Pedido {
@@ -78,6 +79,7 @@ model Pedido {
   itens        ItemPedido[]
   historico    HistoricoPedido[]
   arquivos     ArquivoPedido[]
+  workspace    Workspace?
 }
 
 enum TipoPedido {
@@ -222,6 +224,7 @@ model Orcamento {
   updatedAt           DateTime        @updatedAt
   itens               ItemOrcamento[]
   pedidos             Pedido[]
+  workspace           Workspace?
 }
 
 enum StatusOrcamento {
@@ -315,24 +318,45 @@ enum EtapaWorkspace {
   CUSTO_VIABILIDADE
   APROVACAO
   PRODUCAO
+  CALCULO_FRETE
   ENVIADO
   FINALIZADO
   CANCELADO
 }
 
 model Workspace {
-  id              String         @id @default(cuid())
-  numero          Int            @unique @default(autoincrement())
-  etapa           EtapaWorkspace @default(SOLICITACAO)
-  clienteNome     String
-  clienteEmail    String?
-  clienteTelefone String?
-  tipoPessoa      String?
-  infoAdicional   String?        @db.Text
-  observacoes     String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  itens           ItemWorkspace[]
+  id                 String         @id @default(cuid())
+  numero             Int            @unique @default(autoincrement())
+  etapa              EtapaWorkspace @default(SOLICITACAO)
+  clienteNome        String
+  clienteEmail       String?
+  clienteTelefone    String?
+  tipoPessoa         String?
+  infoAdicional      String?        @db.Text
+  observacoes        String?        @db.Text
+  prioridade         Prioridade     @default(NORMAL)
+  dataEntrega        DateTime?
+  // Produção
+  dataInicioProducao DateTime?
+  dataFimProducao    DateTime?
+  // Frete
+  frete              Decimal?       @db.Decimal(10, 2)
+  // Envio
+  dataEnvio          DateTime?
+  horaEnvio          String?
+  codigoRastreio     String?
+  // Portal
+  tokenPortal        String?        @unique
+  // FKs — vínculos com módulos
+  clienteId          String?
+  cliente            Cliente?       @relation(fields: [clienteId], references: [id])
+  pedidoId           String?        @unique
+  pedido             Pedido?        @relation(fields: [pedidoId], references: [id])
+  orcamentoId        String?        @unique
+  orcamento          Orcamento?     @relation(fields: [orcamentoId], references: [id])
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  itens              ItemWorkspace[]
 }
 
 model ItemWorkspace {
@@ -343,5 +367,31 @@ model ItemWorkspace {
   referencia    String?
   quantidade    Int       @default(1)
   valorUnitario Decimal?  @db.Decimal(10, 2)
+  custoUnitario Decimal?  @db.Decimal(10, 2)
   createdAt     DateTime  @default(now())
+}
+
+// ─── Marketing ─────────────────────────────────────────
+
+enum EtapaMarketing {
+  IDEIA
+  PLANEJAMENTO
+  PRODUCAO
+  REVISAO
+  AGENDADO
+  PUBLICADO
+}
+
+model CardMarketing {
+  id              String          @id @default(cuid())
+  titulo          String
+  descricao       String?         @db.Text
+  etapa           EtapaMarketing  @default(IDEIA)
+  plataforma      String?
+  responsavel     String?
+  dataPublicacao  DateTime?
+  imagemBase64    String?         @db.Text
+  observacoes     String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }

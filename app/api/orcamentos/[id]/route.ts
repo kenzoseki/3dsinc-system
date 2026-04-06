@@ -15,6 +15,7 @@ const schemaItem = z.object({
 })
 
 const schemaAtualizar = z.object({
+  numero:              z.number().int().optional(),
   revisao:             z.number().int().optional(),
   clienteNome:         z.string().min(1).optional(),
   clienteEmpresa:      z.string().optional().nullable(),

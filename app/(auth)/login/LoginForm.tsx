@@ -30,7 +30,7 @@ export default function LoginForm({ logoBase64, nomeEmpresa }: { logoBase64: str
       if (resultado?.error) {
         setErro('Email ou senha incorretos')
       } else {
-        router.push('/dashboard')
+        router.push('/home')
         router.refresh()
       }
     } catch {

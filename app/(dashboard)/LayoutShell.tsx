@@ -27,39 +27,46 @@ const gruposNavegacao: GrupoNav[] = [
   {
     titulo: 'Principal',
     itens: [
-      { href: '/dashboard', label: 'Dashboard', icone: '1' },
+      { href: '/home', label: 'Início', icone: '1' },
     ],
   },
   {
     titulo: 'Comercial',
     itens: [
-      { href: '/dashboard/pedidos', label: 'Pedidos', icone: '2' },
-      { href: '/dashboard/orcamentos', label: 'Orçamentos', icone: '3' },
-      { href: '/dashboard/clientes', label: 'Clientes', icone: '4' },
-      { href: '/dashboard/crm', label: 'CRM', icone: '5', verificar: soAdmin },
+      { href: '/workspace/pedidos', label: 'Pedidos', icone: '2' },
+      { href: '/workspace/orcamentos', label: 'Orçamentos', icone: '3' },
+      { href: '/workspace/clientes', label: 'Clientes', icone: '4' },
+      { href: '/workspace/crm', label: 'CRM', icone: '5', verificar: soAdmin },
     ],
   },
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/dashboard/workspace', label: 'Workspace', icone: '6' },
-      { href: '/dashboard/producao', label: 'Produção', icone: '7', verificar: soAdmin },
-      { href: '/dashboard/estoque', label: 'Estoque', icone: '8', verificar: soAdmin },
+      { href: '/workspace', label: 'Workspace', icone: '6' },
+      { href: '/workspace/producao', label: 'Produção', icone: '7' },
+      { href: '/workspace/agenda-producao', label: 'Agenda', icone: '8' },
+    ],
+  },
+  {
+    titulo: 'Marketing',
+    itens: [
+      { href: '/workspace/marketing', label: 'Kanban', icone: '9' },
+      { href: '/workspace/agenda-marketing', label: 'Agenda', icone: '10' },
     ],
   },
   {
     titulo: 'Ferramentas',
     itens: [
-      { href: '/dashboard/assistente', label: 'Assistente IA', icone: '9', verificar: soAdmin },
-      { href: '/dashboard/relatorios', label: 'Relatórios', icone: '10' },
+      { href: '/workspace/assistente', label: 'Assistente IA', icone: '11', verificar: soAdmin },
+      { href: '/workspace/relatorios', label: 'Relatórios', icone: '12' },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { href: '/dashboard/equipe', label: 'Equipe', icone: '11' },
-      { href: '/dashboard/configuracoes', label: 'Configurações', icone: '12' },
-      { href: '/dashboard/sugestoes', label: 'Sugestões', icone: '13' },
+      { href: '/workspace/equipe', label: 'Equipe', icone: '13' },
+      { href: '/workspace/configuracoes', label: 'Configurações', icone: '14' },
+      { href: '/workspace/sugestoes', label: 'Sugestões', icone: '15' },
     ],
   },
 ]
@@ -167,12 +174,13 @@ export default function LayoutShell({
   const iniciais = user.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
 
   function isAtivo(href: string) {
-    if (href === '/dashboard') return pathname === '/dashboard'
+    if (href === '/home') return pathname === '/home'
+    if (href === '/workspace') return pathname === '/workspace'
     return pathname.startsWith(href)
   }
 
   // Item fixo: Perfil (sempre visível, fora dos grupos)
-  const itemPerfil = { href: '/dashboard/perfil', label: 'Perfil', icone: '👤' }
+  const itemPerfil = { href: '/workspace/perfil', label: 'Perfil', icone: '👤' }
 
   // Filtra grupos e itens por permissão do cargo
   const gruposVisiveis = gruposNavegacao
@@ -186,7 +194,7 @@ export default function LayoutShell({
     <>
       {/* Logo */}
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+        <Link href="/home" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
           {logoEmpresa ? (
             <img src={logoEmpresa} alt="Logo 3D Sinc" style={{ maxHeight: '36px', maxWidth: '140px', objectFit: 'contain' }} />
           ) : (
@@ -371,7 +379,7 @@ export default function LayoutShell({
                   transformOrigin: 'top right',
                 }}>
                   <Link
-                    href="/dashboard/perfil"
+                    href="/workspace/perfil"
                     onClick={() => setDropdownAberto(false)}
                     style={{
                       display: 'block', padding: '8px 12px', borderRadius: '6px',

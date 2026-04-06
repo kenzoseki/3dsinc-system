@@ -63,3 +63,50 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ erro: 'Erro interno do servidor' }, { status: 500 })
   }
 }
+
+const CARGOS_EXCLUIVEIS_POR_SOCIO: string[] = ['GERENTE', 'OPERADOR', 'VISUALIZADOR']
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+    }
+
+    const cargo = session.user.cargo as Cargo
+    if (!['ADMIN', 'SOCIO'].includes(cargo)) {
+      return NextResponse.json({ erro: 'Sem permissão para excluir membros' }, { status: 403 })
+    }
+
+    const { id } = await params
+
+    if (id === session.user.id) {
+      return NextResponse.json({ erro: 'Não é possível excluir a si mesmo' }, { status: 400 })
+    }
+
+    const alvo = await prisma.usuario.findUnique({ where: { id } })
+    if (!alvo) {
+      return NextResponse.json({ erro: 'Usuário não encontrado' }, { status: 404 })
+    }
+
+    // ADMIN não pode excluir outro ADMIN
+    if (alvo.cargo === 'ADMIN') {
+      return NextResponse.json({ erro: 'Não é possível excluir um ADMIN' }, { status: 403 })
+    }
+
+    // SOCIO só pode excluir GERENTE, OPERADOR, VISUALIZADOR
+    if (cargo === 'SOCIO' && !CARGOS_EXCLUIVEIS_POR_SOCIO.includes(alvo.cargo)) {
+      return NextResponse.json({ erro: 'Sócio não pode excluir este cargo' }, { status: 403 })
+    }
+
+    await prisma.usuario.delete({ where: { id } })
+
+    return NextResponse.json({ mensagem: 'Membro excluído com sucesso' })
+  } catch (erro) {
+    console.error('Erro ao excluir membro:', erro)
+    return NextResponse.json({ erro: 'Erro interno do servidor' }, { status: 500 })
+  }
+}

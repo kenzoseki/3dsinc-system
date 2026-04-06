@@ -177,8 +177,8 @@ export async function DELETE(
       return NextResponse.json({ erro: 'Nao autenticado' }, { status: 401 })
     }
 
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Somente ADMIN pode deletar pedidos' }, { status: 403 })
+    if (!['ADMIN', 'SOCIO'].includes(session.user.cargo)) {
+      return NextResponse.json({ erro: 'Somente ADMIN ou SOCIO pode deletar pedidos' }, { status: 403 })
     }
 
     const { id } = await params
