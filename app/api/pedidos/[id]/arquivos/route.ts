@@ -64,7 +64,7 @@ export async function POST(
         pedidoId:       id,
         nome:           validacao.data.nome,
         tipo:           validacao.data.tipo,
-        tamanhoBytes:   validacao.data.tamanhoBytes,
+        tamanhoBytes:   tamanhoReal,
         conteudoBase64: validacao.data.conteudoBase64,
       },
       select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true },

@@ -45,41 +45,63 @@ Vercel Free  →  Railway Starter  →  VPS próprio
 ├── app/
 │   ├── (auth)/
 │   │   ├── login/
-│   │   └── primeiro-acesso/        # Cadastro via convite
+│   │   ├── primeiro-acesso/        # Cadastro via convite
+│   │   └── reset-password/         # Redefinição de senha
 │   ├── (dashboard)/
-│   │   ├── layout.tsx              # Sidebar + Topbar responsivos
-│   │   └── dashboard/
-│   │       ├── page.tsx            # Dashboard principal (métricas + gráficos)
+│   │   ├── layout.tsx              # Sidebar + Topbar responsivos (LayoutShell)
+│   │   ├── home/page.tsx           # Dashboard principal (Início)
+│   │   └── workspace/
+│   │       ├── page.tsx            # Workspace Kanban (fluxo principal)
 │   │       ├── pedidos/            # CRUD + histórico + upload de arquivos
-│   │       ├── orcamentos/         # CRUD + PDF via navegador
+│   │       ├── orcamentos/         # CRUD + PDF via navegador + kanban
+│   │       ├── orcamento/[id]/     # Editor avançado de orçamento
 │   │       ├── clientes/           # Listagem, detalhe, CRUD
-│   │       ├── producao/           # Fila AGUARDANDO + EM_PRODUCAO
-│   │       ├── estoque/            # Filamentos com alertas de estoque
+│   │       ├── producao/           # Fila de produção via Workspace
+│   │       ├── agenda-producao/    # Timeline mensal de produção
+│   │       ├── marketing/          # Kanban de marketing (6 etapas)
+│   │       ├── agenda-marketing/   # Calendário mensal de publicações
+│   │       ├── crm/                # Pipeline de Leads (kanban)
+│   │       ├── estoque/            # Filamentos com alertas (oculto da sidebar)
 │   │       ├── assistente/         # IA Chat com contexto ERP
+│   │       ├── relatorios/         # Relatórios PDF gerenciais
 │   │       ├── perfil/
-│   │       ├── equipe/             # Gerenciamento de equipe (admin)
-│   │       └── configuracoes/
+│   │       ├── equipe/             # Gerenciamento de equipe
+│   │       ├── configuracoes/      # Config empresa + permissões editáveis
+│   │       └── sugestoes/          # Gestão de sugestões/bugs (ADMIN/SOCIO)
+│   ├── (portal)/
+│   │   └── portal/pedido/[token]/  # Portal público do cliente
 │   └── api/
-│       ├── pedidos/                # CRUD + [id]/arquivos/[arquivoId]
+│       ├── pedidos/                # CRUD + [id]/arquivos/[arquivoId] + [id]/token-portal
 │       ├── orcamentos/             # CRUD + paginação + filtro status
 │       ├── clientes/               # CRUD + [id] GET/PATCH/DELETE
+│       ├── workspace/              # CRUD + [id]/token-portal
+│       ├── marketing/              # CRUD CardMarketing
+│       ├── leads/                  # CRUD Lead (CRM)
+│       ├── sugestoes/              # CRUD Sugestao
 │       ├── filamentos/
-│       ├── configuracoes/
+│       ├── configuracoes/          # GET/PATCH + /permissoes
 │       ├── perfil/
 │       ├── equipe/
-│       ├── convite/
+│       ├── convite/                # POST + /validar + /aceitar
+│       ├── portal/pedido/[token]/  # Rota pública
+│       ├── relatorios/
+│       ├── cron/alertas/           # Cron de alertas por email
+│       ├── auth/                   # NextAuth + forgot/reset-password
 │       └── ia/chat/
-├── proxy.ts                        # Auth centralizada /api/* e /dashboard/* (Next.js 16)
+├── proxy.ts                        # Auth centralizada /api/* e /workspace/* (Next.js 16)
 ├── lib/
 │   ├── db.ts                       # Prisma client
 │   ├── claude.ts                   # Anthropic client
 │   ├── erp-context.ts              # Contexto dinâmico para IA
 │   ├── auth.ts                     # Config NextAuth + permissões
-│   └── permissoes.ts               # Helper de verificação de cargo
+│   ├── permissoes.ts               # Helper de verificação de cargo
+│   └── email.ts                    # Templates de email (Resend)
 ├── prisma/
 │   ├── schema.prisma
 │   └── seed.ts                     # Cria o primeiro usuário ADMIN
 └── public/
+    ├── sw.js                       # Service worker (PWA)
+    ├── icons/                      # Ícones SVG do PWA
     └── reference/dashboard.html    # Referência visual
 ```
 
@@ -109,8 +131,9 @@ model Usuario {
   primeiroAcesso Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  historicos     HistoricoPedido[]
-  convitesEnviados Convite[]       @relation("ConviteEnviador")
+  historicos    HistoricoPedido[]
+  convitesEnviados Convite[]  @relation("ConviteEnviador")
+  sugestoes     Sugestao[]
 }
 
 enum Cargo {
@@ -125,13 +148,14 @@ model Convite {
   id          String   @id @default(cuid())
   email       String
   cargo       Cargo    @default(OPERADOR)
-  token       String   @unique @default(cuid())
+  token       String   @unique
   usado       Boolean  @default(false)
   expiresAt   DateTime
   enviadoPor  String
-  enviador    Usuario  @relation("ConviteEnviador", fields: [enviadoPor], references: [id])
+  enviador    Usuario  @relation("ConviteEnviador", fields: [enviadoPor], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 }
+// Token gerado via randomBytes(32).toString('hex') na API
 
 model Cliente {
   id        String   @id @default(cuid())
@@ -140,9 +164,10 @@ model Cliente {
   telefone  String?
   empresa   String?
   cpfCnpj   String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  pedidos   Pedido[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  pedidos     Pedido[]
+  workspaces  Workspace[]
 }
 
 model Pedido {
@@ -163,9 +188,16 @@ model Pedido {
   observacoes  String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  tokenPortal        String?   @unique
+  tokenPortalExpira  DateTime?
   itens        ItemPedido[]
   historico    HistoricoPedido[]
   arquivos     ArquivoPedido[]
+  workspace    Workspace?
+
+  @@index([clienteId])
+  @@index([orcamentoId])
+  @@index([status])
 }
 
 enum TipoPedido {
@@ -194,25 +226,31 @@ enum Prioridade {
 model ItemPedido {
   id            String     @id @default(cuid())
   pedidoId      String
-  pedido        Pedido     @relation(fields: [pedidoId], references: [id])
+  pedido        Pedido     @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   filamentoId   String?
-  filamento     Filamento? @relation(fields: [filamentoId], references: [id])
+  filamento     Filamento? @relation(fields: [filamentoId], references: [id], onDelete: SetNull)
   descricao     String
   quantidade    Int        @default(1)
   pesoGramas    Decimal?   @db.Decimal(8, 2)
   tempoHoras    Decimal?   @db.Decimal(6, 2)
   valorUnitario Decimal?   @db.Decimal(10, 2)
+  createdAt     DateTime   @default(now())
+
+  @@index([pedidoId])
 }
 
 model HistoricoPedido {
   id          String       @id @default(cuid())
   pedidoId    String
-  pedido      Pedido       @relation(fields: [pedidoId], references: [id])
+  pedido      Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   usuarioId   String?
-  usuario     Usuario?     @relation(fields: [usuarioId], references: [id])
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   status      StatusPedido
   nota        String?
   createdAt   DateTime     @default(now())
+
+  @@index([pedidoId])
+  @@index([usuarioId])
 }
 
 model ArquivoPedido {
@@ -261,10 +299,12 @@ enum MaterialType {
 model AlertaEstoque {
   id          String    @id @default(cuid())
   filamentoId String
-  filamento   Filamento @relation(fields: [filamentoId], references: [id])
+  filamento   Filamento @relation(fields: [filamentoId], references: [id], onDelete: Cascade)
   tipoAlerta  String
   lido        Boolean   @default(false)
   createdAt   DateTime  @default(now())
+
+  @@index([filamentoId])
 }
 
 model ConfiguracaoEmpresa {
@@ -280,6 +320,8 @@ model ConfiguracaoEmpresa {
   alertaEstoqueBaixo    Boolean  @default(true)
   alertaPedidoAtrasado  Boolean  @default(true)
   alertaEmailHabilitado Boolean  @default(false)
+  emailAlertas          String?
+  permissoesJson        String?  @db.Text
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -316,6 +358,7 @@ model Orcamento {
   updatedAt           DateTime        @updatedAt
   itens               ItemOrcamento[]
   pedidos             Pedido[]
+  workspace           Workspace?
 }
 
 enum StatusOrcamento {
@@ -345,6 +388,133 @@ model ImagemItemOrcamento {
   imagemBase64    String        @db.Text
   nomeArquivo     String
   createdAt       DateTime      @default(now())
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  nome        String
+  empresa     String?
+  email       String?
+  telefone    String?
+  etapa       EtapaLead  @default(PROSPECTO)
+  valor       Decimal?   @db.Decimal(10, 2)
+  observacoes String?    @db.Text
+  responsavel String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum EtapaLead {
+  PROSPECTO
+  NEGOCIACAO
+  FECHADO
+  PERDIDO
+}
+
+model Sugestao {
+  id           String         @id @default(cuid())
+  tipo         TipoSugestao
+  titulo       String
+  descricao    String         @db.Text
+  imagemBase64 String?        @db.Text
+  status       StatusSugestao @default(PENDENTE)
+  usuarioId    String
+  usuario      Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+enum TipoSugestao {
+  MELHORIA
+  BUG
+}
+
+enum StatusSugestao {
+  PENDENTE
+  EM_ANALISE
+  IMPLEMENTADO
+  DESCARTADO
+}
+
+enum EtapaWorkspace {
+  SOLICITACAO
+  CUSTO_VIABILIDADE
+  APROVACAO
+  PRODUCAO
+  CALCULO_FRETE
+  ENVIADO
+  FINALIZADO
+  CANCELADO
+}
+
+model Workspace {
+  id                 String         @id @default(cuid())
+  numero             Int            @unique @default(autoincrement())
+  etapa              EtapaWorkspace @default(SOLICITACAO)
+  clienteNome        String
+  clienteEmail       String?
+  clienteTelefone    String?
+  tipoPessoa         String?
+  infoAdicional      String?        @db.Text
+  observacoes        String?        @db.Text
+  prioridade         Prioridade     @default(NORMAL)
+  dataEntrega        DateTime?
+  dataInicioProducao DateTime?
+  dataFimProducao    DateTime?
+  frete              Decimal?       @db.Decimal(10, 2)
+  dataEnvio          DateTime?
+  horaEnvio          String?
+  codigoRastreio     String?
+  tokenPortal        String?        @unique
+  tokenPortalExpira  DateTime?
+  clienteId          String?
+  cliente            Cliente?       @relation(fields: [clienteId], references: [id])
+  pedidoId           String?        @unique
+  pedido             Pedido?        @relation(fields: [pedidoId], references: [id])
+  orcamentoId        String?        @unique
+  orcamento          Orcamento?     @relation(fields: [orcamentoId], references: [id])
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  itens              ItemWorkspace[]
+
+  @@index([etapa])
+  @@index([clienteId])
+  @@index([prioridade])
+}
+
+model ItemWorkspace {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  descricao     String
+  referencia    String?
+  quantidade    Int       @default(1)
+  valorUnitario Decimal?  @db.Decimal(10, 2)
+  custoUnitario Decimal?  @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+}
+
+enum EtapaMarketing {
+  IDEIA
+  PLANEJAMENTO
+  PRODUCAO
+  REVISAO
+  AGENDADO
+  PUBLICADO
+}
+
+model CardMarketing {
+  id              String          @id @default(cuid())
+  titulo          String
+  descricao       String?         @db.Text
+  etapa           EtapaMarketing  @default(IDEIA)
+  plataforma      String?
+  responsavel     String?
+  dataPublicacao  DateTime?
+  imagemBase64    String?         @db.Text
+  observacoes     String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 ```
 
@@ -480,23 +650,30 @@ Referência visual: `public/reference/dashboard.html`
 ## Segurança — Decisões e Convenções
 
 **Pentest realizado em 16/03/2026.** Todas as vulnerabilidades encontradas foram corrigidas.
+**Auditoria QA realizada em 07/04/2026.** Correções de segurança, integridade de dados e validações aplicadas.
 
 ### proxy.ts — Autenticação Centralizada
 
-`proxy.ts` protege `/api/*` e `/dashboard/*`. No Next.js 16.1.6+, `middleware.ts` foi depreciado em favor de `proxy.ts` — a função exportada deve se chamar `proxy`.
+`proxy.ts` protege `/api/*` e `/workspace/*`. No Next.js 16.1.6+, `middleware.ts` foi depreciado em favor de `proxy.ts` — a função exportada deve se chamar `proxy`.
 
-Rotas públicas: `/api/auth`, `/api/convite/validar`, `/api/convite/aceitar`.
+Rotas públicas: `/api/auth`, `/api/convite/validar`, `/api/convite/aceitar`, `/api/portal`.
 Cada route handler também chama `getServerSession` individualmente para verificar cargo.
 
 ### Validações de Segurança
 
 | Ponto | Implementação |
 |-------|--------------|
-| Upload base64 | Tamanho real via `Math.floor((base64.length * 3) / 4)` — não confia no `tamanhoBytes` do cliente. Zod `.max(14_100_000)` |
+| Upload base64 | Tamanho real via `Math.floor((base64.length * 3) / 4)` — salva `tamanhoReal` no banco (não confia no cliente). Zod `.max(14_100_000)` |
 | Download de arquivos | `Content-Disposition` e `Content-Type` sanitizados (regex + fallback `application/octet-stream`) |
-| Tokens de convite | Mensagem de erro unificada (evita enumeração) |
+| Tokens de convite | `randomBytes(32).toString('hex')` — 64 chars hex, criptograficamente seguro. Mensagem de erro unificada (evita enumeração) |
+| Tokens de portal | Expiram em 30 dias (`tokenPortalExpira`). Rota GET valida expiração e retorna 410 |
 | Busca de texto livre | Parâmetros truncados a 100 chars no servidor |
 | Campo `acao` em perfil | Rejeita valores desconhecidos (retorna 400) |
+| Senhas | Mínimo 8 caracteres. bcrypt com 12 rounds |
+| NEXTAUTH_SECRET | Sem fallback — lança erro se variável ausente |
+| Cascade deletes | `onDelete: Cascade` em relações dependentes; `onDelete: SetNull` onde faz sentido |
+| Arrays em Zod | Limite `.max(100)` em arrays de itens para prevenir payloads gigantes |
+| Paginação | NaN guard com `|| default` em parseInt de query params |
 
 ---
 
@@ -588,11 +765,11 @@ NFE_CNPJ="00000000000000"
 
 #### Portal do cliente
 
-- Campo `tokenPortal` (único) adicionado ao model `Pedido`
-- `POST /api/pedidos/[id]/token-portal` — gera/regenera token (requer sessão)
-- `GET /api/portal/pedido/[token]` — rota pública, retorna dados sem valores nem arquivos
+- Campos `tokenPortal` (único) e `tokenPortalExpira` em `Pedido` e `Workspace`
+- `POST /api/pedidos/[id]/token-portal` e `POST /api/workspace/[id]/token-portal` — gera token com expiração de 30 dias
+- `GET /api/portal/pedido/[token]` — rota pública, valida expiração (410 se expirado), retorna dados sem valores nem arquivos
 - `app/(portal)/portal/pedido/[token]/page.tsx` — página server-side com status, itens, histórico em timeline
-- Botão "Gerar link do portal" na página de detalhe do pedido — copia URL para clipboard
+- Botão "Gerar link do portal" na página de detalhe do pedido e no Workspace — copia URL para clipboard
 
 #### CRM leve
 

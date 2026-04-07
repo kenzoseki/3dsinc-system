@@ -65,7 +65,7 @@ export async function PATCH(
         ...(dados.etapa          !== undefined && { etapa: dados.etapa }),
         ...(dados.plataforma     !== undefined && { plataforma: dados.plataforma }),
         ...(dados.responsavel    !== undefined && { responsavel: dados.responsavel }),
-        ...(dados.dataPublicacao !== undefined && { dataPublicacao: dados.dataPublicacao ? new Date(dados.dataPublicacao) : null }),
+        ...(dados.dataPublicacao !== undefined && { dataPublicacao: dados.dataPublicacao ? new Date(dados.dataPublicacao.length <= 10 ? dados.dataPublicacao + 'T12:00:00' : dados.dataPublicacao) : null }),
         ...(dados.imagemBase64   !== undefined && { imagemBase64: dados.imagemBase64 }),
         ...(dados.observacoes    !== undefined && { observacoes: dados.observacoes }),
       },

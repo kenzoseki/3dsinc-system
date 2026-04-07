@@ -36,11 +36,11 @@ model Convite {
   id          String   @id @default(cuid())
   email       String
   cargo       Cargo    @default(OPERADOR)
-  token       String   @unique @default(cuid())
+  token       String   @unique
   usado       Boolean  @default(false)
   expiresAt   DateTime
   enviadoPor  String
-  enviador    Usuario  @relation("ConviteEnviador", fields: [enviadoPor], references: [id])
+  enviador    Usuario  @relation("ConviteEnviador", fields: [enviadoPor], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 }
 
@@ -75,11 +75,16 @@ model Pedido {
   observacoes  String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
-  tokenPortal  String?         @unique
+  tokenPortal        String?   @unique
+  tokenPortalExpira  DateTime?
   itens        ItemPedido[]
   historico    HistoricoPedido[]
   arquivos     ArquivoPedido[]
   workspace    Workspace?
+
+  @@index([clienteId])
+  @@index([orcamentoId])
+  @@index([status])
 }
 
 enum TipoPedido {
@@ -108,25 +113,31 @@ enum Prioridade {
 model ItemPedido {
   id            String     @id @default(cuid())
   pedidoId      String
-  pedido        Pedido     @relation(fields: [pedidoId], references: [id])
+  pedido        Pedido     @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   filamentoId   String?
-  filamento     Filamento? @relation(fields: [filamentoId], references: [id])
+  filamento     Filamento? @relation(fields: [filamentoId], references: [id], onDelete: SetNull)
   descricao     String
   quantidade    Int        @default(1)
   pesoGramas    Decimal?   @db.Decimal(8, 2)
   tempoHoras    Decimal?   @db.Decimal(6, 2)
   valorUnitario Decimal?   @db.Decimal(10, 2)
+  createdAt     DateTime   @default(now())
+
+  @@index([pedidoId])
 }
 
 model HistoricoPedido {
   id          String       @id @default(cuid())
   pedidoId    String
-  pedido      Pedido       @relation(fields: [pedidoId], references: [id])
+  pedido      Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   usuarioId   String?
-  usuario     Usuario?     @relation(fields: [usuarioId], references: [id])
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   status      StatusPedido
   nota        String?
   createdAt   DateTime     @default(now())
+
+  @@index([pedidoId])
+  @@index([usuarioId])
 }
 
 model Filamento {
@@ -164,10 +175,12 @@ enum MaterialType {
 model AlertaEstoque {
   id          String    @id @default(cuid())
   filamentoId String
-  filamento   Filamento @relation(fields: [filamentoId], references: [id])
+  filamento   Filamento @relation(fields: [filamentoId], references: [id], onDelete: Cascade)
   tipoAlerta  String
   lido        Boolean   @default(false)
   createdAt   DateTime  @default(now())
+
+  @@index([filamentoId])
 }
 
 model ConfiguracaoEmpresa {
@@ -296,7 +309,7 @@ model Sugestao {
   imagemBase64 String?        @db.Text
   status       StatusSugestao @default(PENDENTE)
   usuarioId    String
-  usuario      Usuario        @relation(fields: [usuarioId], references: [id])
+  usuario      Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -347,6 +360,7 @@ model Workspace {
   codigoRastreio     String?
   // Portal
   tokenPortal        String?        @unique
+  tokenPortalExpira  DateTime?
   // FKs — vínculos com módulos
   clienteId          String?
   cliente            Cliente?       @relation(fields: [clienteId], references: [id])
@@ -357,6 +371,10 @@ model Workspace {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   itens              ItemWorkspace[]
+
+  @@index([etapa])
+  @@index([clienteId])
+  @@index([prioridade])
 }
 
 model ItemWorkspace {

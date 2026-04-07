@@ -25,7 +25,10 @@ export async function POST(
 
     await prisma.pedido.update({
       where: { id },
-      data:  { tokenPortal: token },
+      data:  {
+        tokenPortal: token,
+        tokenPortalExpira: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
+      },
     })
 
     return NextResponse.json({ token })

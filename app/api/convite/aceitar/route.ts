@@ -7,7 +7,7 @@ import { z } from 'zod'
 const schemaAceitarConvite = z.object({
   token: z.string().min(1, 'Token obrigatorio'),
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  senha: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
   avatarUrl: z.string().url().optional().nullable(),
 })
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const senhaHash = await bcrypt.hash(senha, 10)
+    const senhaHash = await bcrypt.hash(senha, 12)
 
     // Criar usuario e marcar convite como usado em transacao
     const usuario = await prisma.$transaction(async (tx) => {

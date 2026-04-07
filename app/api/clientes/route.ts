@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
     const buscaRaw = searchParams.get('busca')
     const busca = buscaRaw ? buscaRaw.slice(0, 100) : null
     const paginado = searchParams.get('paginado') === 'true'
-    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10))
-    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '25', 10)))
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1)
+    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '25', 10) || 25))
 
     const where = busca
       ? {

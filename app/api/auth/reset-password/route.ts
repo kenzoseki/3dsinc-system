@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 const schema = z.object({
   token: z.string().min(1),
-  senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
+  senha: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(100),
 })
 
 function validarToken(token: string): { email: string; valido: boolean } {
@@ -20,7 +20,8 @@ function validarToken(token: string): { email: string; valido: boolean } {
     if (Date.now() > expiraEm) return { email, valido: false }
 
     const payload = `${email}:${expiraEmStr}`
-    const hmacEsperado = createHmac('sha256', process.env.NEXTAUTH_SECRET ?? 'fallback')
+    if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET não configurado')
+    const hmacEsperado = createHmac('sha256', process.env.NEXTAUTH_SECRET)
       .update(payload)
       .digest('hex')
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const senhaHash = await bcrypt.hash(senha, 10)
+    const senhaHash = await bcrypt.hash(senha, 12)
 
     await prisma.usuario.update({
       where: { id: usuario.id },

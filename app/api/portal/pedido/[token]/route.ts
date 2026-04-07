@@ -18,6 +18,7 @@ export async function GET(
         prazoEntrega: true,
         createdAt:   true,
         updatedAt:   true,
+        tokenPortalExpira: true,
         cliente: { select: { nome: true, empresa: true } },
         itens: {
           select: {
@@ -34,6 +35,11 @@ export async function GET(
 
     if (!pedido) {
       return NextResponse.json({ erro: 'Link inválido ou expirado' }, { status: 404 })
+    }
+
+    // Verificar expiração do token
+    if (pedido.tokenPortalExpira && new Date() > pedido.tokenPortalExpira) {
+      return NextResponse.json({ erro: 'Link expirado. Solicite um novo ao fornecedor.' }, { status: 410 })
     }
 
     return NextResponse.json(pedido)

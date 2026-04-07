@@ -148,6 +148,46 @@
 
 ---
 
+### Lote 7 (commit atual)
+- WORKSPACE:
+    - Fix dados inválidos ao salvar: Zod schema do PATCH usava `z.number().positive()` que rejeitava 0 e strings Decimal do Prisma. Corrigido para `z.coerce.number().nonnegative()`. Frontend agora converte explicitamente valores com `Number()` antes de enviar.
+    - Upload/download de arquivos: seção "Arquivos" no modal de detalhe do Workspace. Upload via FileReader → base64, usa API existente `/api/pedidos/[id]/arquivos`. Lista com nome, tamanho, botões Baixar e Excluir. Limite 10 MB por arquivo.
+    - Preview de imagem: botão "Preview" em arquivos de imagem, abre lightbox fullscreen sobre o modal. STL preview não incluído (exigiria three.js — peso desproporcional para o MVP).
+- SIDEBAR:
+    - Workspace e Relatórios movidos para o grupo "Principal" (Início, Workspace, Relatórios)
+    - Operacional simplificado (Produção, Agenda Produção)
+    - Agendas renomeadas para "Agenda Produção" e "Agenda Marketing" para clareza
+    - Ícones renumerados sequencialmente (1-15)
+
+### Lote 8 — Auditoria QA + Segurança (commit atual)
+- PRISMA SCHEMA:
+    - `onDelete: Cascade` em 6 relações: Convite→Usuario, ItemPedido→Pedido, HistoricoPedido→Pedido, AlertaEstoque→Filamento, Sugestao→Usuario, ArquivoPedido→Pedido
+    - `onDelete: SetNull` em 2 relações: HistoricoPedido→Usuario, ItemPedido→Filamento
+    - 7 `@@index` adicionados: Pedido(clienteId, orcamentoId, status), ItemPedido(pedidoId), HistoricoPedido(pedidoId, usuarioId), AlertaEstoque(filamentoId), Workspace(etapa, clienteId, prioridade)
+    - `createdAt DateTime @default(now())` adicionado ao ItemPedido
+    - `tokenPortalExpira DateTime?` adicionado a Pedido e Workspace
+    - Removido `@default(cuid())` do token do Convite (agora gerado via `randomBytes(32)`)
+- SEGURANÇA:
+    - Token de convite: trocado de `cuid()` para `randomBytes(32).toString('hex')` (64 chars hex, criptograficamente seguro)
+    - Token de portal: expiração de 30 dias adicionada (Pedido e Workspace); rota GET do portal valida expiração e retorna 410 se expirado
+    - NEXTAUTH_SECRET: removido fallback `'fallback'` em forgot-password e reset-password — agora lança erro se variável ausente
+    - Senha mínima: 6 → 8 caracteres em 3 rotas (reset-password, convite/aceitar, perfil)
+    - bcrypt: rounds de 10 → 12 em 3 rotas (reset-password, convite/aceitar, perfil)
+    - `tamanhoBytes` no upload de arquivos: agora usa valor calculado no servidor (`Math.floor((base64.length * 3) / 4)`) em vez do valor informado pelo cliente
+- WORKSPACE:
+    - DELETE agora limpa vínculos: nullifica `orcamentoId` do Pedido vinculado antes de excluir
+    - Retorna 404 se workspace não existe (antes era erro genérico)
+- CLIENTES:
+    - DELETE agora verifica Workspaces vinculados além de Pedidos (retorna 409 com mensagem descritiva)
+- FRONTEND:
+    - `.catch()` adicionado em fetches desprotegidos (configurações, perfil)
+    - Resposta verificada em token-portal, DELETE de CRM lead e DELETE de orçamento
+- VALIDAÇÕES:
+    - NaN guard (`|| default`) em paginação de clientes e orçamentos
+    - Limite `.max(100)` em arrays de itens (workspace create/update, orçamento create/update)
+
+---
+
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
 
 ## Ideias. Não implementar.

@@ -8,7 +8,8 @@ const FROM = process.env.EMAIL_FROM ?? 'alertas@3dsinc.com.br'
 
 function gerarToken(email: string, expiraEm: number): string {
   const payload = `${email}:${expiraEm}`
-  const hmac = createHmac('sha256', process.env.NEXTAUTH_SECRET ?? 'fallback')
+  if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET não configurado')
+  const hmac = createHmac('sha256', process.env.NEXTAUTH_SECRET)
     .update(payload)
     .digest('hex')
   return Buffer.from(`${payload}:${hmac}`).toString('base64url')

@@ -10,9 +10,9 @@ const schemaItem = z.object({
   id:            z.string().optional(),
   descricao:     z.string().min(1).max(500),
   referencia:    z.string().max(500).optional().nullable(),
-  quantidade:    z.number().int().positive().default(1),
-  valorUnitario: z.number().positive().optional().nullable(),
-  custoUnitario: z.number().positive().optional().nullable(),
+  quantidade:    z.coerce.number().int().positive().default(1),
+  valorUnitario: z.coerce.number().nonnegative().optional().nullable(),
+  custoUnitario: z.coerce.number().nonnegative().optional().nullable(),
 })
 
 const schemaAtualizar = z.object({
@@ -29,7 +29,7 @@ const schemaAtualizar = z.object({
   codigoRastreio:  z.string().max(200).optional().nullable(),
   prioridade:      z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).optional(),
   dataEntrega:     z.string().optional().nullable(),
-  itens:           z.array(schemaItem).optional(),
+  itens:           z.array(schemaItem).max(100).optional(),
 })
 
 // Mapeamento Workspace etapa → Pedido status
@@ -232,10 +232,27 @@ export async function DELETE(
     }
 
     const { id } = await params
-    await prisma.$transaction([
-      prisma.itemWorkspace.deleteMany({ where: { workspaceId: id } }),
-      prisma.workspace.delete({ where: { id } }),
-    ])
+
+    // Buscar workspace para limpar vínculos
+    const ws = await prisma.workspace.findUnique({
+      where: { id },
+      select: { pedidoId: true, orcamentoId: true },
+    })
+    if (!ws) {
+      return NextResponse.json({ erro: 'Não encontrado' }, { status: 404 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Limpar vínculo do Pedido (nullificar pedidoId, não deletar o pedido)
+      if (ws.pedidoId) {
+        await tx.pedido.update({
+          where: { id: ws.pedidoId },
+          data: { orcamentoId: null },
+        })
+      }
+      await tx.itemWorkspace.deleteMany({ where: { workspaceId: id } })
+      await tx.workspace.delete({ where: { id } })
+    })
 
     return NextResponse.json({ mensagem: 'Excluído com sucesso' })
   } catch (erro) {

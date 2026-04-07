@@ -33,7 +33,7 @@ const schemaCriar = z.object({
   frete:               z.number().optional().nullable(),
   aliquotaImposto:     z.number().optional().nullable(),
   bonusPercentual:     z.number().optional().nullable(),
-  itens:               z.array(schemaItem).min(1),
+  itens:               z.array(schemaItem).min(1).max(100),
 })
 
 export async function GET(request: NextRequest) {
@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const paginado = searchParams.get('paginado') === 'true'
-    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10))
-    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '20', 10)))
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1)
+    const limite = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') ?? '20', 10) || 20))
     const statusParam = searchParams.get('status')
 
     const where = statusParam ? { status: statusParam as import('@prisma/client').StatusOrcamento } : {}

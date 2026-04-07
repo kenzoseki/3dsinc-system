@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         etapa:          dados.etapa ?? 'IDEIA',
         plataforma:     dados.plataforma ?? null,
         responsavel:    dados.responsavel ?? null,
-        dataPublicacao: dados.dataPublicacao ? new Date(dados.dataPublicacao) : null,
+        dataPublicacao: dados.dataPublicacao ? new Date(dados.dataPublicacao.length <= 10 ? dados.dataPublicacao + 'T12:00:00' : dados.dataPublicacao) : null,
         imagemBase64:   dados.imagemBase64 ?? null,
         observacoes:    dados.observacoes ?? null,
       },

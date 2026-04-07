@@ -142,7 +142,7 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
     setGerandoToken(true)
     try {
       const token = pedido.tokenPortal ?? await fetch(`/api/pedidos/${id}/token-portal`, { method: 'POST' })
-        .then(r => r.json()).then(d => d.token)
+        .then(r => { if (!r.ok) throw new Error(); return r.json() }).then(d => d.token)
       const url = `${window.location.origin}/portal/pedido/${token}`
       await navigator.clipboard.writeText(url)
       if (!pedido.tokenPortal) setPedido(p => p ? { ...p, tokenPortal: token } : p)

@@ -21,7 +21,7 @@ const schemaCriar = z.object({
   observacoes:     z.string().max(2000).optional().nullable(),
   prioridade:      z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).optional().default('NORMAL'),
   dataEntrega:     z.string().optional().nullable(),
-  itens:           z.array(schemaItem).optional().default([]),
+  itens:           z.array(schemaItem).max(100).optional().default([]),
 })
 
 export async function GET(request: NextRequest) {

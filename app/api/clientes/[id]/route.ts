@@ -113,10 +113,16 @@ export async function DELETE(
 
     const { id } = await params
 
-    const totalPedidos = await prisma.pedido.count({ where: { clienteId: id } })
-    if (totalPedidos > 0) {
+    const [totalPedidos, totalWorkspaces] = await Promise.all([
+      prisma.pedido.count({ where: { clienteId: id } }),
+      prisma.workspace.count({ where: { clienteId: id } }),
+    ])
+    if (totalPedidos > 0 || totalWorkspaces > 0) {
+      const partes = []
+      if (totalPedidos > 0) partes.push(`${totalPedidos} pedido(s)`)
+      if (totalWorkspaces > 0) partes.push(`${totalWorkspaces} workspace(s)`)
       return NextResponse.json(
-        { erro: `Nao e possivel excluir: cliente possui ${totalPedidos} pedido(s) vinculado(s)` },
+        { erro: `Nao e possivel excluir: cliente possui ${partes.join(' e ')} vinculado(s)` },
         { status: 409 }
       )
     }

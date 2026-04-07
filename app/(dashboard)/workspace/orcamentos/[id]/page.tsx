@@ -96,7 +96,8 @@ export default function OrcamentoDetalhe() {
 
   async function excluir() {
     if (!confirm('Confirmar exclusão do orçamento?')) return
-    await fetch(`/api/orcamentos/${id}`, { method: 'DELETE' })
+    const r = await fetch(`/api/orcamentos/${id}`, { method: 'DELETE' })
+    if (!r.ok) { alert('Erro ao excluir orçamento'); return }
     router.push('/workspace/orcamentos')
   }
 

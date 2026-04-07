@@ -13,7 +13,7 @@ const schemaAtualizarPerfil = z.object({
 
 const schemaAlterarSenha = z.object({
   senhaAtual: z.string().min(1, 'Senha atual obrigatória'),
-  novaSenha: z.string().min(6, 'Nova senha deve ter ao menos 6 caracteres').max(128),
+  novaSenha: z.string().min(8, 'Nova senha deve ter ao menos 8 caracteres').max(128),
 })
 
 export async function GET() {
@@ -63,7 +63,7 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ erro: 'Senha atual incorreta' }, { status: 400 })
       }
 
-      const novaSenhaHash = await bcrypt.hash(validacao.data.novaSenha, 10)
+      const novaSenhaHash = await bcrypt.hash(validacao.data.novaSenha, 12)
       await prisma.usuario.update({
         where: { id: session.user.id },
         data: { senha: novaSenhaHash },

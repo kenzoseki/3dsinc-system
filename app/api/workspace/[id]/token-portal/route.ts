@@ -24,16 +24,18 @@ export async function POST(
 
     const token = randomBytes(24).toString('hex')
 
+    const expira = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 dias
+
     await prisma.$transaction(async (tx) => {
       await tx.workspace.update({
         where: { id },
-        data: { tokenPortal: token },
+        data: { tokenPortal: token, tokenPortalExpira: expira },
       })
       // Sync token para o pedido vinculado (portal de pedidos já funciona)
       if (ws.pedidoId) {
         await tx.pedido.update({
           where: { id: ws.pedidoId },
-          data: { tokenPortal: token },
+          data: { tokenPortal: token, tokenPortalExpira: expira },
         })
       }
     })

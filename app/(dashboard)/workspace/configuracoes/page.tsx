@@ -66,8 +66,9 @@ export default function ConfiguracoesPage() {
 
   useEffect(() => {
     fetch('/api/configuracoes')
-      .then(r => r.json())
+      .then(r => { if (r.ok) return r.json(); throw new Error('Erro ao carregar') })
       .then(setConfig)
+      .catch(() => {})
   }, [])
 
   async function salvar(dados: Partial<Config>) {

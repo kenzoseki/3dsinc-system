@@ -37,7 +37,7 @@ const schemaAtualizar = z.object({
   aliquotaImposto:     z.number().optional().nullable(),
   bonusPercentual:     z.number().optional().nullable(),
   status:              z.enum(['RASCUNHO', 'ENVIADO', 'APROVADO', 'REPROVADO', 'EXPIRADO']).optional(),
-  itens:               z.array(schemaItem).optional(),
+  itens:               z.array(schemaItem).max(100).optional(),
 })
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {

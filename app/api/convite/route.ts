@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { randomBytes } from 'crypto'
 
 // Schema de validacao para criacao de convite
 const schemaCriarConvite = z.object({
@@ -55,11 +56,13 @@ export async function POST(request: NextRequest) {
       data: { usado: true },
     })
 
-    // Criar novo convite com validade de 7 dias
+    // Criar novo convite com validade de 7 dias e token seguro
+    const token = randomBytes(32).toString('hex')
     const convite = await prisma.convite.create({
       data: {
         email,
         cargo,
+        token,
         enviadoPor: session.user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },

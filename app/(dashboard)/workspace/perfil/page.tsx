@@ -47,13 +47,14 @@ export default function PaginaPerfil() {
   // Carrega dados atualizados do banco ao montar
   useEffect(() => {
     fetch('/api/perfil')
-      .then(r => r.json())
+      .then(r => { if (r.ok) return r.json(); throw new Error() })
       .then(d => {
         setNome(d.nome ?? '')
         setTelefone(d.telefone ?? '')
         setAvatarUrl(d.avatarUrl ?? '')
         setCarregado(true)
       })
+      .catch(() => { setCarregado(true) })
   }, [])
 
   if (!usuario) return null

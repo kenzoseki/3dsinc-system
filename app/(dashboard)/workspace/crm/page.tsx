@@ -138,7 +138,8 @@ export default function PaginaCRM() {
 
   async function excluirLead(id: string) {
     if (!confirm('Excluir este lead permanentemente?')) return
-    await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    const r = await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    if (!r.ok) { alert('Erro ao excluir lead'); return }
     carregar()
   }
 
