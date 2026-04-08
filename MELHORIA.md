@@ -186,9 +186,42 @@
     - NaN guard (`|| default`) em paginação de clientes e orçamentos
     - Limite `.max(100)` em arrays de itens (workspace create/update, orçamento create/update)
 
+### Lote 9 (commit atual)
+- WORKSPACE:
+    - Preview 3D de arquivos STL: componente `StlPreview.tsx` com Three.js (scene, PerspectiveCamera, STLLoader, OrbitControls, auto-fit camera, GridHelper)
+    - Lazy-load via `next/dynamic` com `ssr: false` — Three.js (~200KB gzip) só carrega quando o usuário clica "3D" em um arquivo .stl
+    - Botão "3D" nos arquivos .stl do modal de detalhe, abrindo lightbox fullscreen com rotação e zoom
+    - Componente `StlPreviewDynamic.tsx` como wrapper dinâmico com loading state
+- SIDEBAR:
+    - Mudanças do Lote 7 efetivamente commitadas (LayoutShell.tsx havia ficado de fora no commit anterior)
+    - Marketing Kanban e Agenda Marketing commitados
+- MARKETING:
+    - Fix timezone `dataPublicacao`: API usa `T12:00:00` ao salvar date-only; frontend usa `.slice(0, 10)` em vez de `new Date().toISOString()`
+    - Agenda Marketing: parse de dia/mês/ano via string split (sem `new Date()`)
+- FIXES:
+    - `SeletorPeriodo`: URL corrigida de `/dashboard` para `/home` (migração de URLs do Lote 5)
+    - Orçamentos DELETE: `try/catch` adicionado para tratar erros de rede
+
+### Lote 10 (commit atual)
+- WORKSPACE:
+    - Botões Preview, 3D e Baixar com loading states: feedback visual (texto "Abrindo...", "Carregando...", "Baixando..."), cursor `wait`, botões desabilitados durante operação, transição CSS suave
+    - Download refatorado para fetch + blob (antes usava link direto que não mostrava loading)
+    - Sincronização de imagens: ao salvar itens no Workspace, imagens do Pedido (ArquivoPedido tipo `image/*`) são copiadas automaticamente para os itens do Orçamento (ImagemItemOrcamento) via round-robin
+    - Sincronização de status do Orçamento: SOLICITACAO→RASCUNHO, CUSTO_VIABILIDADE/APROVACAO→ENVIADO (Andamento), PRODUCAO/FRETE/ENVIADO/FINALIZADO→APROVADO, CANCELADO→REPROVADO
+    - Fix upload STL: detecção de MIME type por extensão (`.stl`→`model/stl`, `.obj`→`model/obj`, etc.) — resolve browsers que retornam tipo vazio ou `application/vnd.ms-pki.stl` para arquivos 3D. Tratamento de erro melhorado com mensagens específicas.
+    - Limite base64 do upload aumentado de 14.1M para 14.5M chars (margem extra para data URL prefix)
+- ORÇAMENTOS:
+    - Número auto-incremental: ao criar orçamento (via Workspace ou direto), busca `MAX(numero) + 1` dentro de `$transaction`. Campo permanece editável no editor avançado.
+
 ---
 
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
+
+- RELATÓRIOS:
+    - Valor em Pedidos está vazia — incluir o valor total de cada pedido (computar a partir dos itens do Workspace/Orçamento quando Pedido.valorTotal for null).
+    - Incluir nos KPIs: Receita Esperada do Período (soma total dos valores de todos os pedidos) e Receita Real do Período (soma apenas dos pedidos concluídos/entregues).
+    - Gráfico de barras: Receita Real de cada mês no ano atual.
+    - Gráfico de Pizza: distribuição de pedidos por status, lado a lado com o gráfico de barras.
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):

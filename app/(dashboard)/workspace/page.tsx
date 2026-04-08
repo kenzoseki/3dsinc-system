@@ -174,6 +174,7 @@ export default function PaginaWorkspace() {
   const [uploadando, setUploadando] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [stlPreviewUrl, setStlPreviewUrl] = useState<string | null>(null)
+  const [loadingArquivo, setLoadingArquivo] = useState<Record<string, string>>({})
 
   const carregarArquivos = useCallback(async (pedidoId: string) => {
     try {
@@ -182,6 +183,16 @@ export default function PaginaWorkspace() {
     } catch { setArquivos([]) }
   }, [])
 
+  function detectarTipoArquivo(file: File): string {
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    const mimeMap: Record<string, string> = {
+      stl: 'model/stl', obj: 'model/obj', gcode: 'text/x-gcode', '3mf': 'model/3mf',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+      pdf: 'application/pdf', zip: 'application/zip',
+    }
+    return mimeMap[ext ?? ''] || file.type || 'application/octet-stream'
+  }
+
   async function uploadArquivo(pedidoId: string, file: File) {
     if (file.size > 10 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 10 MB)'); setTimeout(() => setMensagem(''), 3000); return }
     setUploadando(true)
@@ -189,22 +200,26 @@ export default function PaginaWorkspace() {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result as string)
-        reader.onerror = reject
+        reader.onerror = () => reject(new Error('Falha ao ler arquivo'))
         reader.readAsDataURL(file)
       })
+      const tipo = detectarTipoArquivo(file)
       const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: file.name, tipo: file.type || 'application/octet-stream', tamanhoBytes: file.size, conteudoBase64: base64 }),
+        body: JSON.stringify({ nome: file.name, tipo, tamanhoBytes: file.size, conteudoBase64: base64 }),
       })
       if (r.ok) {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
       } else {
-        const err = await r.json()
+        const err = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
         setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
-        setTimeout(() => setMensagem(''), 3000)
+        setTimeout(() => setMensagem(''), 4000)
       }
+    } catch (e) {
+      setMensagem('Erro upload: ' + (e instanceof Error ? e.message : 'Falha de rede'))
+      setTimeout(() => setMensagem(''), 4000)
     } finally { setUploadando(false) }
   }
 
@@ -214,19 +229,31 @@ export default function PaginaWorkspace() {
     if (r.ok) setArquivos(prev => prev.filter(a => a.id !== arquivoId))
   }
 
-  function downloadArquivo(pedidoId: string, arquivoId: string, nome: string) {
-    const link = document.createElement('a')
-    link.href = `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
-    link.download = nome
-    link.click()
+  async function downloadArquivo(pedidoId: string, arquivoId: string, nome: string) {
+    setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'baixar' }))
+    try {
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
+      if (r.ok) {
+        const blob = await r.blob()
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = nome
+        link.click()
+        URL.revokeObjectURL(url)
+      }
+    } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arquivoId]; return n }) }
   }
 
   async function previewArquivo(pedidoId: string, arquivoId: string) {
-    const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
-    if (r.ok) {
-      const blob = await r.blob()
-      setPreviewUrl(URL.createObjectURL(blob))
-    }
+    setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'preview' }))
+    try {
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
+      if (r.ok) {
+        const blob = await r.blob()
+        setPreviewUrl(URL.createObjectURL(blob))
+      }
+    } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arquivoId]; return n }) }
   }
 
   const cargo = session?.user?.cargo
@@ -1135,20 +1162,35 @@ export default function PaginaWorkspace() {
                           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)', fontWeight: 500 }}>{arq.nome}</span>
                           <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{tamanho}</span>
                           {isImagem && (
-                            <button onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--purple)', cursor: 'pointer' }}>
-                              Preview
+                            <button
+                              disabled={!!loadingArquivo[arq.id]}
+                              onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)}
+                              style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'preview' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'preview' ? 0.5 : 1, transition: 'all 0.2s ease' }}
+                            >
+                              {loadingArquivo[arq.id] === 'preview' ? 'Abrindo...' : 'Preview'}
                             </button>
                           )}
                           {isStl && (
-                            <button onClick={async () => {
-                              const r = await fetch(`/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`)
-                              if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
-                            }} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--purple)', cursor: 'pointer' }}>
-                              3D
+                            <button
+                              disabled={!!loadingArquivo[arq.id]}
+                              onClick={async () => {
+                                setLoadingArquivo(prev => ({ ...prev, [arq.id]: '3d' }))
+                                try {
+                                  const r = await fetch(`/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`)
+                                  if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
+                                } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arq.id]; return n }) }
+                              }}
+                              style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === '3d' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== '3d' ? 0.5 : 1, transition: 'all 0.2s ease' }}
+                            >
+                              {loadingArquivo[arq.id] === '3d' ? 'Carregando...' : '3D'}
                             </button>
                           )}
-                          <button onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                            Baixar
+                          <button
+                            disabled={!!loadingArquivo[arq.id]}
+                            onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)}
+                            style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'baixar' ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-secondary)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'baixar' ? 0.5 : 1, transition: 'all 0.2s ease' }}
+                          >
+                            {loadingArquivo[arq.id] === 'baixar' ? 'Baixando...' : 'Baixar'}
                           </button>
                           {cargo !== 'VISUALIZADOR' && (
                             <button onClick={() => excluirArquivo(detalheAberto.pedidoId!, arq.id)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--red-light)', backgroundColor: 'transparent', color: 'var(--red)', cursor: 'pointer' }}>

@@ -102,8 +102,16 @@ export async function POST(request: NextRequest) {
     const { itens, dataEmissao, frete, aliquotaImposto, bonusPercentual, ...dadosOrcamento } = validacao.data
 
     const orcamento = await prisma.$transaction(async (tx) => {
+      // Buscar último número e calcular próximo
+      const ultimoOrc = await tx.orcamento.findFirst({
+        orderBy: { numero: 'desc' },
+        select: { numero: true },
+      })
+      const proximoNumero = (ultimoOrc?.numero ?? 0) + 1
+
       const novoOrc = await tx.orcamento.create({
         data: {
+          numero: proximoNumero,
           ...dadosOrcamento,
           dataEmissao:     dataEmissao ? new Date(dataEmissao) : new Date(),
           frete:           frete ?? null,

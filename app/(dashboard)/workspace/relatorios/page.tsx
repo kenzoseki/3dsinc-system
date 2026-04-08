@@ -29,20 +29,10 @@ interface ClienteRelatorio {
   receitaTotal: number
 }
 
-interface FilamentoRelatorio {
-  id:        string
-  marca:     string
-  material:  string
-  cor:       string
-  pesoAtual: number
-  pesoTotal: number
-}
-
 interface DadosRelatorio {
   kpis:       ResumoKPIs
   pedidos:    PedidoRelatorio[]
   clientes:   ClienteRelatorio[]
-  filamentos: FilamentoRelatorio[]
 }
 
 const PERIODOS = [
@@ -259,54 +249,6 @@ export default function PaginaRelatorios() {
             </div>
           </section>
 
-          {/* Estoque de Filamentos */}
-          <section>
-            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-              Estoque de Filamentos
-            </h2>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
-                    {['Marca', 'Material', 'Cor', 'Peso Atual', 'Peso Total', 'Nível'].map(col => (
-                      <th key={col} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dados.filamentos.map((f, i) => {
-                    const pct = Math.round((f.pesoAtual / f.pesoTotal) * 100)
-                    const critico = pct < 20
-                    return (
-                      <tr key={f.id} style={{ borderBottom: i < dados.filamentos.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                        <td style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{f.marca}</td>
-                        <td style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>{f.material}</td>
-                        <td style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{f.cor}</td>
-                        <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: critico ? 'var(--red)' : 'var(--text-primary)' }}>
-                          {f.pesoAtual}g
-                        </td>
-                        <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {f.pesoTotal}g
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '80px', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: critico ? 'var(--red)' : 'var(--green)', borderRadius: '3px' }} />
-                            </div>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: critico ? 'var(--red)' : 'var(--text-secondary)' }}>
-                              {pct}%
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </div>
       )}
 

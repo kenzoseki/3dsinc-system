@@ -36,23 +36,16 @@ export async function GET(request: NextRequest) {
 
     const whereData = dataInicio ? { createdAt: { gte: dataInicio } } : {}
 
-    const [pedidos, filamentos] = await Promise.all([
-      prisma.pedido.findMany({
-        where: whereData,
-        select: {
-          id: true, numero: true, descricao: true, status: true,
-          valorTotal: true, createdAt: true, prazoEntrega: true,
-          clienteId: true,
-          cliente: { select: { nome: true, empresa: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.filamento.findMany({
-        where: { ativo: true },
-        select: { id: true, marca: true, material: true, cor: true, pesoAtual: true, pesoTotal: true },
-        orderBy: { pesoAtual: 'asc' },
-      }),
-    ])
+    const pedidos = await prisma.pedido.findMany({
+      where: whereData,
+      select: {
+        id: true, numero: true, descricao: true, status: true,
+        valorTotal: true, createdAt: true, prazoEntrega: true,
+        clienteId: true,
+        cliente: { select: { nome: true, empresa: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
     // KPIs
     const pedidosAtivos   = pedidos.filter(p => !['CONCLUIDO', 'ENTREGUE', 'CANCELADO'].includes(p.status))
@@ -92,14 +85,6 @@ export async function GET(request: NextRequest) {
         prazoEntrega: p.prazoEntrega?.toISOString() ?? null,
       })),
       clientes: clientesComPedidos,
-      filamentos: filamentos.map(f => ({
-        id:        f.id,
-        marca:     f.marca,
-        material:  f.material,
-        cor:       f.cor,
-        pesoAtual: Number(f.pesoAtual),
-        pesoTotal: Number(f.pesoTotal),
-      })),
     })
   } catch (erro) {
     console.error('Erro ao gerar relatório:', erro)

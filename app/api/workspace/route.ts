@@ -84,9 +84,16 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // 2. Criar Orçamento (RASCUNHO)
+      // 2. Buscar último número de orçamento e criar Orçamento (RASCUNHO)
+      const ultimoOrc = await tx.orcamento.findFirst({
+        orderBy: { numero: 'desc' },
+        select: { numero: true },
+      })
+      const proximoNumero = (ultimoOrc?.numero ?? 0) + 1
+
       const orcamento = await tx.orcamento.create({
         data: {
+          numero:          proximoNumero,
           clienteNome:     dados.clienteNome,
           clienteEmail:    dados.clienteEmail ?? null,
           clienteTelefone: dados.clienteTelefone ?? null,

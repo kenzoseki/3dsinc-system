@@ -184,20 +184,63 @@ export async function PATCH(
         }
       }
 
+      // Sync etapa → status do Orçamento vinculado
+      if (dados.etapa && ws.orcamentoId) {
+        const ETAPA_PARA_STATUS_ORC: Record<string, string> = {
+          SOLICITACAO:       'RASCUNHO',
+          CUSTO_VIABILIDADE: 'ENVIADO',
+          APROVACAO:         'ENVIADO',
+          PRODUCAO:          'APROVADO',
+          CALCULO_FRETE:     'APROVADO',
+          ENVIADO:           'APROVADO',
+          FINALIZADO:        'APROVADO',
+          CANCELADO:         'REPROVADO',
+        }
+        const novoStatusOrc = ETAPA_PARA_STATUS_ORC[dados.etapa]
+        if (novoStatusOrc) {
+          await tx.orcamento.update({
+            where: { id: ws.orcamentoId },
+            data: { status: novoStatusOrc as never },
+          })
+        }
+      }
+
       // Sync itens/valores para Orçamento vinculado
       if (ws.orcamentoId && (dados.itens !== undefined || dados.frete !== undefined)) {
         if (dados.itens !== undefined) {
           await tx.itemOrcamento.deleteMany({ where: { orcamentoId: ws.orcamentoId } })
           if (dados.itens.length > 0) {
-            await tx.itemOrcamento.createMany({
-              data: dados.itens.map((item, idx) => ({
-                orcamentoId: ws.orcamentoId!,
-                ordem: idx,
-                descricao: item.descricao,
-                quantidade: item.quantidade,
-                valorUnitario: item.valorUnitario ?? 0,
-              })),
-            })
+            const itensOrcamento = await Promise.all(
+              dados.itens.map((item, idx) =>
+                tx.itemOrcamento.create({
+                  data: {
+                    orcamentoId: ws.orcamentoId!,
+                    ordem: idx,
+                    descricao: item.descricao,
+                    quantidade: item.quantidade,
+                    valorUnitario: item.valorUnitario ?? 0,
+                  },
+                })
+              )
+            )
+
+            // Sync imagens: copiar ArquivoPedido (imagens) → ImagemItemOrcamento
+            if (ws.pedidoId && itensOrcamento.length > 0) {
+              const arquivosImagem = await tx.arquivoPedido.findMany({
+                where: { pedidoId: ws.pedidoId, tipo: { startsWith: 'image/' } },
+                select: { nome: true, conteudoBase64: true },
+              })
+              if (arquivosImagem.length > 0) {
+                // Distribui imagens entre os itens (round-robin)
+                await tx.imagemItemOrcamento.createMany({
+                  data: arquivosImagem.map((arq, i) => ({
+                    itemOrcamentoId: itensOrcamento[i % itensOrcamento.length].id,
+                    imagemBase64: arq.conteudoBase64,
+                    nomeArquivo: arq.nome,
+                  })),
+                })
+              }
+            }
           }
         }
         if (dados.frete !== undefined) {

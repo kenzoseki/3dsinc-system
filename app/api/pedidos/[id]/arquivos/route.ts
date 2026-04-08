@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 // Base64 de 10 MB = ceil(10*1024*1024/3)*4 ≈ 13.981.016 chars + prefixo data URL
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
-const MAX_BASE64_LEN = 14_100_000   // ~10 MB em base64 com margem para prefixo data URL
+const MAX_BASE64_LEN = 14_500_000   // ~10 MB em base64 com margem para prefixo data URL
 
 const schemaUpload = z.object({
   nome:           z.string().min(1).max(255),
