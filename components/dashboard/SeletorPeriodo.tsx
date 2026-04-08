@@ -21,7 +21,7 @@ export function SeletorPeriodo() {
     const params = new URLSearchParams(searchParams.toString())
     params.set('periodo', valor)
     startTransition(() => {
-      router.replace(`/dashboard?${params.toString()}`)
+      router.replace(`/home?${params.toString()}`)
     })
   }
 

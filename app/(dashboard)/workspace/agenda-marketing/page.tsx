@@ -88,14 +88,15 @@ export default function PaginaAgendaMarketing() {
     return celulas
   }, [mesAtual])
 
-  // Agrupa cards com dataPublicacao por dia
+  // Agrupa cards com dataPublicacao por dia (parse seguro sem timezone)
   const cardsPorDia = useMemo(() => {
     const mapa: Record<string, CardMkt[]> = {}
     cards.forEach(c => {
       if (!c.dataPublicacao) return
-      const d = new Date(c.dataPublicacao)
-      if (d.getFullYear() === mesAtual.ano && d.getMonth() === mesAtual.mes) {
-        const chave = d.getDate().toString()
+      const partes = c.dataPublicacao.slice(0, 10).split('-')
+      const ano = parseInt(partes[0]), mes = parseInt(partes[1]) - 1, dia = parseInt(partes[2])
+      if (ano === mesAtual.ano && mes === mesAtual.mes) {
+        const chave = dia.toString()
         if (!mapa[chave]) mapa[chave] = []
         mapa[chave].push(c)
       }

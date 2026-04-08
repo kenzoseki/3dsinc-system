@@ -260,7 +260,7 @@ export default function PaginaMarketing() {
                       )}
                       {c.dataPublicacao && (
                         <span style={{ fontSize: '10px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>
-                          {new Date(c.dataPublicacao).toLocaleDateString('pt-BR')}
+                          {c.dataPublicacao.slice(0, 10).split('-').reverse().join('/')}
                         </span>
                       )}
                       {c.responsavel && (
@@ -366,7 +366,7 @@ export default function PaginaMarketing() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)' }}>
                 {detalheAberto.plataforma && <p style={{ margin: 0 }}>Plataforma: <strong>{detalheAberto.plataforma}</strong></p>}
                 {detalheAberto.responsavel && <p style={{ margin: 0 }}>Responsável: <strong>{detalheAberto.responsavel}</strong></p>}
-                {detalheAberto.dataPublicacao && <p style={{ margin: 0 }}>Publicação: <strong>{new Date(detalheAberto.dataPublicacao).toLocaleDateString('pt-BR')}</strong></p>}
+                {detalheAberto.dataPublicacao && <p style={{ margin: 0 }}>Publicação: <strong>{detalheAberto.dataPublicacao.slice(0, 10).split('-').reverse().join('/')}</strong></p>}
                 <p style={{ margin: 0 }}>Criado: <strong>{new Date(detalheAberto.createdAt).toLocaleDateString('pt-BR')}</strong></p>
               </div>
               {detalheAberto.observacoes && (
@@ -424,7 +424,7 @@ function DetailEdit({ card, onSave, salvando }: { card: CardMkt; onSave: (d: Par
   const [descricao, setDescricao] = useState(card.descricao ?? '')
   const [plataforma, setPlataforma] = useState(card.plataforma ?? '')
   const [responsavel, setResponsavel] = useState(card.responsavel ?? '')
-  const [dataPublicacao, setDataPublicacao] = useState(card.dataPublicacao ? new Date(card.dataPublicacao).toISOString().slice(0, 10) : '')
+  const [dataPublicacao, setDataPublicacao] = useState(card.dataPublicacao ? card.dataPublicacao.slice(0, 10) : '')
   const [observacoes, setObservacoes] = useState(card.observacoes ?? '')
 
   useEffect(() => {
@@ -432,7 +432,7 @@ function DetailEdit({ card, onSave, salvando }: { card: CardMkt; onSave: (d: Par
     setDescricao(card.descricao ?? '')
     setPlataforma(card.plataforma ?? '')
     setResponsavel(card.responsavel ?? '')
-    setDataPublicacao(card.dataPublicacao ? new Date(card.dataPublicacao).toISOString().slice(0, 10) : '')
+    setDataPublicacao(card.dataPublicacao ? card.dataPublicacao.slice(0, 10) : '')
     setObservacoes(card.observacoes ?? '')
   }, [card])
 

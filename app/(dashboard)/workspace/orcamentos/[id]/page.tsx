@@ -96,9 +96,11 @@ export default function OrcamentoDetalhe() {
 
   async function excluir() {
     if (!confirm('Confirmar exclusão do orçamento?')) return
-    const r = await fetch(`/api/orcamentos/${id}`, { method: 'DELETE' })
-    if (!r.ok) { alert('Erro ao excluir orçamento'); return }
-    router.push('/workspace/orcamentos')
+    try {
+      const r = await fetch(`/api/orcamentos/${id}`, { method: 'DELETE' })
+      if (!r.ok) { alert('Erro ao excluir orçamento'); return }
+      router.push('/workspace/orcamentos')
+    } catch { alert('Erro de conexão ao excluir') }
   }
 
   function imprimirPDF() {

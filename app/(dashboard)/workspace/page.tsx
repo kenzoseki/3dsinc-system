@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import StlPreviewDynamic from '@/components/StlPreviewDynamic'
 
 type Etapa = 'SOLICITACAO' | 'CUSTO_VIABILIDADE' | 'APROVACAO' | 'PRODUCAO' | 'CALCULO_FRETE' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO'
 
@@ -167,6 +168,67 @@ export default function PaginaWorkspace() {
   const [detalheHoraEnvio, setDetalheHoraEnvio] = useState('')
   const [detalheCodigoRastreio, setDetalheCodigoRastreio] = useState('')
 
+  // Arquivos do pedido vinculado
+  interface ArquivoInfo { id: string; nome: string; tipo: string; tamanhoBytes: number; createdAt: string }
+  const [arquivos, setArquivos] = useState<ArquivoInfo[]>([])
+  const [uploadando, setUploadando] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [stlPreviewUrl, setStlPreviewUrl] = useState<string | null>(null)
+
+  const carregarArquivos = useCallback(async (pedidoId: string) => {
+    try {
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`)
+      if (r.ok) setArquivos(await r.json())
+    } catch { setArquivos([]) }
+  }, [])
+
+  async function uploadArquivo(pedidoId: string, file: File) {
+    if (file.size > 10 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 10 MB)'); setTimeout(() => setMensagem(''), 3000); return }
+    setUploadando(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: file.name, tipo: file.type || 'application/octet-stream', tamanhoBytes: file.size, conteudoBase64: base64 }),
+      })
+      if (r.ok) {
+        const novo = await r.json()
+        setArquivos(prev => [...prev, novo])
+      } else {
+        const err = await r.json()
+        setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
+        setTimeout(() => setMensagem(''), 3000)
+      }
+    } finally { setUploadando(false) }
+  }
+
+  async function excluirArquivo(pedidoId: string, arquivoId: string) {
+    if (!confirm('Excluir este arquivo?')) return
+    const r = await fetch(`/api/pedidos/${pedidoId}/arquivos?arquivoId=${arquivoId}`, { method: 'DELETE' })
+    if (r.ok) setArquivos(prev => prev.filter(a => a.id !== arquivoId))
+  }
+
+  function downloadArquivo(pedidoId: string, arquivoId: string, nome: string) {
+    const link = document.createElement('a')
+    link.href = `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
+    link.download = nome
+    link.click()
+  }
+
+  async function previewArquivo(pedidoId: string, arquivoId: string) {
+    const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
+    if (r.ok) {
+      const blob = await r.blob()
+      setPreviewUrl(URL.createObjectURL(blob))
+    }
+  }
+
   const cargo = session?.user?.cargo
 
   const carregar = useCallback(async () => {
@@ -192,8 +254,12 @@ export default function PaginaWorkspace() {
       setDetalheHoraEnvio(detalheAberto.horaEnvio ?? '')
       setDetalheCodigoRastreio(detalheAberto.codigoRastreio ?? '')
       setConfirmFinalizar(false)
+      setPreviewUrl(null)
+      if (stlPreviewUrl) { URL.revokeObjectURL(stlPreviewUrl); setStlPreviewUrl(null) }
+      if (detalheAberto.pedidoId) carregarArquivos(detalheAberto.pedidoId)
+      else setArquivos([])
     }
-  }, [detalheAberto])
+  }, [detalheAberto, carregarArquivos])
 
   if (!cargo) return null
 
@@ -319,10 +385,10 @@ export default function PaginaWorkspace() {
           codigoRastreio: detalheCodigoRastreio || null,
           itens: detalheItens.map(it => ({
             descricao:     it.descricao,
-            referencia:    it.referencia,
-            quantidade:    it.quantidade,
-            valorUnitario: it.valorUnitario,
-            custoUnitario: it.custoUnitario,
+            referencia:    it.referencia || null,
+            quantidade:    Number(it.quantidade) || 1,
+            valorUnitario: it.valorUnitario != null ? Number(it.valorUnitario) : null,
+            custoUnitario: it.custoUnitario != null ? Number(it.custoUnitario) : null,
           })),
         }),
       })
@@ -1042,6 +1108,79 @@ export default function PaginaWorkspace() {
                   onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
               </div>
+            )}
+
+            {/* Arquivos do Pedido */}
+            {detalheAberto.pedidoId && (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                    Arquivos ({arquivos.length})
+                  </p>
+                  {cargo !== 'VISUALIZADOR' && (
+                    <label style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', cursor: uploadando ? 'not-allowed' : 'pointer', backgroundColor: 'transparent', opacity: uploadando ? 0.6 : 1 }}>
+                      {uploadando ? 'Enviando...' : '+ Upload'}
+                      <input type="file" hidden disabled={uploadando} onChange={e => { const f = e.target.files?.[0]; if (f && detalheAberto.pedidoId) uploadArquivo(detalheAberto.pedidoId, f); e.target.value = '' }} />
+                    </label>
+                  )}
+                </div>
+                {arquivos.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {arquivos.map(arq => {
+                      const isImagem = arq.tipo.startsWith('image/')
+                      const isStl = /\.stl$/i.test(arq.nome)
+                      const tamanho = arq.tamanhoBytes < 1024 ? `${arq.tamanhoBytes} B` : arq.tamanhoBytes < 1048576 ? `${(arq.tamanhoBytes / 1024).toFixed(1)} KB` : `${(arq.tamanhoBytes / 1048576).toFixed(1)} MB`
+                      return (
+                        <div key={arq.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }}>
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)', fontWeight: 500 }}>{arq.nome}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{tamanho}</span>
+                          {isImagem && (
+                            <button onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--purple)', cursor: 'pointer' }}>
+                              Preview
+                            </button>
+                          )}
+                          {isStl && (
+                            <button onClick={async () => {
+                              const r = await fetch(`/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`)
+                              if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
+                            }} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--purple)', cursor: 'pointer' }}>
+                              3D
+                            </button>
+                          )}
+                          <button onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            Baixar
+                          </button>
+                          {cargo !== 'VISUALIZADOR' && (
+                            <button onClick={() => excluirArquivo(detalheAberto.pedidoId!, arq.id)} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--red-light)', backgroundColor: 'transparent', color: 'var(--red)', cursor: 'pointer' }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {arquivos.length === 0 && (
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontStyle: 'italic' }}>Nenhum arquivo anexado</p>
+                )}
+              </div>
+            )}
+
+            {/* Preview de imagem */}
+            {previewUrl && createPortal(
+              <div
+                onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null) }}
+                style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'pointer', padding: '24px' }}
+              >
+                <img src={previewUrl} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '8px', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }} />
+              </div>,
+              document.body
+            )}
+
+            {/* Preview STL 3D */}
+            {stlPreviewUrl && createPortal(
+              <StlPreviewDynamic url={stlPreviewUrl} onClose={() => { URL.revokeObjectURL(stlPreviewUrl); setStlPreviewUrl(null) }} />,
+              document.body
             )}
 
             {/* Orçamento/Pedido links */}

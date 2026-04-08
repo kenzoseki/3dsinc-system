@@ -28,37 +28,37 @@ const gruposNavegacao: GrupoNav[] = [
     titulo: 'Principal',
     itens: [
       { href: '/home', label: 'Início', icone: '1' },
+      { href: '/workspace', label: 'Workspace', icone: '2' },
+      { href: '/workspace/relatorios', label: 'Relatórios', icone: '3' },
     ],
   },
   {
     titulo: 'Comercial',
     itens: [
-      { href: '/workspace/pedidos', label: 'Pedidos', icone: '2' },
-      { href: '/workspace/orcamentos', label: 'Orçamentos', icone: '3' },
-      { href: '/workspace/clientes', label: 'Clientes', icone: '4' },
-      { href: '/workspace/crm', label: 'CRM', icone: '5', verificar: soAdmin },
+      { href: '/workspace/pedidos', label: 'Pedidos', icone: '4' },
+      { href: '/workspace/orcamentos', label: 'Orçamentos', icone: '5' },
+      { href: '/workspace/clientes', label: 'Clientes', icone: '6' },
+      { href: '/workspace/crm', label: 'CRM', icone: '7', verificar: soAdmin },
     ],
   },
   {
     titulo: 'Operacional',
     itens: [
-      { href: '/workspace', label: 'Workspace', icone: '6' },
-      { href: '/workspace/producao', label: 'Produção', icone: '7' },
-      { href: '/workspace/agenda-producao', label: 'Agenda', icone: '8' },
+      { href: '/workspace/producao', label: 'Produção', icone: '8' },
+      { href: '/workspace/agenda-producao', label: 'Agenda Produção', icone: '9' },
     ],
   },
   {
     titulo: 'Marketing',
     itens: [
-      { href: '/workspace/marketing', label: 'Kanban', icone: '9' },
-      { href: '/workspace/agenda-marketing', label: 'Agenda', icone: '10' },
+      { href: '/workspace/marketing', label: 'Kanban', icone: '10' },
+      { href: '/workspace/agenda-marketing', label: 'Agenda Marketing', icone: '11' },
     ],
   },
   {
     titulo: 'Ferramentas',
     itens: [
-      { href: '/workspace/assistente', label: 'Assistente IA', icone: '11', verificar: soAdmin },
-      { href: '/workspace/relatorios', label: 'Relatórios', icone: '12' },
+      { href: '/workspace/assistente', label: 'Assistente IA', icone: '12', verificar: soAdmin },
     ],
   },
   {
