@@ -126,6 +126,23 @@ export async function PATCH(
     }
 
     const atualizado = await prisma.$transaction(async (tx) => {
+      // Verificar se registros vinculados ainda existem
+      if (wsAtual.pedidoId) {
+        const pedidoExiste = await tx.pedido.findUnique({ where: { id: wsAtual.pedidoId }, select: { id: true } })
+        if (!pedidoExiste) {
+          // Pedido foi excluído externamente — desvincular
+          await tx.workspace.update({ where: { id }, data: { pedidoId: null } })
+          wsAtual.pedidoId = null
+        }
+      }
+      if (wsAtual.orcamentoId) {
+        const orcExiste = await tx.orcamento.findUnique({ where: { id: wsAtual.orcamentoId }, select: { id: true } })
+        if (!orcExiste) {
+          await tx.workspace.update({ where: { id }, data: { orcamentoId: null } })
+          wsAtual.orcamentoId = null
+        }
+      }
+
       // Substituir itens se fornecidos
       if (dados.itens !== undefined) {
         await tx.itemWorkspace.deleteMany({ where: { workspaceId: id } })
@@ -233,7 +250,8 @@ export async function PATCH(
             )
 
             // Sync imagens: copiar ArquivoPedido (imagens) → ImagemItemOrcamento
-            if (ws.pedidoId && itensOrcamento.length > 0) {
+            // Só sincroniza ao transitar de etapa (evita carregar base64 pesado a cada save)
+            if (dados.etapa && ws.pedidoId && itensOrcamento.length > 0) {
               const arquivosImagem = await tx.arquivoPedido.findMany({
                 where: { pedidoId: ws.pedidoId, tipo: { startsWith: 'image/' } },
                 select: { nome: true, conteudoBase64: true },
@@ -260,12 +278,13 @@ export async function PATCH(
       }
 
       return ws
-    })
+    }, { timeout: 15000 })
 
     return NextResponse.json(atualizado)
   } catch (erro) {
     console.error('Erro ao atualizar workspace:', erro)
-    return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
+    const msg = erro instanceof Error ? erro.message : 'Erro interno'
+    return NextResponse.json({ erro: 'Erro interno', detalhe: msg }, { status: 500 })
   }
 }
 

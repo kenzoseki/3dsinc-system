@@ -237,7 +237,15 @@
 
 ---
 
+### Lote 13 (commit atual)
+- WORKSPACE:
+    - Limite de upload aumentado para 20MB: frontend (`file.size > 20MB`), API (`MAX_BYTES = 20MB`) e `proxyClientMaxBodySize: '30mb'` em `next.config.ts`
+    - Fix "Erro interno" ao salvar pedido: transaction timeout aumentado de 5s para 15s; sync de imagens (ArquivoPedido → ImagemItemOrcamento) agora só roda quando há mudança de etapa (antes rodava em todo save, carregando todo o base64 desnecessariamente); verificação de FK — se Pedido ou Orçamento vinculado foi excluído externamente, desvincula automaticamente em vez de falhar; mensagem de erro detalhada no catch para facilitar debug
+
+---
+
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
+
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):

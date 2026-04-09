@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
-const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+const MAX_BYTES = 20 * 1024 * 1024 // 20 MB
 
 export async function GET(
   _: NextRequest,
@@ -56,7 +56,7 @@ export async function POST(
       tamanhoReal = buffer.length
 
       if (tamanhoReal > MAX_BYTES) {
-        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 10 MB.' }, { status: 413 })
+        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 20 MB.' }, { status: 413 })
       }
 
       conteudoBase64 = `data:${tipo};base64,${buffer.toString('base64')}`
@@ -76,7 +76,7 @@ export async function POST(
       tamanhoReal = Math.floor((base64Puro.length * 3) / 4)
 
       if (tamanhoReal > MAX_BYTES) {
-        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 10 MB.' }, { status: 413 })
+        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 20 MB.' }, { status: 413 })
       }
 
       conteudoBase64 = body.conteudoBase64

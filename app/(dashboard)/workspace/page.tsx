@@ -202,7 +202,7 @@ export default function PaginaWorkspace() {
   }
 
   async function uploadArquivo(pedidoId: string, file: File) {
-    if (file.size > 10 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 10 MB)'); setTimeout(() => setMensagem(''), 3000); return }
+    if (file.size > 20 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 20 MB)'); setTimeout(() => setMensagem(''), 3000); return }
     setUploadando(true)
     try {
       const tipo = detectarTipoArquivo(file)
@@ -218,7 +218,7 @@ export default function PaginaWorkspace() {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
       } else {
-        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande (máx. 10 MB)' : `Erro ${r.status}` }))
+        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande (máx. 20 MB)' : `Erro ${r.status}` }))
         setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
         setTimeout(() => setMensagem(''), 4000)
       }
@@ -440,8 +440,9 @@ export default function PaginaWorkspace() {
         setTimeout(() => setMensagem(''), 2000)
       } else {
         const dados = await r.json()
-        setMensagem('✗ ' + (dados.erro ?? 'Erro ao salvar'))
-        setTimeout(() => setMensagem(''), 4000)
+        const detalhe = dados.detalhe ? ` (${dados.detalhe})` : ''
+        setMensagem('✗ ' + (dados.erro ?? 'Erro ao salvar') + detalhe)
+        setTimeout(() => setMensagem(''), 6000)
       }
     } finally {
       setSalvando(false)
