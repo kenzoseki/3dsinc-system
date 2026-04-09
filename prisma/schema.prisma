@@ -352,7 +352,11 @@ model Workspace {
   // Produção
   dataInicioProducao DateTime?
   dataFimProducao    DateTime?
-  // Frete
+  // Frete — dimensões do pacote (cm/kg)
+  pacoteAltura       Decimal?       @db.Decimal(8, 2)
+  pacoteLargura      Decimal?       @db.Decimal(8, 2)
+  pacoteComprimento  Decimal?       @db.Decimal(8, 2)
+  pacotePeso         Decimal?       @db.Decimal(8, 3)
   frete              Decimal?       @db.Decimal(10, 2)
   // Envio
   dataEnvio          DateTime?

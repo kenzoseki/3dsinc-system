@@ -28,6 +28,10 @@ interface Solicitacao {
   tipoPessoa: string | null
   infoAdicional: string | null
   observacoes: string | null
+  pacoteAltura: number | null
+  pacoteLargura: number | null
+  pacoteComprimento: number | null
+  pacotePeso: number | null
   frete: number | null
   dataInicioProducao: string | null
   dataFimProducao: string | null
@@ -164,6 +168,10 @@ export default function PaginaWorkspace() {
   // Detalhe edit state
   const [detalheItens, setDetalheItens] = useState<ItemWS[]>([])
   const [detalheFrete, setDetalheFrete] = useState('')
+  const [detalhePacoteAltura, setDetalhePacoteAltura] = useState('')
+  const [detalhePacoteLargura, setDetalhePacoteLargura] = useState('')
+  const [detalhePacoteComprimento, setDetalhePacoteComprimento] = useState('')
+  const [detalhePacotePeso, setDetalhePacotePeso] = useState('')
   const [detalheDataEnvio, setDetalheDataEnvio] = useState('')
   const [detalheHoraEnvio, setDetalheHoraEnvio] = useState('')
   const [detalheCodigoRastreio, setDetalheCodigoRastreio] = useState('')
@@ -197,23 +205,20 @@ export default function PaginaWorkspace() {
     if (file.size > 10 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 10 MB)'); setTimeout(() => setMensagem(''), 3000); return }
     setUploadando(true)
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error('Falha ao ler arquivo'))
-        reader.readAsDataURL(file)
-      })
       const tipo = detectarTipoArquivo(file)
+      const formData = new FormData()
+      formData.append('arquivo', file)
+      formData.append('nome', file.name)
+      formData.append('tipo', tipo)
       const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: file.name, tipo, tamanhoBytes: file.size, conteudoBase64: base64 }),
+        body: formData,
       })
       if (r.ok) {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
       } else {
-        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande para o servidor (máx. ~10 MB)' : `Erro ${r.status}` }))
+        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande (máx. 10 MB)' : `Erro ${r.status}` }))
         setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
         setTimeout(() => setMensagem(''), 4000)
       }
@@ -277,6 +282,10 @@ export default function PaginaWorkspace() {
     if (detalheAberto) {
       setDetalheItens(detalheAberto.itens.map(it => ({ ...it })))
       setDetalheFrete(detalheAberto.frete != null ? String(detalheAberto.frete) : '')
+      setDetalhePacoteAltura(detalheAberto.pacoteAltura != null ? String(detalheAberto.pacoteAltura) : '')
+      setDetalhePacoteLargura(detalheAberto.pacoteLargura != null ? String(detalheAberto.pacoteLargura) : '')
+      setDetalhePacoteComprimento(detalheAberto.pacoteComprimento != null ? String(detalheAberto.pacoteComprimento) : '')
+      setDetalhePacotePeso(detalheAberto.pacotePeso != null ? String(detalheAberto.pacotePeso) : '')
       setDetalheDataEnvio(detalheAberto.dataEnvio ? detalheAberto.dataEnvio.slice(0, 10) : '')
       setDetalheHoraEnvio(detalheAberto.horaEnvio ?? '')
       setDetalheCodigoRastreio(detalheAberto.codigoRastreio ?? '')
@@ -406,6 +415,10 @@ export default function PaginaWorkspace() {
         body: JSON.stringify({
           infoAdicional: detalheAberto.infoAdicional,
           observacoes:   detalheAberto.observacoes,
+          pacoteAltura:      detalhePacoteAltura ? parseFloat(detalhePacoteAltura) : null,
+          pacoteLargura:     detalhePacoteLargura ? parseFloat(detalhePacoteLargura) : null,
+          pacoteComprimento: detalhePacoteComprimento ? parseFloat(detalhePacoteComprimento) : null,
+          pacotePeso:        detalhePacotePeso ? parseFloat(detalhePacotePeso) : null,
           frete:         detalheFrete ? parseFloat(detalheFrete) : null,
           dataEnvio:     detalheDataEnvio || null,
           horaEnvio:     detalheHoraEnvio || null,
@@ -577,9 +590,28 @@ export default function PaginaWorkspace() {
           </div>
         )}
 
-        {/* Cálculo de Frete: campo frete */}
+        {/* Cálculo de Frete: dimensões do pacote + frete */}
         {etapa === 'CALCULO_FRETE' && (
           <div style={{ marginBottom: '16px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Dimensões do Pacote</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div>
+                <label style={estiloLabel}>Altura (cm)</label>
+                <input style={estiloInput} type="number" step="0.1" min="0" value={detalhePacoteAltura} onChange={e => setDetalhePacoteAltura(e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <label style={estiloLabel}>Largura (cm)</label>
+                <input style={estiloInput} type="number" step="0.1" min="0" value={detalhePacoteLargura} onChange={e => setDetalhePacoteLargura(e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <label style={estiloLabel}>Comprimento (cm)</label>
+                <input style={estiloInput} type="number" step="0.1" min="0" value={detalhePacoteComprimento} onChange={e => setDetalhePacoteComprimento(e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <label style={estiloLabel}>Peso (kg)</label>
+                <input style={estiloInput} type="number" step="0.001" min="0" value={detalhePacotePeso} onChange={e => setDetalhePacotePeso(e.target.value)} placeholder="0" />
+              </div>
+            </div>
             <label style={estiloLabel}>Frete (R$) *</label>
             <input
               style={estiloInput} type="number" step="0.01" min="0"
@@ -594,6 +626,11 @@ export default function PaginaWorkspace() {
         {etapa === 'ENVIADO' && (
           <div style={{ marginBottom: '16px' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Dados de Envio</p>
+            {(detalheAberto.pacoteAltura != null || detalheAberto.pacoteLargura != null || detalheAberto.pacoteComprimento != null || detalheAberto.pacotePeso != null) && (
+              <p style={{ fontSize: '12px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                Pacote: {detalheAberto.pacoteAltura ?? '—'} × {detalheAberto.pacoteLargura ?? '—'} × {detalheAberto.pacoteComprimento ?? '—'} cm — {detalheAberto.pacotePeso ?? '—'} kg
+              </p>
+            )}
             {detalheAberto.frete != null && (
               <p style={{ fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-primary)', marginBottom: '10px' }}>
                 Frete: R$ {Number(detalheAberto.frete).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

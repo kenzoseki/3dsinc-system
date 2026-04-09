@@ -227,6 +227,14 @@
 - WORKSPACE:
     - Fix erro 413 upload STL: `proxyClientMaxBodySize: '15mb'` em `next.config.ts` (experimental). Mensagem de erro amigável no frontend para status 413.
 
+### Lote 12 (commit atual)
+- WORKSPACE:
+    - Fix definitivo upload STL/arquivos grandes: upload convertido de JSON+base64 para `FormData` (binário). Arquivo de 7MB agora trafega como 7MB (antes virava ~9.5MB em base64 JSON, causando 413). Servidor recebe `File` via `formData()`, converte para base64 internamente e salva no banco. Fallback JSON mantido para compatibilidade.
+    - Campos de dimensões do pacote na etapa "Cálculo de Frete": Altura (cm), Largura (cm), Comprimento (cm) e Peso (kg) — opcionais, servem de referência para cotação de frete
+    - Dimensões exibidas como resumo na etapa "Enviado" (A × L × C cm — P kg)
+- SCHEMA:
+    - Novos campos no model Workspace: `pacoteAltura`, `pacoteLargura`, `pacoteComprimento` (Decimal 8,2) e `pacotePeso` (Decimal 8,3)
+
 ---
 
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
