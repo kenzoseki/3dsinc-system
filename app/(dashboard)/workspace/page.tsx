@@ -405,8 +405,8 @@ export default function PaginaWorkspace() {
     }
   }
 
-  async function salvarDetalhes() {
-    if (!detalheAberto) return
+  async function salvarDetalhes(): Promise<boolean> {
+    if (!detalheAberto) return false
     setSalvando(true)
     try {
       const r = await fetch(`/api/workspace/${detalheAberto.id}`, {
@@ -438,12 +438,18 @@ export default function PaginaWorkspace() {
         setDetalheAberto(atualizado)
         setMensagem('✓ Salvo')
         setTimeout(() => setMensagem(''), 2000)
+        return true
       } else {
-        const dados = await r.json()
+        const dados = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
         const detalhe = dados.detalhe ? ` (${dados.detalhe})` : ''
         setMensagem('✗ ' + (dados.erro ?? 'Erro ao salvar') + detalhe)
         setTimeout(() => setMensagem(''), 6000)
+        return false
       }
+    } catch (e) {
+      setMensagem('✗ Erro de rede ao salvar' + (e instanceof Error ? ` (${e.message})` : ''))
+      setTimeout(() => setMensagem(''), 6000)
+      return false
     } finally {
       setSalvando(false)
     }
@@ -700,7 +706,8 @@ export default function PaginaWorkspace() {
             ) : (
               <button
                 onClick={async () => {
-                  await salvarDetalhes()
+                  const ok = await salvarDetalhes()
+                  if (!ok) { setConfirmFinalizar(false); return }
                   await avancarEtapa(detalheAberto.id, 'FINALIZADO')
                   setConfirmFinalizar(false)
                 }}
@@ -724,7 +731,8 @@ export default function PaginaWorkspace() {
             onClick={async () => {
               // Save before advancing for stages with editable fields
               if (etapa === 'CUSTO_VIABILIDADE' || etapa === 'CALCULO_FRETE') {
-                await salvarDetalhes()
+                const ok = await salvarDetalhes()
+                if (!ok) return // não avança se save falhou
               }
               await avancarEtapa(detalheAberto.id, PROXIMA_ETAPA[etapa]!,
                 etapa === 'CALCULO_FRETE' ? { frete: detalheFrete ? parseFloat(detalheFrete) : null } : undefined

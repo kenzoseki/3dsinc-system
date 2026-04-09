@@ -244,6 +244,14 @@
 
 ---
 
+### Lote 14 (commit atual)
+- WORKSPACE:
+    - Fix "Unknown argument pacoteAltura": Prisma client estava stale no dev server (rodando versão antiga sem os campos `pacote*`, `infoAdicional`, `observacoes`, `frete`, etc. que o schema já tinha). Reexecutado `prisma db push` (DB já estava em sync) e `prisma generate`. Cache `.next` removido para forçar Next.js a re-importar o cliente atualizado. Necessário reiniciar o dev server (`npm run dev`) para aplicar.
+    - Fix "Todos os itens devem ter valor unitário antes de avançar para Aprovação" (causa raiz): a chamada `salvarDetalhes()` antes de `avancarEtapa()` falhava silenciosamente (por causa do bug anterior do Prisma stale), mas o `avancarEtapa()` rodava mesmo assim. Como `avancarEtapa` envia só `{ etapa }` (sem itens), o servidor caía no fallback `wsAtual.itens` (estado antigo do banco, sem valorUnitario) e a validação 422 disparava.
+    - Refatorado `salvarDetalhes()` para retornar `Promise<boolean>` indicando sucesso/falha. Botões "Avançar" (CUSTO_VIABILIDADE → APROVACAO e CALCULO_FRETE → ENVIADO) e "Confirmar Finalização" agora abortam se o save falhou. Bloco `try/catch` adicionado em `salvarDetalhes` para capturar erros de rede.
+
+---
+
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
 
 
