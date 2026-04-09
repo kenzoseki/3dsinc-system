@@ -249,11 +249,18 @@ export async function PATCH(
               )
             )
 
-            // Sync imagens: copiar ArquivoPedido (imagens) → ImagemItemOrcamento
-            // Só sincroniza ao transitar de etapa (evita carregar base64 pesado a cada save)
+            // Sync imagens: copiar ArquivoPedido (imagens legadas) → ImagemItemOrcamento.
+            // Só sincroniza ao transitar de etapa (evita carregar base64 pesado a cada save).
+            // TODO: arquivos novos (Vercel Blob) ainda não aparecem no PDF do orçamento —
+            // precisaria de um campo `imagemUrl` no ImagemItemOrcamento. Por ora só copiamos
+            // imagens legadas em base64.
             if (dados.etapa && ws.pedidoId && itensOrcamento.length > 0) {
               const arquivosImagem = await tx.arquivoPedido.findMany({
-                where: { pedidoId: ws.pedidoId, tipo: { startsWith: 'image/' } },
+                where: {
+                  pedidoId: ws.pedidoId,
+                  tipo: { startsWith: 'image/' },
+                  conteudoBase64: { not: null },
+                },
                 select: { nome: true, conteudoBase64: true },
               })
               if (arquivosImagem.length > 0) {
@@ -261,7 +268,7 @@ export async function PATCH(
                 await tx.imagemItemOrcamento.createMany({
                   data: arquivosImagem.map((arq, i) => ({
                     itemOrcamentoId: itensOrcamento[i % itensOrcamento.length].id,
-                    imagemBase64: arq.conteudoBase64,
+                    imagemBase64: arq.conteudoBase64!,
                     nomeArquivo: arq.nome,
                   })),
                 })

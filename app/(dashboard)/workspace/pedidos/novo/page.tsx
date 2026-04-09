@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+import { upload } from '@vercel/blob/client'
 
 interface Cliente {
   id: string
@@ -22,7 +23,7 @@ interface ArquivoSelecionado {
   nome: string
   tipo: string
   tamanhoBytes: number
-  conteudoBase64: string
+  file: File
 }
 
 const schemaPedido = z.object({
@@ -112,18 +113,14 @@ export default function PaginaNovoPedido() {
   }, [])
 
   function adicionarArquivo(file: File) {
-    const MAX = 10 * 1024 * 1024
-    if (file.size > MAX) { alert(`Arquivo "${file.name}" excede 10 MB.`); return }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setArquivosSelecionados(prev => [...prev, {
-        nome: file.name,
-        tipo: file.type || 'application/octet-stream',
-        tamanhoBytes: file.size,
-        conteudoBase64: reader.result as string,
-      }])
-    }
-    reader.readAsDataURL(file)
+    const MAX = 50 * 1024 * 1024
+    if (file.size > MAX) { alert(`Arquivo "${file.name}" excede 50 MB.`); return }
+    setArquivosSelecionados(prev => [...prev, {
+      nome: file.name,
+      tipo: file.type || 'application/octet-stream',
+      tamanhoBytes: file.size,
+      file,
+    }])
   }
 
   function removerArquivo(idx: number) {
@@ -204,13 +201,28 @@ export default function PaginaNovoPedido() {
       if (!resposta.ok) {
         setErroGeral(dados.erro ?? 'Erro ao criar pedido')
       } else {
-        // Upload de arquivos, se houver
+        // Upload de arquivos via Vercel Blob, se houver
         for (const arq of arquivosSelecionados) {
-          await fetch(`/api/pedidos/${dados.id}/arquivos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(arq),
-          })
+          try {
+            const blob = await upload(`pedidos/${dados.id}/${arq.nome}`, arq.file, {
+              access: 'public',
+              handleUploadUrl: '/api/blob/token',
+              contentType: arq.tipo,
+            })
+            await fetch(`/api/pedidos/${dados.id}/arquivos`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nome:         arq.nome,
+                tipo:         arq.tipo,
+                tamanhoBytes: arq.tamanhoBytes,
+                blobUrl:      blob.url,
+                blobPathname: blob.pathname,
+              }),
+            })
+          } catch (e) {
+            console.error('Falha ao subir arquivo', arq.nome, e)
+          }
         }
         router.push('/workspace/pedidos')
       }
@@ -478,7 +490,7 @@ export default function PaginaNovoPedido() {
                 onChange={e => { Array.from(e.target.files ?? []).forEach(adicionarArquivo); e.target.value = '' }}
               />
               <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginTop: '8px', marginBottom: 0 }}>
-                Aceita qualquer tipo de arquivo · máx. 10 MB por arquivo
+                Aceita qualquer tipo de arquivo · máx. 50 MB por arquivo
               </p>
             </div>
           </div>

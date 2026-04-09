@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
-// Retorna o conteúdo base64 do arquivo para download
+// GET — serve o arquivo. Para blobs novos (Vercel Blob) redireciona para o
+// URL público; para arquivos legados (base64 no Postgres) decodifica e serve.
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ id: string; arquivoId: string }> }
@@ -18,7 +19,16 @@ export async function GET(
     })
     if (!arquivo) return NextResponse.json({ erro: 'Não encontrado' }, { status: 404 })
 
-    // Decodifica base64 e retorna como download
+    // Caminho novo: arquivo no Vercel Blob → redireciona para URL público
+    if (arquivo.blobUrl) {
+      return NextResponse.redirect(arquivo.blobUrl, 302)
+    }
+
+    // Caminho legado: arquivo em base64 no Postgres
+    if (!arquivo.conteudoBase64) {
+      return NextResponse.json({ erro: 'Conteúdo indisponível' }, { status: 404 })
+    }
+
     const base64 = arquivo.conteudoBase64.includes(',')
       ? arquivo.conteudoBase64.split(',')[1]
       : arquivo.conteudoBase64
@@ -38,7 +48,7 @@ export async function GET(
         'Content-Length': buffer.length.toString(),
       },
     })
-  } catch (erro) {
+  } catch {
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
   }
 }

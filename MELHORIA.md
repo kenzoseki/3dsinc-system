@@ -252,8 +252,50 @@
 
 ---
 
-## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
+### Lote 15 (commit atual)
+- WORKSPACE — UPLOAD STL:
+    - Diagnóstico: o erro 413 em produção era causado pelo limite hard de 4.5 MB do body de serverless function no Vercel Hobby/Pro. O `proxyClientMaxBodySize: '30mb'` no `next.config.ts` é dev-only e não tem efeito em produção.
+    - Solução paliativa (Opção C): limite reduzido para 4 MB no frontend (`uploadArquivo`) e backend (`MAX_BYTES`), com mensagem clara orientando comprimir o STL ou dividir em partes
+    - Hint visual "máx. 4 MB" ao lado do botão Upload no modal de detalhe do Workspace
+    - Comentário no `MAX_BYTES` documentando a origem do limite
+    - Solução definitiva pendente: migrar para Vercel Blob (upload direto browser → blob, sem passar pela função) ou Railway. Vercel Blob tem free tier (~1 GB storage / 10 GB bandwidth) e custo aproximado de $0.023/GB-mês acima do free.
 
+---
+
+### Lote 16 (commit atual)
+- VERCEL BLOB — solução definitiva para upload de arquivos grandes:
+    - Migrado de upload base64 (limitado a 4 MB pelo body de serverless function) para **upload direto browser → Vercel Blob** via `@vercel/blob/client`
+    - Limite elevado para **50 MB por arquivo** (margem confortável dentro do free tier de 1 GB do Hobby)
+    - Nova rota `POST /api/blob/token` — gera token de upload assinado (`handleUpload` do `@vercel/blob/client`), sem precisar trafegar o arquivo pela função
+    - Schema atualizado: `ArquivoPedido.conteudoBase64` agora é opcional (legado); novos campos `blobUrl`, `blobPathname`. Migration via `prisma db push`
+    - GET `/api/pedidos/[id]/arquivos/[arquivoId]` — redireciona 302 para o `blobUrl` se for arquivo novo; mantém compat com base64 dos arquivos legados
+    - DELETE — remove do Vercel Blob via `del()` antes de excluir do banco (best-effort, não bloqueia se Blob falhar)
+- BLOQUEIO EM 50% DO FREE TIER:
+    - `lib/blob-limits.ts` — utilitário com contadores mensais (model `BlobUsage`, id = `YYYY-MM`)
+    - Limites de bloqueio: `LIMITE_BYTES = 500 MB` (50% de 1 GB) e `LIMITE_OPS = 5_000` (50% de 10k ops)
+    - `verificarLimiteBlob()` chamado dentro do `handleUpload`/`onBeforeGenerateToken`: lança erro com mensagem clara se ultrapassar, **bloqueando o upload antes de consumir cota paga**
+    - `registrarUploadMensal()` chamado após registro do arquivo no banco — best-effort, não bloqueia o response
+    - Nova rota `GET /api/blob/uso` — retorna uso atual + limites + percentual, para painel admin futuro
+- WORKSPACE — RETROCESSO ENTRE ETAPAS:
+    - Mapa `ETAPA_ANTERIOR` define o caminho de volta de cada etapa ativa (CUSTO_VIABILIDADE ← APROVACAO ← PRODUCAO ← CALCULO_FRETE ← ENVIADO ← SOLICITACAO)
+    - Botão "← Voltar (Custo)" na etapa APROVACAO substitui o antigo "Editar Pedido" que reenviava para SOLICITACAO
+    - Botão genérico "← {Etapa Anterior}" disponível em todas as outras etapas ativas via `renderAcoesDetalhe`, com `confirm()` antes de retroceder
+    - Reusa o `avancarEtapa(id, etapaAlvo)` existente — qualquer transição entre etapas é permitida pela API
+- WORKSPACE — EDIÇÃO DE ITENS EM QUALQUER ETAPA NÃO-TERMINAL:
+    - Refatorado `renderItensDetalhe`: variáveis `isCustoViab`/`isReadOnly` substituídas por `isTerminal`/`podeEditar`/`podeEditarValores`
+    - `podeEditar` (descrição + quantidade): qualquer etapa exceto FINALIZADO/CANCELADO
+    - `podeEditarValores` (R$ unitário e custo): a partir de CUSTO_VIABILIDADE em qualquer etapa não-terminal — antes só era editável em CUSTO_VIABILIDADE
+    - Read-only display de valores apenas em FINALIZADO/CANCELADO
+- WORKSPACE — EXCLUSÃO E ADIÇÃO DE ITENS:
+    - Botão `✕` por item em todas as etapas não-terminais (oculto quando há apenas 1 item, evitando ficar sem itens)
+    - Botão "+ Adicionar item" tracejado roxo logo abaixo da lista, chamando `adicionarDetalheItem()` que insere item em branco no estado local
+    - Persistência: ambas as operações alteram apenas `detalheItens` (estado local). O save existente em `salvarDetalhes()` faz o `PATCH /api/workspace/[id]` com a lista completa, e o backend já fazia `deleteMany` + `createMany` (idempotente)
+- WORKSPACE — UPLOAD POR ITEM:
+    - Schema: `ArquivoPedido.itemWorkspaceId String?` (FK opcional) + índice. `null` = arquivo geral do pedido, preenchido = arquivo de um item específico
+    - API `POST /api/pedidos/[id]/arquivos`: schema Zod aceita `itemWorkspaceId?: string | null`; persiste no `create`. GET retorna o campo no select
+    - Frontend: `ArquivoInfo` ganha `itemWorkspaceId?: string | null`. `uploadArquivo(pedidoId, file, itemWorkspaceId?)` aceita o terceiro parâmetro opcional e prefixa o pathname do blob com `/itens/{id}/` quando aplicável
+    - Novo helper `renderArquivosItem(itemId)`: bloco compacto dentro de cada item do detalhe, com botão de upload próprio + lista filtrada por `itemWorkspaceId === itemId`
+    - Seção "Arquivos gerais do pedido" agora filtra `arquivos.filter(a => !a.itemWorkspaceId)` — separa visualmente o que é geral do que é por-item
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):

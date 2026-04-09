@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-
-const MAX_BYTES = 20 * 1024 * 1024 // 20 MB
+import { del } from '@vercel/blob'
+import { z } from 'zod'
+import { registrarUploadMensal } from '@/lib/blob-limits'
 
 export async function GET(
   _: NextRequest,
@@ -15,11 +16,21 @@ export async function GET(
 
   const arquivos = await prisma.arquivoPedido.findMany({
     where: { pedidoId: id },
-    select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true },
+    select: { id: true, nome: true, tipo: true, tamanhoBytes: true, blobUrl: true, itemWorkspaceId: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   })
   return NextResponse.json(arquivos)
 }
+
+// Schema para registrar um upload já feito no Vercel Blob (Lote 16+)
+const schemaRegistrar = z.object({
+  nome:            z.string().min(1).max(255),
+  tipo:            z.string().min(1).max(100),
+  tamanhoBytes:    z.number().int().nonnegative(),
+  blobUrl:         z.string().url(),
+  blobPathname:    z.string().min(1).max(500),
+  itemWorkspaceId: z.string().min(1).max(100).optional().nullable(),
+})
 
 export async function POST(
   request: NextRequest,
@@ -31,74 +42,37 @@ export async function POST(
     if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
     if (session.user.cargo === 'VISUALIZADOR') return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
 
-    const contentType = request.headers.get('content-type') ?? ''
-
-    let nome: string
-    let tipo: string
-    let tamanhoReal: number
-    let conteudoBase64: string
-
-    if (contentType.includes('multipart/form-data')) {
-      // Upload via FormData (binário — sem overhead base64 no transporte)
-      const formData = await request.formData()
-      const arquivo = formData.get('arquivo') as File | null
-      if (!arquivo || typeof arquivo === 'string') {
-        return NextResponse.json({ erro: 'Campo "arquivo" obrigatório' }, { status: 400 })
-      }
-
-      nome = (formData.get('nome') as string) || arquivo.name
-      tipo = (formData.get('tipo') as string) || arquivo.type || 'application/octet-stream'
-
-      if (nome.length > 255) nome = nome.slice(0, 255)
-      if (tipo.length > 100) tipo = tipo.slice(0, 100)
-
-      const buffer = Buffer.from(await arquivo.arrayBuffer())
-      tamanhoReal = buffer.length
-
-      if (tamanhoReal > MAX_BYTES) {
-        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 20 MB.' }, { status: 413 })
-      }
-
-      conteudoBase64 = `data:${tipo};base64,${buffer.toString('base64')}`
-    } else {
-      // Fallback: upload via JSON com base64 (compatibilidade)
-      const body = await request.json()
-      if (!body.nome || !body.tipo || !body.conteudoBase64) {
-        return NextResponse.json({ erro: 'Campos nome, tipo e conteudoBase64 obrigatórios' }, { status: 400 })
-      }
-
-      nome = String(body.nome).slice(0, 255)
-      tipo = String(body.tipo).slice(0, 100)
-
-      const base64Puro = body.conteudoBase64.includes(',')
-        ? body.conteudoBase64.split(',')[1]
-        : body.conteudoBase64
-      tamanhoReal = Math.floor((base64Puro.length * 3) / 4)
-
-      if (tamanhoReal > MAX_BYTES) {
-        return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 20 MB.' }, { status: 413 })
-      }
-
-      conteudoBase64 = body.conteudoBase64
+    const body = await request.json()
+    const parsed = schemaRegistrar.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ erro: 'Dados inválidos', detalhes: parsed.error.flatten() }, { status: 400 })
     }
+    const { nome, tipo, tamanhoBytes, blobUrl, blobPathname, itemWorkspaceId } = parsed.data
 
     const pedido = await prisma.pedido.findUnique({ where: { id }, select: { id: true } })
     if (!pedido) return NextResponse.json({ erro: 'Pedido não encontrado' }, { status: 404 })
 
     const arquivoCriado = await prisma.arquivoPedido.create({
       data: {
-        pedidoId:       id,
+        pedidoId: id,
         nome,
         tipo,
-        tamanhoBytes:   tamanhoReal,
-        conteudoBase64,
+        tamanhoBytes,
+        blobUrl,
+        blobPathname,
+        itemWorkspaceId: itemWorkspaceId ?? null,
       },
-      select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true },
+      select: { id: true, nome: true, tipo: true, tamanhoBytes: true, blobUrl: true, itemWorkspaceId: true, createdAt: true },
     })
+
+    // Atualiza contador mensal (best-effort, não bloqueia o response)
+    registrarUploadMensal(tamanhoBytes).catch(err =>
+      console.error('Erro registrando uso mensal:', err)
+    )
 
     return NextResponse.json(arquivoCriado, { status: 201 })
   } catch (erro) {
-    console.error('Erro ao fazer upload:', erro)
+    console.error('Erro ao registrar arquivo:', erro)
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
   }
 }
@@ -117,9 +91,25 @@ export async function DELETE(
     const arquivoId = searchParams.get('arquivoId')
     if (!arquivoId) return NextResponse.json({ erro: 'arquivoId obrigatório' }, { status: 400 })
 
+    const arquivo = await prisma.arquivoPedido.findFirst({
+      where: { id: arquivoId, pedidoId },
+      select: { blobUrl: true },
+    })
+
+    // Remove do Vercel Blob se for arquivo novo (não-legado)
+    if (arquivo?.blobUrl) {
+      try {
+        await del(arquivo.blobUrl)
+      } catch (err) {
+        console.error('Erro deletando blob:', err)
+        // Não bloqueia: se a remoção do blob falhar, ainda removemos do banco
+      }
+    }
+
     await prisma.arquivoPedido.deleteMany({ where: { id: arquivoId, pedidoId } })
     return new NextResponse(null, { status: 204 })
   } catch (erro) {
+    console.error('Erro ao deletar arquivo:', erro)
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
   }
 }

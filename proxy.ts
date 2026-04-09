@@ -8,6 +8,10 @@ const ROTAS_PUBLICAS_API = [
   '/api/convite/aceitar',
   '/api/portal',
   '/api/public',
+  // /api/blob/token aceita tanto chamadas do cliente (com sessão) quanto
+  // webhooks do Vercel Blob (sem sessão, mas assinados pelo SDK).
+  // Auth do cliente é feita dentro de onBeforeGenerateToken.
+  '/api/blob/token',
 ]
 
 // Tamanho máximo seguro do cookie de sessão (~8KB deixa margem para outros headers)

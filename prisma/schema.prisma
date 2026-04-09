@@ -273,11 +273,30 @@ model ArquivoPedido {
   id             String   @id @default(cuid())
   pedidoId       String
   pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  // Vínculo opcional a um item do Workspace (Lote 16+): permite upload por item
+  // em vez de por pedido. Quando null, o arquivo é geral do pedido.
+  itemWorkspaceId String?
   nome           String
   tipo           String
   tamanhoBytes   Int
-  conteudoBase64 String   @db.Text
+  // Legado: arquivos antigos armazenados em base64 no Postgres
+  conteudoBase64 String?  @db.Text
+  // Novo (Lote 16+): arquivos armazenados no Vercel Blob
+  blobUrl        String?
+  blobPathname   String?
   createdAt      DateTime @default(now())
+
+  @@index([pedidoId])
+  @@index([itemWorkspaceId])
+}
+
+// Contadores mensais de uso do Vercel Blob — base do bloqueio em 50% do free tier.
+// Uma linha por mês, id = "YYYY-MM". Reset implícito ao virar o mês.
+model BlobUsage {
+  yearMonth     String   @id
+  uploads       Int      @default(0)
+  bytesEnviados BigInt   @default(0)
+  updatedAt     DateTime @updatedAt
 }
 
 model Lead {

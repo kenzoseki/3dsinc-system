@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StlPreviewDynamic from '@/components/StlPreviewDynamic'
+import { upload } from '@vercel/blob/client'
 
 type Etapa = 'SOLICITACAO' | 'CUSTO_VIABILIDADE' | 'APROVACAO' | 'PRODUCAO' | 'CALCULO_FRETE' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO'
 
@@ -93,6 +94,15 @@ const PROXIMA_ETAPA: Partial<Record<Etapa, Etapa>> = {
   ENVIADO:           'FINALIZADO',
 }
 
+// Lote 16: permite retroceder o pedido entre as etapas anteriores
+const ETAPA_ANTERIOR: Partial<Record<Etapa, Etapa>> = {
+  CUSTO_VIABILIDADE: 'SOLICITACAO',
+  APROVACAO:         'CUSTO_VIABILIDADE',
+  PRODUCAO:          'APROVACAO',
+  CALCULO_FRETE:     'PRODUCAO',
+  ENVIADO:           'CALCULO_FRETE',
+}
+
 const estiloInput: React.CSSProperties = {
   width: '100%', padding: '8px 10px', border: '1px solid var(--border)',
   borderRadius: '7px', fontSize: '13px', fontFamily: 'Inter, sans-serif',
@@ -177,7 +187,7 @@ export default function PaginaWorkspace() {
   const [detalheCodigoRastreio, setDetalheCodigoRastreio] = useState('')
 
   // Arquivos do pedido vinculado
-  interface ArquivoInfo { id: string; nome: string; tipo: string; tamanhoBytes: number; createdAt: string }
+  interface ArquivoInfo { id: string; nome: string; tipo: string; tamanhoBytes: number; blobUrl?: string | null; itemWorkspaceId?: string | null; createdAt: string }
   const [arquivos, setArquivos] = useState<ArquivoInfo[]>([])
   const [uploadando, setUploadando] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -201,30 +211,57 @@ export default function PaginaWorkspace() {
     return mimeMap[ext ?? ''] || file.type || 'application/octet-stream'
   }
 
-  async function uploadArquivo(pedidoId: string, file: File) {
-    if (file.size > 20 * 1024 * 1024) { setMensagem('Arquivo muito grande (máx. 20 MB)'); setTimeout(() => setMensagem(''), 3000); return }
+  async function uploadArquivo(pedidoId: string, file: File, itemWorkspaceId?: string | null) {
+    // Upload via Vercel Blob (client-direct, sem passar pelo body da função
+    // serverless — bypassa o limite de 4.5 MB do Vercel Hobby/Pro).
+    // Limite alto (50 MB) para deixar margem dentro do plano Hobby (1 GB total).
+    if (file.size > 50 * 1024 * 1024) {
+      setMensagem('Arquivo muito grande (máx. 50 MB).')
+      setTimeout(() => setMensagem(''), 4000)
+      return
+    }
     setUploadando(true)
     try {
       const tipo = detectarTipoArquivo(file)
-      const formData = new FormData()
-      formData.append('arquivo', file)
-      formData.append('nome', file.name)
-      formData.append('tipo', tipo)
+
+      // 1. Upload direto browser → Vercel Blob, com token gerado por /api/blob/token
+      // Se for upload por item, prefixa o pathname com o id do item para organização
+      const pathname = itemWorkspaceId
+        ? `pedidos/${pedidoId}/itens/${itemWorkspaceId}/${file.name}`
+        : `pedidos/${pedidoId}/${file.name}`
+      const blob = await upload(pathname, file, {
+        access: 'public',
+        handleUploadUrl: '/api/blob/token',
+        contentType: tipo,
+      })
+
+      // 2. Registra os metadados do blob no nosso banco
       const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome:         file.name,
+          tipo,
+          tamanhoBytes: file.size,
+          blobUrl:      blob.url,
+          blobPathname: blob.pathname,
+          itemWorkspaceId: itemWorkspaceId ?? null,
+        }),
       })
+
       if (r.ok) {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
       } else {
-        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande (máx. 20 MB)' : `Erro ${r.status}` }))
-        setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
-        setTimeout(() => setMensagem(''), 4000)
+        const err = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
+        setMensagem('Erro registrando arquivo: ' + (err.erro ?? 'Falha'))
+        setTimeout(() => setMensagem(''), 5000)
       }
     } catch (e) {
-      setMensagem('Erro upload: ' + (e instanceof Error ? e.message : 'Falha de rede'))
-      setTimeout(() => setMensagem(''), 4000)
+      // Erros do handleUpload chegam aqui (bloqueio de cota, auth, etc.)
+      const msg = e instanceof Error ? e.message : 'Falha de rede'
+      setMensagem('Erro upload: ' + msg)
+      setTimeout(() => setMensagem(''), 6000)
     } finally { setUploadando(false) }
   }
 
@@ -234,26 +271,29 @@ export default function PaginaWorkspace() {
     if (r.ok) setArquivos(prev => prev.filter(a => a.id !== arquivoId))
   }
 
-  async function downloadArquivo(pedidoId: string, arquivoId: string, nome: string) {
+  async function downloadArquivo(pedidoId: string, arquivoId: string, nome: string, blobUrl?: string | null) {
     setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'baixar' }))
     try {
-      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
+      // Para arquivos no Vercel Blob, baixa direto do CDN (sem passar pelo nosso server)
+      const url = blobUrl ?? `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
+      const r = await fetch(url)
       if (r.ok) {
         const blob = await r.blob()
-        const url = URL.createObjectURL(blob)
+        const objectUrl = URL.createObjectURL(blob)
         const link = document.createElement('a')
-        link.href = url
+        link.href = objectUrl
         link.download = nome
         link.click()
-        URL.revokeObjectURL(url)
+        URL.revokeObjectURL(objectUrl)
       }
     } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arquivoId]; return n }) }
   }
 
-  async function previewArquivo(pedidoId: string, arquivoId: string) {
+  async function previewArquivo(pedidoId: string, arquivoId: string, blobUrl?: string | null) {
     setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'preview' }))
     try {
-      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
+      const url = blobUrl ?? `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
+      const r = await fetch(url)
       if (r.ok) {
         const blob = await r.blob()
         setPreviewUrl(URL.createObjectURL(blob))
@@ -362,6 +402,17 @@ export default function PaginaWorkspace() {
 
   function setDetalheItem(idx: number, campo: string, valor: unknown) {
     setDetalheItens(prev => prev.map((it, i) => i === idx ? { ...it, [campo]: valor } : it))
+  }
+
+  function removerDetalheItem(idx: number) {
+    if (!confirm('Remover este item do pedido?')) return
+    setDetalheItens(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function adicionarDetalheItem() {
+    setDetalheItens(prev => [...prev, {
+      id: '', descricao: '', referencia: null, quantidade: 1, valorUnitario: null, custoUnitario: null,
+    }])
   }
 
   async function criarSolicitacao(e: React.FormEvent) {
@@ -474,10 +525,95 @@ export default function PaginaWorkspace() {
   const totalCancelados  = soliPorEtapa('CANCELADO').length
 
   // --- Render helpers for detail modal per etapa ---
+
+  // Lote 16: render arquivos vinculados a um item específico do workspace.
+  // Renderiza dentro do card do item — botão de upload + lista de arquivos do item.
+  function renderArquivosItem(itemId: string) {
+    if (!detalheAberto?.pedidoId) return null
+    const arquivosDoItem = arquivos.filter(a => a.itemWorkspaceId === itemId)
+    return (
+      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Arquivos do item ({arquivosDoItem.length})
+          </span>
+          {cargo !== 'VISUALIZADOR' && (
+            <label style={{ padding: '2px 8px', borderRadius: '5px', fontSize: '10px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', cursor: uploadando ? 'not-allowed' : 'pointer', backgroundColor: 'transparent', opacity: uploadando ? 0.6 : 1 }}>
+              {uploadando ? 'Enviando...' : '+ Upload'}
+              <input
+                type="file" hidden disabled={uploadando}
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f && detalheAberto.pedidoId) uploadArquivo(detalheAberto.pedidoId, f, itemId)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          )}
+        </div>
+        {arquivosDoItem.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {arquivosDoItem.map(arq => {
+              const isImagem = arq.tipo.startsWith('image/')
+              const isStl = /\.stl$/i.test(arq.nome)
+              const tamanho = arq.tamanhoBytes < 1024 ? `${arq.tamanhoBytes} B` : arq.tamanhoBytes < 1048576 ? `${(arq.tamanhoBytes / 1024).toFixed(1)} KB` : `${(arq.tamanhoBytes / 1048576).toFixed(1)} MB`
+              return (
+                <div key={arq.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '5px', fontSize: '11px', fontFamily: 'Inter, sans-serif' }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{arq.nome}</span>
+                  <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{tamanho}</span>
+                  {isImagem && (
+                    <button
+                      disabled={!!loadingArquivo[arq.id]}
+                      onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id, arq.blobUrl)}
+                      style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'preview' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer' }}
+                    >
+                      {loadingArquivo[arq.id] === 'preview' ? '...' : 'Preview'}
+                    </button>
+                  )}
+                  {isStl && (
+                    <button
+                      disabled={!!loadingArquivo[arq.id]}
+                      onClick={async () => {
+                        setLoadingArquivo(prev => ({ ...prev, [arq.id]: '3d' }))
+                        try {
+                          const url = arq.blobUrl ?? `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
+                          const r = await fetch(url)
+                          if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
+                        } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arq.id]; return n }) }
+                      }}
+                      style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === '3d' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer' }}
+                    >
+                      {loadingArquivo[arq.id] === '3d' ? '...' : '3D'}
+                    </button>
+                  )}
+                  <button
+                    disabled={!!loadingArquivo[arq.id]}
+                    onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome, arq.blobUrl)}
+                    style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer' }}
+                  >
+                    {loadingArquivo[arq.id] === 'baixar' ? '...' : '↓'}
+                  </button>
+                  {cargo !== 'VISUALIZADOR' && (
+                    <button onClick={() => excluirArquivo(detalheAberto.pedidoId!, arq.id)} style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--red-light)', backgroundColor: 'transparent', color: 'var(--red)', cursor: 'pointer' }}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   function renderItensDetalhe() {
     const etapa = detalheAberto!.etapa
-    const isCustoViab = etapa === 'CUSTO_VIABILIDADE'
-    const isReadOnly = etapa === 'APROVACAO' || etapa === 'PRODUCAO' || etapa === 'CALCULO_FRETE' || etapa === 'ENVIADO' || etapa === 'FINALIZADO' || etapa === 'CANCELADO'
+    // Lote 16: pode editar descrição/quantidade em qualquer etapa não-terminal,
+    // valores (R$) a partir de CUSTO_VIABILIDADE.
+    const isTerminal = etapa === 'FINALIZADO' || etapa === 'CANCELADO'
+    const podeEditar = !isTerminal
+    const podeEditarValores = !isTerminal && etapa !== 'SOLICITACAO'
 
     return (
       <div style={{ marginBottom: '16px' }}>
@@ -488,8 +624,8 @@ export default function PaginaWorkspace() {
           const lucro = total - custoTotal
           return (
             <div key={it.id || i} style={{ backgroundColor: i % 2 === 0 ? 'var(--bg-page)' : 'var(--bg-surface)', borderRadius: '6px', padding: '10px 12px', marginBottom: '4px' }}>
-              {/* Solicitação: editable inline */}
-              {etapa === 'SOLICITACAO' ? (
+              {/* Lote 16: editar descrição/quantidade em qualquer etapa não-terminal, com botão ✕ para excluir */}
+              {podeEditar ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ flex: 3 }}>
                     <label style={estiloLabel}>Descrição</label>
@@ -499,6 +635,16 @@ export default function PaginaWorkspace() {
                     <label style={estiloLabel}>Qtd</label>
                     <input style={estiloInput} type="number" min={1} value={it.quantidade} onChange={e => setDetalheItem(i, 'quantidade', parseInt(e.target.value) || 1)} />
                   </div>
+                  {detalheItens.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removerDetalheItem(i)}
+                      title="Remover item"
+                      style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--red-light)', backgroundColor: 'transparent', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -512,8 +658,8 @@ export default function PaginaWorkspace() {
                 </div>
               )}
 
-              {/* Custo e Viabilidade: valor + custo fields */}
-              {isCustoViab && (
+              {/* Lote 16: valores editáveis a partir de CUSTO_VIABILIDADE em qualquer etapa não-terminal */}
+              {podeEditarValores && (
                 <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={estiloLabel}>Valor unitário *</label>
@@ -551,15 +697,29 @@ export default function PaginaWorkspace() {
                 </div>
               )}
 
-              {/* Read-only value display for other stages */}
-              {isReadOnly && it.valorUnitario != null && (
+              {/* Read-only display only para etapas terminais (FINALIZADO/CANCELADO) */}
+              {isTerminal && it.valorUnitario != null && (
                 <p style={{ fontSize: '12px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--green)', margin: '4px 0 0' }}>
                   R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               )}
+
+              {/* Lote 16: arquivos por item — só aparece se o item já estiver salvo (id válido) e houver pedido vinculado */}
+              {it.id && detalheAberto?.pedidoId && renderArquivosItem(it.id)}
             </div>
           )
         })}
+
+        {/* Lote 16: Adicionar item — disponível em qualquer etapa não-terminal */}
+        {podeEditar && (
+          <button
+            type="button"
+            onClick={adicionarDetalheItem}
+            style={{ marginTop: '6px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif', border: '1px dashed var(--purple)', backgroundColor: 'transparent', color: 'var(--purple)', cursor: 'pointer', width: '100%' }}
+          >
+            + Adicionar item
+          </button>
+        )}
 
         {/* Totals row */}
         {detalheItens.some(it => it.valorUnitario != null) && (
@@ -679,10 +839,10 @@ export default function PaginaWorkspace() {
               Aprovar
             </button>
             <button
-              onClick={() => avancarEtapa(detalheAberto.id, 'SOLICITACAO')}
+              onClick={() => avancarEtapa(detalheAberto.id, 'CUSTO_VIABILIDADE')}
               style={{ flex: 1, padding: '9px 16px', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}
             >
-              Editar Pedido
+              ← Voltar (Custo)
             </button>
             <button
               onClick={() => cancelar(detalheAberto.id)}
@@ -741,6 +901,20 @@ export default function PaginaWorkspace() {
             style={{ flex: 2, padding: '9px 16px', borderRadius: '8px', fontSize: '13px', fontFamily: 'Nunito, sans-serif', fontWeight: 600, backgroundColor: 'var(--purple)', color: '#fff', border: 'none', cursor: 'pointer', minWidth: '160px' }}
           >
             Avançar para {labelEtapa[PROXIMA_ETAPA[etapa]!]}
+          </button>
+        )}
+
+        {/* Lote 16: Voltar Etapa — disponível em todas as etapas ativas com anterior, exceto APROVACAO (que tem botão próprio) */}
+        {etapa !== 'APROVACAO' && ETAPA_ANTERIOR[etapa] && (
+          <button
+            onClick={() => {
+              if (confirm(`Voltar para ${labelEtapa[ETAPA_ANTERIOR[etapa]!]}?`)) {
+                avancarEtapa(detalheAberto.id, ETAPA_ANTERIOR[etapa]!)
+              }
+            }}
+            style={{ padding: '9px 16px', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
+          >
+            ← {labelEtapa[ETAPA_ANTERIOR[etapa]!]}
           </button>
         )}
 
@@ -1183,23 +1357,28 @@ export default function PaginaWorkspace() {
               </div>
             )}
 
-            {/* Arquivos do Pedido */}
-            {detalheAberto.pedidoId && (
+            {/* Arquivos do Pedido — Lote 16: filtra somente arquivos pedido-level (sem item vinculado) */}
+            {detalheAberto.pedidoId && (() => {
+              const arquivosPedido = arquivos.filter(a => !a.itemWorkspaceId)
+              return (
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                    Arquivos ({arquivos.length})
+                    Arquivos gerais do pedido ({arquivosPedido.length})
                   </p>
                   {cargo !== 'VISUALIZADOR' && (
-                    <label style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', cursor: uploadando ? 'not-allowed' : 'pointer', backgroundColor: 'transparent', opacity: uploadando ? 0.6 : 1 }}>
-                      {uploadando ? 'Enviando...' : '+ Upload'}
-                      <input type="file" hidden disabled={uploadando} onChange={e => { const f = e.target.files?.[0]; if (f && detalheAberto.pedidoId) uploadArquivo(detalheAberto.pedidoId, f); e.target.value = '' }} />
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>máx. 50 MB</span>
+                      <label style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', cursor: uploadando ? 'not-allowed' : 'pointer', backgroundColor: 'transparent', opacity: uploadando ? 0.6 : 1 }}>
+                        {uploadando ? 'Enviando...' : '+ Upload'}
+                        <input type="file" hidden disabled={uploadando} onChange={e => { const f = e.target.files?.[0]; if (f && detalheAberto.pedidoId) uploadArquivo(detalheAberto.pedidoId, f); e.target.value = '' }} />
+                      </label>
+                    </div>
                   )}
                 </div>
-                {arquivos.length > 0 && (
+                {arquivosPedido.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {arquivos.map(arq => {
+                    {arquivosPedido.map(arq => {
                       const isImagem = arq.tipo.startsWith('image/')
                       const isStl = /\.stl$/i.test(arq.nome)
                       const tamanho = arq.tamanhoBytes < 1024 ? `${arq.tamanhoBytes} B` : arq.tamanhoBytes < 1048576 ? `${(arq.tamanhoBytes / 1024).toFixed(1)} KB` : `${(arq.tamanhoBytes / 1048576).toFixed(1)} MB`
@@ -1210,7 +1389,7 @@ export default function PaginaWorkspace() {
                           {isImagem && (
                             <button
                               disabled={!!loadingArquivo[arq.id]}
-                              onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)}
+                              onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id, arq.blobUrl)}
                               style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'preview' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'preview' ? 0.5 : 1, transition: 'all 0.2s ease' }}
                             >
                               {loadingArquivo[arq.id] === 'preview' ? 'Abrindo...' : 'Preview'}
@@ -1222,7 +1401,8 @@ export default function PaginaWorkspace() {
                               onClick={async () => {
                                 setLoadingArquivo(prev => ({ ...prev, [arq.id]: '3d' }))
                                 try {
-                                  const r = await fetch(`/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`)
+                                  const url = arq.blobUrl ?? `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
+                                  const r = await fetch(url)
                                   if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
                                 } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arq.id]; return n }) }
                               }}
@@ -1233,7 +1413,7 @@ export default function PaginaWorkspace() {
                           )}
                           <button
                             disabled={!!loadingArquivo[arq.id]}
-                            onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)}
+                            onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome, arq.blobUrl)}
                             style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'baixar' ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-secondary)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'baixar' ? 0.5 : 1, transition: 'all 0.2s ease' }}
                           >
                             {loadingArquivo[arq.id] === 'baixar' ? 'Baixando...' : 'Baixar'}
@@ -1248,11 +1428,12 @@ export default function PaginaWorkspace() {
                     })}
                   </div>
                 )}
-                {arquivos.length === 0 && (
-                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontStyle: 'italic' }}>Nenhum arquivo anexado</p>
+                {arquivosPedido.length === 0 && (
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontStyle: 'italic' }}>Nenhum arquivo geral anexado</p>
                 )}
               </div>
-            )}
+              )
+            })()}
 
             {/* Preview de imagem */}
             {previewUrl && createPortal(
