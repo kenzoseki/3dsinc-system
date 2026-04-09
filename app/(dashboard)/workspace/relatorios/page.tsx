@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 
 interface ResumoKPIs {
   totalPedidos:      number
   pedidosConcluidos: number
   pedidosAtivos:     number
-  receitaTotal:      number
+  receitaEsperada:   number
+  receitaReal:       number
   totalClientes:     number
 }
 
@@ -29,10 +31,22 @@ interface ClienteRelatorio {
   receitaTotal: number
 }
 
+interface ReceitaMensal {
+  mes: number
+  valor: number
+}
+
+interface DistribuicaoStatus {
+  status: string
+  quantidade: number
+}
+
 interface DadosRelatorio {
-  kpis:       ResumoKPIs
-  pedidos:    PedidoRelatorio[]
-  clientes:   ClienteRelatorio[]
+  kpis:               ResumoKPIs
+  pedidos:            PedidoRelatorio[]
+  clientes:           ClienteRelatorio[]
+  receitaMensal:      ReceitaMensal[]
+  distribuicaoStatus: DistribuicaoStatus[]
 }
 
 const PERIODOS = [
@@ -53,6 +67,30 @@ const STATUS_BADGE: Record<string, { bg: string; cor: string }> = {
   CANCELADO:   { bg: '#F3F2EF', cor: '#6B6860' },
 }
 
+const STATUS_COR_PIZZA: Record<string, string> = {
+  ORCAMENTO:   '#B83232',
+  APROVADO:    '#D4920A',
+  AGUARDANDO:  '#C4850E',
+  EM_PRODUCAO: '#5B47C8',
+  PAUSADO:     '#E05A5A',
+  CONCLUIDO:   '#1A6B42',
+  ENTREGUE:    '#2A8B5A',
+  CANCELADO:   '#9E9B94',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  ORCAMENTO:   'Orçamento',
+  APROVADO:    'Aprovado',
+  AGUARDANDO:  'Aguardando',
+  EM_PRODUCAO: 'Em Produção',
+  PAUSADO:     'Pausado',
+  CONCLUIDO:   'Concluído',
+  ENTREGUE:    'Entregue',
+  CANCELADO:   'Cancelado',
+}
+
+const MESES_LABEL = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function PaginaRelatorios() {
@@ -71,6 +109,17 @@ export default function PaginaRelatorios() {
   }, [periodo])
 
   useEffect(() => { carregar() }, [carregar])
+
+  const dadosBarras = dados?.receitaMensal.map(r => ({
+    nome: MESES_LABEL[r.mes - 1],
+    valor: r.valor,
+  })) ?? []
+
+  const dadosPizza = dados?.distribuicaoStatus.map(d => ({
+    nome: STATUS_LABEL[d.status] ?? d.status,
+    valor: d.quantidade,
+    cor: STATUS_COR_PIZZA[d.status] ?? '#9E9B94',
+  })) ?? []
 
   return (
     <div>
@@ -137,13 +186,11 @@ export default function PaginaRelatorios() {
           </div>
 
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
             {[
-              { titulo: 'Total de Pedidos',    valor: dados.kpis.totalPedidos,      mono: true },
-              { titulo: 'Pedidos Concluídos',  valor: dados.kpis.pedidosConcluidos, mono: true },
-              { titulo: 'Pedidos Ativos',      valor: dados.kpis.pedidosAtivos,     mono: true },
-              { titulo: 'Receita do Período',  valor: brl(dados.kpis.receitaTotal), mono: true },
-              { titulo: 'Clientes',            valor: dados.kpis.totalClientes,     mono: true },
+              { titulo: 'Total de Pedidos',    valor: String(dados.kpis.totalPedidos) },
+              { titulo: 'Pedidos Concluídos',  valor: String(dados.kpis.pedidosConcluidos) },
+              { titulo: 'Pedidos Ativos',      valor: String(dados.kpis.pedidosAtivos) },
             ].map(card => (
               <div key={card.titulo} style={{
                 background: 'var(--bg-surface)', border: '1px solid var(--border)',
@@ -158,6 +205,102 @@ export default function PaginaRelatorios() {
               </div>
             ))}
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+            <div style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '16px',
+            }}>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>
+                Receita Esperada
+              </p>
+              <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#8A5A0A', fontFamily: 'JetBrains Mono, monospace' }}>
+                {brl(dados.kpis.receitaEsperada)}
+              </p>
+            </div>
+            <div style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '16px',
+            }}>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>
+                Receita Real
+              </p>
+              <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#1A6B42', fontFamily: 'JetBrains Mono, monospace' }}>
+                {brl(dados.kpis.receitaReal)}
+              </p>
+            </div>
+            <div style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '16px',
+            }}>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>
+                Clientes
+              </p>
+              <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}>
+                {dados.kpis.totalClientes}
+              </p>
+            </div>
+          </div>
+
+          {/* Gráficos lado a lado */}
+          <section style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Gráfico de Barras — Receita Real Mensal */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>
+                  Receita Real Mensal — {new Date().getFullYear()}
+                </h2>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={dadosBarras} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="nome" tick={{ fontSize: 11, fill: '#6B6860', fontFamily: 'Inter, sans-serif' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#6B6860', fontFamily: 'JetBrains Mono, monospace' }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                    <Tooltip
+                      formatter={(value) => [brl(Number(value ?? 0)), 'Receita Real']}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
+                    />
+                    <Bar dataKey="valor" fill="#5B47C8" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Gráfico de Pizza — Distribuição por Status */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>
+                  Pedidos por Status
+                </h2>
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={dadosPizza}
+                      dataKey="valor"
+                      nameKey="nome"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      innerRadius={45}
+                      paddingAngle={2}
+                      label={((props: { nome?: string; percent?: number }) => `${props.nome ?? ''} ${((props.percent ?? 0) * 100).toFixed(0)}%`) as never}
+                      labelLine={{ stroke: '#6B6860', strokeWidth: 1 }}
+                      style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {dadosPizza.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.cor} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [`${Number(value ?? 0)} pedido${Number(value ?? 0) !== 1 ? 's' : ''}`, name]}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: '11px', fontFamily: 'Inter, sans-serif' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </section>
 
           {/* Tabela de Pedidos */}
           <section style={{ marginBottom: '32px' }}>
@@ -191,7 +334,7 @@ export default function PaginaRelatorios() {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: st.bg, color: st.cor }}>
-                            {p.status}
+                            {STATUS_LABEL[p.status] ?? p.status}
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--text-primary)' }}>

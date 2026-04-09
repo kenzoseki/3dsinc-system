@@ -213,7 +213,7 @@ export default function PaginaWorkspace() {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
       } else {
-        const err = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
+        const err = await r.json().catch(() => ({ erro: r.status === 413 ? 'Arquivo muito grande para o servidor (máx. ~10 MB)' : `Erro ${r.status}` }))
         setMensagem('Erro upload: ' + (err.erro ?? 'Falha'))
         setTimeout(() => setMensagem(''), 4000)
       }

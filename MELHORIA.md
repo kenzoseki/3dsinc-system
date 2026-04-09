@@ -213,15 +213,23 @@
 - ORÇAMENTOS:
     - Número auto-incremental: ao criar orçamento (via Workspace ou direto), busca `MAX(numero) + 1` dentro de `$transaction`. Campo permanece editável no editor avançado.
 
+### Lote 11 (commit atual)
+- RELATÓRIOS:
+    - Removida seção "Estoque de Filamentos" (API e frontend)
+    - Valor nos Pedidos: `valorTotal` agora é computado a partir dos itens do Workspace (qty × valorUnitario + frete) quando `Pedido.valorTotal` é null
+    - KPI "Receita Esperada": soma de todos os pedidos exceto cancelados (cor âmbar)
+    - KPI "Receita Real": soma apenas dos pedidos concluídos/entregues (cor verde)
+    - KPIs reorganizados em 2 linhas de 3 cards (pedidos + receitas + clientes)
+    - Gráfico de barras (Recharts): Receita Real mensal do ano atual, roxo com bordas arredondadas
+    - Gráfico de pizza (Recharts): distribuição de pedidos por status, donut com labels percentuais e legenda
+    - Gráficos lado a lado em grid 2 colunas
+    - Status traduzidos para português na tabela e nos gráficos (Orçamento, Em Produção, Concluído, etc.)
+- WORKSPACE:
+    - Fix erro 413 upload STL: `proxyClientMaxBodySize: '15mb'` em `next.config.ts` (experimental). Mensagem de erro amigável no frontend para status 413.
+
 ---
 
 ## Melhorias e correções para implementar. (Sempre utilizar skill de Front-end)
-
-- RELATÓRIOS:
-    - Valor em Pedidos está vazia — incluir o valor total de cada pedido (computar a partir dos itens do Workspace/Orçamento quando Pedido.valorTotal for null).
-    - Incluir nos KPIs: Receita Esperada do Período (soma total dos valores de todos os pedidos) e Receita Real do Período (soma apenas dos pedidos concluídos/entregues).
-    - Gráfico de barras: Receita Real de cada mês no ano atual.
-    - Gráfico de Pizza: distribuição de pedidos por status, lado a lado com o gráfico de barras.
 
 ## Ideias. Não implementar.
 Futuro(Stand-by):
