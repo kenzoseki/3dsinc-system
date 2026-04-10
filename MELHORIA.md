@@ -297,6 +297,71 @@
     - Novo helper `renderArquivosItem(itemId)`: bloco compacto dentro de cada item do detalhe, com botão de upload próprio + lista filtrada por `itemWorkspaceId === itemId`
     - Seção "Arquivos gerais do pedido" agora filtra `arquivos.filter(a => !a.itemWorkspaceId)` — separa visualmente o que é geral do que é por-item
 
+### Lote 16.1 (commit 5facbc2)
+- WORKSPACE:
+    - Upload bug fix: sanity check `BLOB_READ_WRITE_TOKEN` em `/api/blob/token` (retorna 500 imediato se ausente), AbortController + timeout 60s em `uploadArquivo`, banner `uploadErro` visível dentro do modal (antes ficava atrás do overlay), logs `[upload]` no console
+    - Data de entrega editável em todas as etapas (estado `detalheDataEntrega` + input date no header do modal)
+    - Card kanban: preview da descrição do 1º item como referência rápida
+
+### Lote 16.2 (commit 74204b6)
+- UPLOAD:
+    - Migrado de client SDK (`@vercel/blob/client`) para **FormData server-side `put()`** (SDK abortava em dev)
+    - `access: 'public'` → `'private'` (Blob Store é private)
+    - `onUploadCompleted` removido (exigia callback URL pública, falhava em dev)
+    - Limite ajustado: 50 MB → 30 MB (compatível com `proxyClientMaxBodySize`)
+- DOWNLOAD/PREVIEW (private store):
+    - Rota `/api/pedidos/[id]/arquivos/[arquivoId]` convertida de redirect 302 para **proxy server-side** (fetch com Bearer token)
+    - Frontend removido uso direto de `blobUrl` (daria 403 em private store)
+- WORKSPACE API:
+    - `frete`: `z.number()` → `z.coerce.number()` (consistência com demais decimais)
+- CLEANUP:
+    - Removidos imports não utilizados (`useRouter`, `upload` from `@vercel/blob/client`, `detectarTipoArquivo`)
+
+### Lote 17 (commit atual)
+- WORKSPACE — VISUAL POLISH + RESPONSIVIDADE MOBILE:
+    - Novo arquivo `workspace.css` com animações, breakpoints e estilos responsivos
+    - Cards: hover com `translateY(-2px)` + sombra roxa sutil, animação de entrada staggered (`ws-fadeUp`), `active` com `scale(0.99)` para feedback tátil
+    - Colunas kanban: borda superior colorida por etapa, animação de entrada sequencial, scroll snap no mobile
+    - Modais: full-screen em mobile (`max-width: 768px`), `backdrop-filter: blur(2px)`, animação `ws-scaleIn`
+    - Botões: `min-height: 44px` (touch-friendly), `ws-btn:active` com `scale(0.97)`
+    - Grids: classes `ws-grid-2` e `ws-grid-4` colapsam para 1-2 colunas em mobile
+    - Filtros: scroll horizontal sem quebra em mobile
+    - Tabela terminal: scroll horizontal em mobile
+    - `prefers-reduced-motion`: desativa todas as animações
+    - Header: empilha verticalmente em mobile com botão full-width
+
+---
+
+## Pendências
+
+### Responsividade Mobile — Estrutura Completa
+> **Prioridade: Alta** · Afeta toda a aplicação
+
+O Lote 17 melhorou a responsividade do Workspace, mas o restante do sistema ainda precisa de ajustes para funcionar bem em telas pequenas (< 768px). Itens pendentes:
+
+1. **LayoutShell (Sidebar + Topbar)**: sidebar já colapsa, mas precisa de hambúrguer mais acessível e overlay touch-friendly. Topbar deve priorizar informação essencial em mobile.
+2. **Home (Dashboard)**: KPIs devem empilhar em 2×3 ou 1×6 grid. Gráficos Recharts precisam de `<ResponsiveContainer>` com altura fixa em mobile.
+3. **Orçamentos**: listagem em tabela deve virar cards em mobile. Editor avançado (`/orcamento/[id]`) precisa de layout single-column.
+4. **Pedidos**: mesma adaptação tabela → cards.
+5. **Clientes**: idem.
+6. **CRM (Leads)**: kanban já tem estrutura similar ao Workspace — aplicar o mesmo padrão CSS.
+7. **Marketing**: idem kanban.
+8. **Agenda Produção / Agenda Marketing**: timeline/calendário precisam de modo compacto (lista vertical em vez de grid 7×N).
+9. **Relatórios**: gráficos e tabelas com scroll horizontal ou layout adaptativo.
+10. **Modais gerais**: todos os modais do sistema devem ser full-screen em mobile.
+11. **Testes em dispositivos reais**: testar em Android e iOS (Safari) para garantir que inputs date/time, selects e textareas funcionam corretamente.
+
+### App Mobile (PWA)
+> **Prioridade: Média** · Solução mais simples via PWA
+
+O sistema já é PWA (manifest + service worker registrado). Para criar a experiência de "app nativo":
+
+1. **Já implementado**: `app/manifest.ts` com `display: 'standalone'`, `public/sw.js`, `PwaRegistrar.tsx`, ícones SVG
+2. **Ação necessária**: orientar os usuários a "Adicionar à Tela Inicial" no Chrome (Android) ou Safari (iOS), que instala o PWA como app com ícone na home
+3. **Futuramente**: app nativo React Native em repositório separado (reutiliza API REST) — stand-by até volume justificar
+
+---
+
 ## Ideias. Não implementar.
 Futuro(Stand-by):
     Página de Formulário de solicitação de pedido pelo Cliente > Dados entram no fluxo de Solicitação para o Seidão aprovar ou recusar. Página pensada para otimização de Rotina, otimizando o registro das Solicitações pelo Cliente incluindo as principais informações com exceção de valores.

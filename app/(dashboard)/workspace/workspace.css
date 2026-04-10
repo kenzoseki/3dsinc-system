@@ -1,0 +1,306 @@
+/* ═══════════════════════════════════════════════════════════════
+   Workspace — Kanban Visual Polish + Mobile Responsiveness
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Entrance Animations ─────────────────────────────────── */
+@keyframes ws-fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ws-slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ws-scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ws-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── Kanban Container ────────────────────────────────────── */
+.ws-kanban {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  align-items: flex-start;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ws-kanban::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ws-kanban::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ws-kanban::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ─── Kanban Column ───────────────────────────────────────── */
+.ws-column {
+  min-width: 210px;
+  flex: 1 1 210px;
+  border-radius: 12px;
+  background-color: var(--bg-surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.03);
+  scroll-snap-align: start;
+  animation: ws-fadeUp 0.4s ease-out both;
+  transition: box-shadow 0.2s ease;
+}
+
+.ws-column:nth-child(1) { animation-delay: 0ms; }
+.ws-column:nth-child(2) { animation-delay: 50ms; }
+.ws-column:nth-child(3) { animation-delay: 100ms; }
+.ws-column:nth-child(4) { animation-delay: 150ms; }
+.ws-column:nth-child(5) { animation-delay: 200ms; }
+.ws-column:nth-child(6) { animation-delay: 250ms; }
+
+/* ─── Kanban Card ─────────────────────────────────────────── */
+.ws-card {
+  background-color: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  animation: ws-fadeUp 0.35s ease-out both;
+  position: relative;
+  /* Touch: larger tap target */
+  min-height: 44px;
+}
+
+.ws-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(91, 71, 200, 0.10), 0 1px 4px rgba(0,0,0,0.06);
+  border-color: rgba(91, 71, 200, 0.25);
+}
+
+.ws-card:active {
+  transform: translateY(0px) scale(0.99);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition-duration: 0.08s;
+}
+
+/* ─── Modal Overlay ───────────────────────────────────────── */
+.ws-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: ws-scaleIn 0.2s ease-out;
+  backdrop-filter: blur(2px);
+}
+
+.ws-modal-content {
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  background-color: var(--bg-surface);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.04);
+  border: 1px solid var(--border);
+  padding: 28px;
+  animation: ws-fadeUp 0.25s ease-out;
+}
+
+.ws-modal-create {
+  max-width: 560px;
+}
+
+.ws-modal-detail {
+  max-width: 640px;
+}
+
+/* Smooth scroll for modal content */
+.ws-modal-content {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* ─── Action Buttons ──────────────────────────────────────── */
+.ws-btn {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  /* Touch: min 44px tap target */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ws-btn:active {
+  transform: scale(0.97);
+}
+
+/* ─── Header ──────────────────────────────────────────────── */
+.ws-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+  animation: ws-slideIn 0.3s ease-out;
+}
+
+/* ─── Filter Bar ──────────────────────────────────────────── */
+.ws-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  animation: ws-slideIn 0.35s ease-out;
+}
+
+/* ─── Message Banner ──────────────────────────────────────── */
+.ws-message {
+  animation: ws-fadeUp 0.2s ease-out;
+}
+
+/* ─── Terminal Table ──────────────────────────────────────── */
+.ws-terminal-table {
+  animation: ws-fadeUp 0.3s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — max-width: 768px
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Kanban stacks vertically on mobile */
+  .ws-kanban {
+    flex-direction: column;
+    overflow-x: visible;
+    gap: 16px;
+    scroll-snap-type: none;
+  }
+
+  .ws-column {
+    min-width: 100%;
+    flex: none;
+  }
+
+  /* Modals go full-screen on mobile */
+  .ws-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .ws-modal-content {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 20px 16px;
+    box-shadow: none;
+    border: none;
+  }
+
+  /* Header stacks */
+  .ws-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .ws-header-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Filters scroll horizontally */
+  .ws-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .ws-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Cards: larger touch targets */
+  .ws-card {
+    padding: 14px 16px;
+    min-height: 56px;
+  }
+
+  /* Terminal table: horizontal scroll */
+  .ws-terminal-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ws-terminal-table table {
+    min-width: 600px;
+  }
+
+  /* Action buttons stack */
+  .ws-actions {
+    flex-direction: column;
+  }
+
+  .ws-actions button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Grid fields go single column */
+  .ws-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ws-grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLET — 769px to 1024px
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ws-kanban {
+    gap: 10px;
+  }
+
+  .ws-column {
+    min-width: 180px;
+    flex: 1 1 180px;
+  }
+
+  .ws-modal-content {
+    padding: 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITY — prefers-reduced-motion
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .ws-card,
+  .ws-column,
+  .ws-modal-overlay,
+  .ws-modal-content,
+  .ws-header,
+  .ws-filters,
+  .ws-message,
+  .ws-terminal-table {
+    animation: none !important;
+    transition: none !important;
+  }
+}

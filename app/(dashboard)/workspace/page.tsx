@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StlPreviewDynamic from '@/components/StlPreviewDynamic'
+import './workspace.css'
 
 type Etapa = 'SOLICITACAO' | 'CUSTO_VIABILIDADE' | 'APROVACAO' | 'PRODUCAO' | 'CALCULO_FRETE' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO'
 
@@ -649,7 +650,7 @@ export default function PaginaWorkspace() {
 
               {/* Lote 16: valores editáveis a partir de CUSTO_VIABILIDADE em qualquer etapa não-terminal */}
               {podeEditarValores && (
-                <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div className="ws-grid-2" style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={estiloLabel}>Valor unitário *</label>
                     <input
@@ -750,7 +751,7 @@ export default function PaginaWorkspace() {
         {etapa === 'CALCULO_FRETE' && (
           <div style={{ marginBottom: '16px' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple)', fontFamily: 'Nunito, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Dimensões do Pacote</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div className="ws-grid-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               <div>
                 <label style={estiloLabel}>Altura (cm)</label>
                 <input style={estiloInput} type="number" step="0.1" min="0" value={detalhePacoteAltura} onChange={e => setDetalhePacoteAltura(e.target.value)} placeholder="0" />
@@ -792,7 +793,7 @@ export default function PaginaWorkspace() {
                 Frete: R$ {Number(detalheAberto.frete).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div className="ws-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={estiloLabel}>Data de Envio</label>
                 <input style={estiloInput} type="date" value={detalheDataEnvio} onChange={e => setDetalheDataEnvio(e.target.value)} />
@@ -817,7 +818,7 @@ export default function PaginaWorkspace() {
     const etapa = detalheAberto.etapa
 
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div className="ws-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         {/* Aprovação: 3 botões específicos */}
         {etapa === 'APROVACAO' && (
           <>
@@ -934,9 +935,9 @@ export default function PaginaWorkspace() {
   return (
     <div>
       {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="ws-header">
         <div>
-          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)' }}>
+          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Workspace
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px', marginTop: '2px' }}>
@@ -944,6 +945,7 @@ export default function PaginaWorkspace() {
           </p>
         </div>
         <button
+          className="ws-btn ws-header-btn"
           onClick={() => setModalAberto(true)}
           style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontFamily: 'Nunito, sans-serif', fontWeight: 600, backgroundColor: 'var(--purple)', color: '#fff', border: 'none', cursor: 'pointer' }}
         >
@@ -952,13 +954,13 @@ export default function PaginaWorkspace() {
       </div>
 
       {mensagem && (
-        <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontFamily: 'Inter, sans-serif', backgroundColor: mensagem.startsWith('✓') ? 'var(--green-light)' : 'var(--red-light)', color: mensagem.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>
+        <div className="ws-message" style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontFamily: 'Inter, sans-serif', backgroundColor: mensagem.startsWith('✓') ? 'var(--green-light)' : 'var(--red-light)', color: mensagem.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>
           {mensagem}
         </div>
       )}
 
       {/* Filtro + Abas terminais */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="ws-filters">
         <select
           value={filtroPrioridade}
           onChange={e => setFiltroPrioridade(e.target.value as PrioridadeTipo | '')}
@@ -990,7 +992,7 @@ export default function PaginaWorkspace() {
 
       {/* Vista de abas terminais */}
       {abaTerminal !== null ? (
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+        <div className="ws-terminal-table" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
           {carregando ? (
             <p style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Carregando...</p>
           ) : soliPorEtapa(abaTerminal).length === 0 ? (
@@ -1038,21 +1040,22 @@ export default function PaginaWorkspace() {
         </div>
       ) : (
         /* Kanban — etapas ativas (6 colunas) */
-        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', alignItems: 'flex-start' }}>
+        <div className="ws-kanban">
           {ETAPAS_ATIVAS.map(etapa => {
             const cards = soliPorEtapa(etapa)
             const cor = corEtapa[etapa]
             return (
               <div
                 key={etapa}
-                style={{ minWidth: '210px', flex: '1 1 210px', borderRadius: '10px', border: `1.5px solid ${cor.borda}22`, backgroundColor: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+                className="ws-column"
+                style={{ borderTop: `3px solid ${cor.borda}` }}
               >
                 {/* Header da coluna */}
-                <div style={{ padding: '10px 12px', borderRadius: '8px 8px 0 0', backgroundColor: cor.header, borderBottom: `1.5px solid ${cor.borda}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif', color: cor.texto }}>
+                <div style={{ padding: '10px 14px', borderRadius: '9px 9px 0 0', backgroundColor: cor.header, borderBottom: `1px solid ${cor.borda}22`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif', color: cor.texto, letterSpacing: '0.01em' }}>
                     {labelEtapa[etapa]}
                   </span>
-                  <span style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: cor.texto, backgroundColor: `${cor.borda}22`, padding: '1px 7px', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: cor.texto, backgroundColor: `${cor.borda}18`, padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
                     {cards.length}
                   </span>
                 </div>
@@ -1062,14 +1065,13 @@ export default function PaginaWorkspace() {
                   {carregando ? (
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', padding: '12px 4px', textAlign: 'center' }}>Carregando...</p>
                   ) : cards.length === 0 ? (
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', padding: '12px 4px', textAlign: 'center', fontStyle: 'italic' }}>Vazio</p>
-                  ) : cards.map(s => (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', padding: '12px 4px', textAlign: 'center', fontStyle: 'italic', opacity: 0.6 }}>Vazio</p>
+                  ) : cards.map((s, cardIdx) => (
                     <div
                       key={s.id}
+                      className="ws-card"
                       onClick={() => setDetalheAberto(s)}
-                      style={{ backgroundColor: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', cursor: 'pointer', transition: 'box-shadow 0.12s', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
+                      style={{ animationDelay: `${cardIdx * 40}ms` }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                         <span style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>#{s.numero}</span>
@@ -1123,10 +1125,10 @@ export default function PaginaWorkspace() {
       {/* Modal — nova solicitação */}
       {modalAberto && createPortal(
         <div
+          className="ws-modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) { setModalAberto(false) } }}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         >
-          <div style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
+          <div className="ws-modal-content ws-modal-create">
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px' }}>
               Nova Solicitação
             </h2>
@@ -1172,7 +1174,7 @@ export default function PaginaWorkspace() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div className="ws-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                 <div>
                   <label style={estiloLabel}>E-mail</label>
                   <input style={estiloInput} type="email" value={form.clienteEmail} onChange={e => setForm(f => ({ ...f, clienteEmail: e.target.value }))} placeholder="email@exemplo.com"
@@ -1198,7 +1200,7 @@ export default function PaginaWorkspace() {
               </div>
 
               {/* Prioridade e Data de Entrega */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+              <div className="ws-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
                 <div>
                   <label style={estiloLabel}>Prioridade</label>
                   <select style={estiloInput} value={form.prioridade} onChange={e => setForm(f => ({ ...f, prioridade: e.target.value as PrioridadeTipo }))}
@@ -1280,10 +1282,10 @@ export default function PaginaWorkspace() {
       {/* Modal — detalhe / edição */}
       {detalheAberto && createPortal(
         <div
+          className="ws-modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setDetalheAberto(null) }}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         >
-          <div style={{ width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
+          <div className="ws-modal-content ws-modal-detail">
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>
