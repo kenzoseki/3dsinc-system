@@ -146,7 +146,7 @@ export default function PaginaAgendaProducao() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="cabecalho-pagina" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Agenda de Produção
@@ -179,7 +179,7 @@ export default function PaginaAgendaProducao() {
       {carregando ? (
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>Carregando...</p>
       ) : (
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="agenda-timeline-grid" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
           {/* Header dos dias */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
             <div style={{ width: '220px', flexShrink: 0, padding: '8px 12px', fontSize: '11px', fontWeight: 600, fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid var(--border)' }}>
@@ -310,7 +310,7 @@ export default function PaginaAgendaProducao() {
       )}
 
       {/* Legenda */}
-      <div style={{ marginTop: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="agenda-legenda" style={{ marginTop: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         {(['SOLICITACAO', 'CUSTO_VIABILIDADE', 'APROVACAO', 'PRODUCAO', 'CALCULO_FRETE', 'ENVIADO'] as Etapa[]).map(e => (
           <div key={e} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: corEtapa[e] }} />

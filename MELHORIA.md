@@ -330,26 +330,38 @@
     - `prefers-reduced-motion`: desativa todas as animações
     - Header: empilha verticalmente em mobile com botão full-width
 
+### Lote 18 (commit atual)
+- RESPONSIVIDADE MOBILE — ESTRUTURA COMPLETA:
+    - Novo arquivo `app/responsive.css` com regras mobile (<768px), tablet (768-1024px) e `prefers-reduced-motion`
+    - Importado em `app/layout.tsx` — aplica globalmente a todas as páginas
+    - **LayoutShell**: topbar oculta nome/cargo do usuário em mobile (mostra só avatar), sidebar colapsável já existente otimizada
+    - **Home (Dashboard)**: KPIs empilham em grid 2×3 em mobile, gráficos Recharts em coluna única, workspace flow bar vertical, tabelas com scroll horizontal
+    - **Pedidos**: tabela oculta em mobile, substituída por cards compactos (número, cliente, descrição, status badge, valor, prazo) com animação `resp-fadeUp`
+    - **Orçamentos**: mesma adaptação tabela → cards mobile (número ORC, cliente, total, status, data)
+    - **Clientes**: tabela → cards mobile (nome, empresa, email, telefone, contagem de pedidos)
+    - **CRM (Leads)**: kanban grid 4 colunas → 1 coluna em mobile, 2 colunas em tablet
+    - **Marketing**: kanban 6 colunas → vertical em mobile, `flex` em vez de `grid` para scroll, colunas colapsam em mobile
+    - **Agenda Produção**: timeline grid com scroll horizontal em mobile, legenda com `flex-wrap`
+    - **Agenda Marketing**: calendário 7×N com scroll horizontal em mobile, seção "Sem data" separada
+    - **Relatórios**: KPIs 3→2 colunas em mobile, gráficos lado a lado → empilhados, tabelas com scroll horizontal, cabeçalho com botões empilhados
+    - **Modais gerais**: TODOS os modais do sistema (Clientes, CRM, Marketing criar/detalhe, Equipe convite, Sugestões, Cliente detalhe exclusão) agora são full-screen em mobile (`.modal-overlay` + `.modal-content` classes), botões de ação empilham verticalmente com `min-height: 48px`
+    - **Filtros**: scroll horizontal sem quebra em mobile (`.filtros-status`)
+    - **Paginação**: botões empilham verticalmente com `min-height: 44px` em mobile
+    - **Busca**: formulário empilha verticalmente em mobile (`.form-busca`)
+    - **Cabeçalhos de ação**: botões empilham em mobile (`.cabecalho-acoes`, `.cabecalho-pagina`)
+    - **Workspace CSS**: removido `scroll-behavior: smooth` e `backdrop-filter: blur(2px)` dos modais (causavam lentidão no scroll)
+    - `prefers-reduced-motion`: desativa animações dos cards mobile e modais
+
 ---
 
 ## Pendências
 
-### Responsividade Mobile — Estrutura Completa
-> **Prioridade: Alta** · Afeta toda a aplicação
+### Testes em Dispositivos Reais
+> **Prioridade: Média** · Validação final
 
-O Lote 17 melhorou a responsividade do Workspace, mas o restante do sistema ainda precisa de ajustes para funcionar bem em telas pequenas (< 768px). Itens pendentes:
-
-1. **LayoutShell (Sidebar + Topbar)**: sidebar já colapsa, mas precisa de hambúrguer mais acessível e overlay touch-friendly. Topbar deve priorizar informação essencial em mobile.
-2. **Home (Dashboard)**: KPIs devem empilhar em 2×3 ou 1×6 grid. Gráficos Recharts precisam de `<ResponsiveContainer>` com altura fixa em mobile.
-3. **Orçamentos**: listagem em tabela deve virar cards em mobile. Editor avançado (`/orcamento/[id]`) precisa de layout single-column.
-4. **Pedidos**: mesma adaptação tabela → cards.
-5. **Clientes**: idem.
-6. **CRM (Leads)**: kanban já tem estrutura similar ao Workspace — aplicar o mesmo padrão CSS.
-7. **Marketing**: idem kanban.
-8. **Agenda Produção / Agenda Marketing**: timeline/calendário precisam de modo compacto (lista vertical em vez de grid 7×N).
-9. **Relatórios**: gráficos e tabelas com scroll horizontal ou layout adaptativo.
-10. **Modais gerais**: todos os modais do sistema devem ser full-screen em mobile.
-11. **Testes em dispositivos reais**: testar em Android e iOS (Safari) para garantir que inputs date/time, selects e textareas funcionam corretamente.
+1. Testar em Android (Chrome) e iOS (Safari) para garantir que inputs date/time, selects e textareas funcionam corretamente
+2. Validar scroll e touch nos kanbans mobile
+3. Verificar performance dos modais full-screen
 
 ### App Mobile (PWA)
 > **Prioridade: Média** · Solução mais simples via PWA

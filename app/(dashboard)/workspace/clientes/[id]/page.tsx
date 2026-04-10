@@ -348,10 +348,11 @@ export default function PaginaDetalheCliente({ params }: { params: Promise<{ id:
       {/* Modal confirmação exclusão */}
       {confirmarExclusao && (
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setConfirmarExclusao(false) }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
         >
-          <div style={{ background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '100%', border: '1px solid var(--border)' }}>
+          <div className="modal-content" style={{ background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '100%', border: '1px solid var(--border)' }}>
             <h3 style={{ margin: '0 0 12px', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Nunito, sans-serif' }}>
               Excluir cliente?
             </h3>
@@ -359,7 +360,7 @@ export default function PaginaDetalheCliente({ params }: { params: Promise<{ id:
               Esta ação não pode ser desfeita. Clientes com pedidos vinculados não podem ser excluídos.
             </p>
             {erro && <p style={{ color: 'var(--red)', fontSize: '13px', margin: '0 0 12px' }}>{erro}</p>}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => { setConfirmarExclusao(false); setErro('') }}
                 style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-page)', fontSize: '14px', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}

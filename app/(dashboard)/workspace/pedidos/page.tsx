@@ -110,7 +110,7 @@ export default function PaginaPedidos() {
       </div>
 
       {/* Filtros de status */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+      <div className="filtros-status" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
         <button
           onClick={() => { setFiltroStatus(''); setPaginaAtual(1) }}
           style={{
@@ -148,8 +148,42 @@ export default function PaginaPedidos() {
         ))}
       </div>
 
-      {/* Tabela */}
-      <div style={{
+      {/* Mobile cards */}
+      <div className="pedidos-cards-mobile" style={{ display: 'none' }}>
+        {carregando ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px', fontSize: '13px' }}>Carregando pedidos...</p>
+        ) : pedidos.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px', fontSize: '13px' }}>Nenhum pedido encontrado</p>
+        ) : pedidos.map((pedido) => {
+          const badge = statusBadge[pedido.status] ?? { cor: '#6B6860', fundo: '#F3F2EF', label: pedido.status }
+          const prazoData = pedido.prazoEntrega ? new Date(pedido.prazoEntrega) : null
+          const atrasado = prazoData && prazoData < new Date() && !['ENTREGUE', 'CANCELADO', 'CONCLUIDO'].includes(pedido.status)
+          return (
+            <div
+              key={pedido.id}
+              className="pedido-card-mobile"
+              onClick={() => window.location.href = `/workspace/pedidos/${pedido.id}`}
+            >
+              <div className="card-header">
+                <span className="card-numero">#{pedido.numero}</span>
+                <span style={{ padding: '3px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: badge.cor, backgroundColor: badge.fundo }}>{badge.label}</span>
+              </div>
+              <div className="card-cliente" style={{ fontFamily: 'Inter, sans-serif' }}>{pedido.cliente.nome}</div>
+              <div className="card-descricao" style={{ fontFamily: 'Inter, sans-serif' }}>{pedido.descricao}</div>
+              <div className="card-footer">
+                <span className="card-valor">{pedido.valorTotal ? `R$ ${parseFloat(pedido.valorTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}</span>
+                <span style={{ fontSize: '12px', color: atrasado ? 'var(--red)' : 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+                  {prazoData ? prazoData.toLocaleDateString('pt-BR') : ''}
+                  {atrasado && ' (atrasado)'}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Tabela (desktop) */}
+      <div className="pedidos-tabela-wrapper" style={{
         borderRadius: '10px',
         overflow: 'hidden',
         backgroundColor: 'var(--bg-surface)',
@@ -265,7 +299,7 @@ export default function PaginaPedidos() {
 
         {/* Paginação */}
         {totalPaginas > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+          <div className="paginacao" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
             <button
               onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
               disabled={paginaAtual === 1}

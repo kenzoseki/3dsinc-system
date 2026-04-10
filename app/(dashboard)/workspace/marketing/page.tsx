@@ -185,7 +185,7 @@ export default function PaginaMarketing() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="cabecalho-pagina" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Marketing
@@ -194,7 +194,7 @@ export default function PaginaMarketing() {
             Kanban de conteúdo — da ideia à publicação
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="cabecalho-acoes" style={{ display: 'flex', gap: '8px' }}>
           <Link href="/workspace/agenda-marketing" style={{ padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', textDecoration: 'none', backgroundColor: 'transparent' }}>
             Agenda
           </Link>
@@ -217,15 +217,16 @@ export default function PaginaMarketing() {
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>Carregando...</p>
       ) : (
         /* Kanban */
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ETAPAS.length}, 1fr)`, gap: '12px', minHeight: '500px' }}>
+        <div className="mkt-kanban-container" style={{ display: 'flex', gap: '12px', minHeight: '500px', overflowX: 'auto' }}>
           {ETAPAS.map(etapa => {
             const colCards = cardsPorEtapa(etapa)
             return (
               <div
                 key={etapa}
+                className="mkt-coluna"
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(etapa)}
-                style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '10px', border: `2px solid ${corEtapa[etapa].borda}22`, display: 'flex', flexDirection: 'column' }}
+                style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '10px', border: `2px solid ${corEtapa[etapa].borda}22`, display: 'flex', flexDirection: 'column', flex: '1 1 180px', minWidth: '180px' }}
               >
                 {/* Header coluna */}
                 <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', backgroundColor: corEtapa[etapa].header, borderRadius: '8px 8px 0 0' }}>
@@ -280,10 +281,11 @@ export default function PaginaMarketing() {
       {/* Modal — Criar Card */}
       {modalCriar && createPortal(
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setModalCriar(false) }}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         >
-          <div style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px' }}>
               Novo Card de Marketing
             </h2>
@@ -343,10 +345,11 @@ export default function PaginaMarketing() {
       {/* Modal — Detalhe / Edição */}
       {detalheAberto && createPortal(
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setDetalheAberto(null) }}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         >
-          <div style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: '1px solid var(--border)', padding: '28px' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>

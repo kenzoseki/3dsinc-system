@@ -124,7 +124,7 @@ export default function PaginaRelatorios() {
   return (
     <div>
       {/* Cabeçalho — oculto na impressão */}
-      <div className="sem-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="sem-print rel-cabecalho" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Relatórios
@@ -186,7 +186,7 @@ export default function PaginaRelatorios() {
           </div>
 
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
+          <div className="rel-kpis-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
             {[
               { titulo: 'Total de Pedidos',    valor: String(dados.kpis.totalPedidos) },
               { titulo: 'Pedidos Concluídos',  valor: String(dados.kpis.pedidosConcluidos) },
@@ -205,7 +205,7 @@ export default function PaginaRelatorios() {
               </div>
             ))}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+          <div className="rel-kpis-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
             <div style={{
               background: 'var(--bg-surface)', border: '1px solid var(--border)',
               borderRadius: '10px', padding: '16px',
@@ -243,7 +243,7 @@ export default function PaginaRelatorios() {
 
           {/* Gráficos lado a lado */}
           <section style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="rel-graficos-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               {/* Gráfico de Barras — Receita Real Mensal */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                 <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>
@@ -307,7 +307,7 @@ export default function PaginaRelatorios() {
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
               Pedidos ({dados.pedidos.length})
             </h2>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div className="rel-tabela-container" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
@@ -356,7 +356,7 @@ export default function PaginaRelatorios() {
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
               Clientes — Top por Receita
             </h2>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div className="rel-tabela-container" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>

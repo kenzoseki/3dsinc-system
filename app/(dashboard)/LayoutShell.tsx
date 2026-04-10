@@ -355,11 +355,11 @@ export default function LayoutShell({
                 boxShadow: '0 1px 4px rgba(91,71,200,0.25)',
                 flexShrink: 0,
               }}>{iniciais}</div>
-              <div style={{ textAlign: 'left' }}>
+              <div className="topbar-user-info" style={{ textAlign: 'left' }}>
                 <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>{user.nome}</p>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>{labelCargo[user.cargo] ?? user.cargo}</p>
               </div>
-              <span aria-hidden="true" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>▾</span>
+              <span className="topbar-user-info" aria-hidden="true" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>▾</span>
             </button>
 
             {dropdownAberto && (

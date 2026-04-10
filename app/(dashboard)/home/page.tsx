@@ -259,7 +259,7 @@ export default async function PaginaDashboard({
       </div>
 
       {/* Gráficos — linha 1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+      <div className="grid-graficos-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <GraficioPedidosStatus dados={dados.dadosPedidosStatus} />
         <GraficoReceita dados={dados.dadosReceita} />
       </div>
@@ -279,7 +279,7 @@ export default async function PaginaDashboard({
             Abrir Workspace →
           </Link>
         </div>
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="workspace-flow-bar" style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
           {([
             { etapa: 'SOLICITACAO', label: 'SOL', cor: '#5B47C8', fundo: '#EDE9FC' },
             { etapa: 'CUSTO_VIABILIDADE', label: 'C&V', cor: '#8A5A0A', fundo: '#FEF3E2' },
@@ -298,7 +298,7 @@ export default async function PaginaDashboard({
                   <p style={{ fontSize: '10px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: item.cor, margin: '0 0 2px', position: 'relative' }}>{item.label}</p>
                   <p style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: item.cor, margin: 0, position: 'relative' }}>{count}</p>
                 </div>
-                {idx < 5 && <span style={{ color: 'var(--text-secondary)', fontSize: '10px', flexShrink: 0 }}>→</span>}
+                {idx < 5 && <span className="flow-arrow" style={{ color: 'var(--text-secondary)', fontSize: '10px', flexShrink: 0 }}>→</span>}
               </div>
             )
           })}
@@ -315,7 +315,7 @@ export default async function PaginaDashboard({
             Ver todos →
           </Link>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="home-tabela-container" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-hover)' }}>
@@ -374,7 +374,7 @@ export default async function PaginaDashboard({
             Ver todos →
           </Link>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="home-tabela-container" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-hover)' }}>

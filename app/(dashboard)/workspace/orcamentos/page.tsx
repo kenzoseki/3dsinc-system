@@ -92,7 +92,7 @@ export default function OrcamentosPage() {
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="cabecalho-acoes" style={{ display: 'flex', gap: '8px' }}>
           <Link
             href="/workspace/orcamentos/kanban"
             style={{
@@ -121,7 +121,7 @@ export default function OrcamentosPage() {
       </div>
 
       {/* Filtros de status */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div className="filtros-status" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
         {FILTROS.map(f => (
           <button
             key={f.valor}
@@ -158,7 +158,38 @@ export default function OrcamentosPage() {
           </p>
         </div>
       ) : (
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+        <>
+        {/* Mobile cards */}
+        <div className="orcamentos-cards-mobile" style={{ display: 'none' }}>
+          {orcamentos.map((orc) => {
+            const st = labelStatus[orc.status] ?? labelStatus.RASCUNHO
+            return (
+              <div key={orc.id} className="orcamento-card-mobile" onClick={() => window.location.href = `/workspace/orcamentos/${orc.id}`}>
+                <div className="card-header">
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
+                  </span>
+                  <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, fontFamily: 'Inter, sans-serif', backgroundColor: st.bg, color: st.cor }}>
+                    {st.label}
+                  </span>
+                </div>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif', margin: '4px 0 0' }}>{orc.clienteNome}</p>
+                {orc.clienteEmpresa && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>{orc.clienteEmpresa}</p>}
+                <div className="card-footer">
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {calcularTotal(orc).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
+                    {new Date(orc.dataEmissao).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Desktop table */}
+        <div className="orcamentos-tabela-wrapper" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -213,11 +244,12 @@ export default function OrcamentosPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Paginação */}
       {paginacao && paginacao.totalPaginas > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+        <div className="paginacao" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
           <button
             onClick={() => setPagina(p => Math.max(1, p - 1))}
             disabled={pagina === 1}

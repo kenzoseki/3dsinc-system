@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import './responsive.css'
 import ProvedorSessao from '@/components/providers/SessionProvider'
 import PwaRegistrar from '@/components/providers/PwaRegistrar'
 import { Analytics } from '@vercel/analytics/next'

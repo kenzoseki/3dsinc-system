@@ -137,7 +137,7 @@ export default function PaginaClientes() {
       </div>
 
       {/* Busca */}
-      <form onSubmit={handleBusca} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <form onSubmit={handleBusca} className="form-busca" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <input
           type="text"
           placeholder="Buscar por nome, empresa ou email..."
@@ -175,8 +175,31 @@ export default function PaginaClientes() {
         )}
       </form>
 
-      {/* Tabela */}
-      <div style={{ background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      {/* Mobile cards */}
+      <div className="clientes-cards-mobile" style={{ display: 'none' }}>
+        {carregando ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px', fontSize: '14px' }}>Carregando...</p>
+        ) : clientes.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px', fontSize: '14px' }}>{busca ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}</p>
+        ) : clientes.map((c) => (
+          <div key={c.id} className="cliente-card-mobile" onClick={() => router.push(`/workspace/clientes/${c.id}`)}>
+            <div className="card-nome" style={{ fontFamily: 'Inter, sans-serif' }}>{c.nome}</div>
+            <div className="card-info" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {c.empresa && <span>{c.empresa}</span>}
+              {c.email && <span>{c.email}</span>}
+              {c.telefone && <span>{c.telefone}</span>}
+            </div>
+            <div className="card-footer">
+              <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', background: c._count.pedidos > 0 ? 'var(--purple-light)' : 'var(--bg-page)', color: c._count.pedidos > 0 ? 'var(--purple-text)' : 'var(--text-secondary)' }}>
+                {c._count.pedidos} pedido{c._count.pedidos !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela (desktop) */}
+      <div className="clientes-tabela-wrapper" style={{ background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
         {carregando ? (
           <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px' }}>
             Carregando...
@@ -244,7 +267,7 @@ export default function PaginaClientes() {
 
       {/* Paginação */}
       {paginacao && paginacao.totalPaginas > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+        <div className="paginacao" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
           <button
             onClick={() => setPagina(p => Math.max(1, p - 1))}
             disabled={pagina === 1}
@@ -277,13 +300,14 @@ export default function PaginaClientes() {
       {/* Modal novo cliente */}
       {modalAberto && createPortal(
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
           }}
         >
-          <div style={{
+          <div className="modal-content" style={{
             background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
             maxHeight: '90vh', overflowY: 'auto',
@@ -334,7 +358,7 @@ export default function PaginaClientes() {
                 <p style={{ color: 'var(--red)', fontSize: '13px', margin: 0 }}>{erroModal}</p>
               )}
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <div className="modal-actions" style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button
                   type="button"
                   onClick={() => setModalAberto(false)}

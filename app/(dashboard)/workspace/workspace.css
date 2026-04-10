@@ -104,7 +104,6 @@
   z-index: 1000;
   padding: 16px;
   animation: ws-scaleIn 0.2s ease-out;
-  backdrop-filter: blur(2px);
 }
 
 .ws-modal-content {
@@ -127,9 +126,8 @@
   max-width: 640px;
 }
 
-/* Smooth scroll for modal content */
+/* Prevent scroll chaining to body */
 .ws-modal-content {
-  scroll-behavior: smooth;
   overscroll-behavior: contain;
 }
 

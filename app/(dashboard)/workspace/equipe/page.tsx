@@ -269,10 +269,11 @@ export default function PaginaEquipe() {
       {/* Modal de convite */}
       {modalConvite && (
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) { setModalConvite(false); setLinkGerado('') } }}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         >
-          <div style={{ width: '100%', maxWidth: '440px', padding: '28px', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid var(--border)' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '440px', padding: '28px', borderRadius: '12px', backgroundColor: 'var(--bg-surface)', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid var(--border)' }}>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px' }}>
               Convidar Membro
             </h2>

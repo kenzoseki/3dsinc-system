@@ -195,7 +195,7 @@ export default function PaginaCRM() {
           Carregando...
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', alignItems: 'start' }}>
+        <div className="crm-kanban-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', alignItems: 'start' }}>
           {COLUNAS.map(col => {
             const lista = porEtapa(col.valor)
             const total = totalEtapa(col.valor)
@@ -330,13 +330,14 @@ export default function PaginaCRM() {
       {/* Modal — Novo / Editar Lead */}
       {modalAberto && (
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) fecharModal() }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
           }}
         >
-          <div style={{
+          <div className="modal-content" style={{
             background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
             maxHeight: '90vh', overflowY: 'auto',
@@ -415,7 +416,7 @@ export default function PaginaCRM() {
 
               {erroModal && <p style={{ color: 'var(--red)', fontSize: '13px', margin: 0 }}>{erroModal}</p>}
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <div className="modal-actions" style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button
                   type="button"
                   onClick={fecharModal}

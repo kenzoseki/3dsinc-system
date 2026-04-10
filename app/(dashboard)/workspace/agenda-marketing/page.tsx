@@ -122,7 +122,7 @@ export default function PaginaAgendaMarketing() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="cabecalho-pagina" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Agenda de Marketing
@@ -155,7 +155,7 @@ export default function PaginaAgendaMarketing() {
       {carregando ? (
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>Carregando...</p>
       ) : (
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="agenda-mkt-grid" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
           {/* Header dias da semana */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--border)' }}>
             {diasSemana.map(d => (
@@ -224,7 +224,7 @@ export default function PaginaAgendaMarketing() {
         const semData = cards.filter(c => !c.dataPublicacao)
         if (semData.length === 0) return null
         return (
-          <div style={{ marginTop: '24px' }}>
+          <div className="agenda-mkt-sem-data" style={{ marginTop: '24px' }}>
             <h3 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '12px' }}>
               Sem data de publicação ({semData.length})
             </h3>

@@ -130,13 +130,14 @@ export function BotaoSugestao() {
       {/* Modal */}
       {aberto && (
         <div
+          className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) fechar() }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
           }}
         >
-          <div style={{
+          <div className="modal-content" style={{
             background: 'var(--bg-surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', border: '1px solid var(--border)',
             maxHeight: '90vh', overflowY: 'auto',
