@@ -27,7 +27,7 @@ const schemaAtualizar = z.object({
   pacoteLargura:     z.coerce.number().nonnegative().optional().nullable(),
   pacoteComprimento: z.coerce.number().nonnegative().optional().nullable(),
   pacotePeso:        z.coerce.number().nonnegative().optional().nullable(),
-  frete:           z.number().nonnegative().optional().nullable(),
+  frete:           z.coerce.number().nonnegative().optional().nullable(),
   dataEnvio:       z.string().optional().nullable(),
   horaEnvio:       z.string().max(10).optional().nullable(),
   codigoRastreio:  z.string().max(200).optional().nullable(),

@@ -1,12 +1,10 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StlPreviewDynamic from '@/components/StlPreviewDynamic'
-import { upload } from '@vercel/blob/client'
 
 type Etapa = 'SOLICITACAO' | 'CUSTO_VIABILIDADE' | 'APROVACAO' | 'PRODUCAO' | 'CALCULO_FRETE' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO'
 
@@ -116,7 +114,6 @@ const estiloLabel: React.CSSProperties = {
 
 export default function PaginaWorkspace() {
   const { data: session } = useSession()
-  const router = useRouter()
 
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -203,63 +200,31 @@ export default function PaginaWorkspace() {
     } catch { setArquivos([]) }
   }, [])
 
-  function detectarTipoArquivo(file: File): string {
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    const mimeMap: Record<string, string> = {
-      stl: 'model/stl', obj: 'model/obj', gcode: 'text/x-gcode', '3mf': 'model/3mf',
-      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
-      pdf: 'application/pdf', zip: 'application/zip',
-    }
-    return mimeMap[ext ?? ''] || file.type || 'application/octet-stream'
-  }
-
   async function uploadArquivo(pedidoId: string, file: File, itemWorkspaceId?: string | null) {
-    // Upload via Vercel Blob (client-direct, sem passar pelo body da função
-    // serverless — bypassa o limite de 4.5 MB do Vercel Hobby/Pro).
-    // Limite alto (50 MB) para deixar margem dentro do plano Hobby (1 GB total).
-    if (file.size > 50 * 1024 * 1024) {
-      setUploadErro('Arquivo muito grande (máx. 50 MB).')
+    // Upload via FormData → server-side `put()` no Vercel Blob.
+    // Substituiu o client SDK do @vercel/blob, que estava sendo abortado em dev.
+    // Limite de 30 MB (proxyClientMaxBodySize no next.config).
+    if (file.size > 30 * 1024 * 1024) {
+      setUploadErro('Arquivo muito grande (máx. 30 MB).')
       setTimeout(() => setUploadErro(''), 5000)
       return
     }
     setUploadando(true)
     setUploadErro('')
 
-    // Timeout duro de 60s — evita "carregando infinito" se o @vercel/blob travar
-    // (ex.: BLOB_READ_WRITE_TOKEN ausente em dev faz o SDK retentar 10x)
+    // Timeout duro de 120s — abort controlado, sem "carregando infinito"
     const ctrl = new AbortController()
-    const timeoutId = setTimeout(() => ctrl.abort(), 60_000)
+    const timeoutId = setTimeout(() => ctrl.abort(), 120_000)
 
     try {
-      const tipo = detectarTipoArquivo(file)
+      const formData = new FormData()
+      formData.append('file', file)
+      if (itemWorkspaceId) formData.append('itemWorkspaceId', itemWorkspaceId)
 
-      // 1. Upload direto browser → Vercel Blob, com token gerado por /api/blob/token
-      // Se for upload por item, prefixa o pathname com o id do item para organização
-      const pathname = itemWorkspaceId
-        ? `pedidos/${pedidoId}/itens/${itemWorkspaceId}/${file.name}`
-        : `pedidos/${pedidoId}/${file.name}`
-
-      console.log('[upload] iniciando', { pathname, tipo, tamanhoBytes: file.size, itemWorkspaceId })
-      const blob = await upload(pathname, file, {
-        access: 'public',
-        handleUploadUrl: '/api/blob/token',
-        contentType: tipo,
-        abortSignal: ctrl.signal,
-      })
-      console.log('[upload] blob OK', blob.url)
-
-      // 2. Registra os metadados do blob no nosso banco
+      console.log('[upload] iniciando', { nome: file.name, tamanhoBytes: file.size, itemWorkspaceId })
       const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome:         file.name,
-          tipo,
-          tamanhoBytes: file.size,
-          blobUrl:      blob.url,
-          blobPathname: blob.pathname,
-          itemWorkspaceId: itemWorkspaceId ?? null,
-        }),
+        body: formData,
         signal: ctrl.signal,
       })
 
@@ -269,16 +234,15 @@ export default function PaginaWorkspace() {
         console.log('[upload] registrado no banco', novo.id)
       } else {
         const err = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
-        const msg = 'Erro registrando arquivo: ' + (err.erro ?? 'Falha')
-        console.error('[upload] falha registrando', r.status, err)
+        const msg = 'Erro upload: ' + (err.erro ?? `Falha (${r.status})`)
+        console.error('[upload] falha', r.status, err)
         setUploadErro(msg)
         setTimeout(() => setUploadErro(''), 6000)
       }
     } catch (e) {
-      // Erros do handleUpload chegam aqui (bloqueio de cota, auth, token ausente, abort, etc.)
       const aborted = e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))
       const msg = aborted
-        ? 'Upload cancelado: tempo esgotado (60s). Verifique BLOB_READ_WRITE_TOKEN no .env e a conexão.'
+        ? 'Upload cancelado: tempo esgotado (120s).'
         : 'Erro upload: ' + (e instanceof Error ? e.message : 'Falha de rede')
       console.error('[upload] erro', e)
       setUploadErro(msg)
@@ -295,12 +259,11 @@ export default function PaginaWorkspace() {
     if (r.ok) setArquivos(prev => prev.filter(a => a.id !== arquivoId))
   }
 
-  async function downloadArquivo(pedidoId: string, arquivoId: string, nome: string, blobUrl?: string | null) {
+  async function downloadArquivo(pedidoId: string, arquivoId: string, nome: string) {
     setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'baixar' }))
     try {
-      // Para arquivos no Vercel Blob, baixa direto do CDN (sem passar pelo nosso server)
-      const url = blobUrl ?? `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
-      const r = await fetch(url)
+      // Sempre via proxy server-side (Blob Store é private, URL direta dá 403)
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
       if (r.ok) {
         const blob = await r.blob()
         const objectUrl = URL.createObjectURL(blob)
@@ -313,11 +276,10 @@ export default function PaginaWorkspace() {
     } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arquivoId]; return n }) }
   }
 
-  async function previewArquivo(pedidoId: string, arquivoId: string, blobUrl?: string | null) {
+  async function previewArquivo(pedidoId: string, arquivoId: string) {
     setLoadingArquivo(prev => ({ ...prev, [arquivoId]: 'preview' }))
     try {
-      const url = blobUrl ?? `/api/pedidos/${pedidoId}/arquivos/${arquivoId}`
-      const r = await fetch(url)
+      const r = await fetch(`/api/pedidos/${pedidoId}/arquivos/${arquivoId}`)
       if (r.ok) {
         const blob = await r.blob()
         setPreviewUrl(URL.createObjectURL(blob))
@@ -591,7 +553,7 @@ export default function PaginaWorkspace() {
                   {isImagem && (
                     <button
                       disabled={!!loadingArquivo[arq.id]}
-                      onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id, arq.blobUrl)}
+                      onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)}
                       style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'preview' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer' }}
                     >
                       {loadingArquivo[arq.id] === 'preview' ? '...' : 'Preview'}
@@ -603,7 +565,7 @@ export default function PaginaWorkspace() {
                       onClick={async () => {
                         setLoadingArquivo(prev => ({ ...prev, [arq.id]: '3d' }))
                         try {
-                          const url = arq.blobUrl ?? `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
+                          const url = `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
                           const r = await fetch(url)
                           if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
                         } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arq.id]; return n }) }
@@ -615,7 +577,7 @@ export default function PaginaWorkspace() {
                   )}
                   <button
                     disabled={!!loadingArquivo[arq.id]}
-                    onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome, arq.blobUrl)}
+                    onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)}
                     style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '9px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer' }}
                   >
                     {loadingArquivo[arq.id] === 'baixar' ? '...' : '↓'}
@@ -1413,7 +1375,7 @@ export default function PaginaWorkspace() {
                   </p>
                   {cargo !== 'VISUALIZADOR' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>máx. 50 MB</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>máx. 30 MB</span>
                       <label style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500, border: '1px solid var(--border)', color: 'var(--purple)', cursor: uploadando ? 'not-allowed' : 'pointer', backgroundColor: 'transparent', opacity: uploadando ? 0.6 : 1 }}>
                         {uploadando ? 'Enviando...' : '+ Upload'}
                         <input type="file" hidden disabled={uploadando} onChange={e => { const f = e.target.files?.[0]; if (f && detalheAberto.pedidoId) uploadArquivo(detalheAberto.pedidoId, f); e.target.value = '' }} />
@@ -1434,7 +1396,7 @@ export default function PaginaWorkspace() {
                           {isImagem && (
                             <button
                               disabled={!!loadingArquivo[arq.id]}
-                              onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id, arq.blobUrl)}
+                              onClick={() => previewArquivo(detalheAberto.pedidoId!, arq.id)}
                               style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'preview' ? 'var(--purple-light)' : 'transparent', color: 'var(--purple)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'preview' ? 0.5 : 1, transition: 'all 0.2s ease' }}
                             >
                               {loadingArquivo[arq.id] === 'preview' ? 'Abrindo...' : 'Preview'}
@@ -1446,7 +1408,7 @@ export default function PaginaWorkspace() {
                               onClick={async () => {
                                 setLoadingArquivo(prev => ({ ...prev, [arq.id]: '3d' }))
                                 try {
-                                  const url = arq.blobUrl ?? `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
+                                  const url = `/api/pedidos/${detalheAberto.pedidoId!}/arquivos/${arq.id}`
                                   const r = await fetch(url)
                                   if (r.ok) { const blob = await r.blob(); setStlPreviewUrl(URL.createObjectURL(blob)) }
                                 } finally { setLoadingArquivo(prev => { const n = { ...prev }; delete n[arq.id]; return n }) }
@@ -1458,7 +1420,7 @@ export default function PaginaWorkspace() {
                           )}
                           <button
                             disabled={!!loadingArquivo[arq.id]}
-                            onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome, arq.blobUrl)}
+                            onClick={() => downloadArquivo(detalheAberto.pedidoId!, arq.id, arq.nome)}
                             style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', border: '1px solid var(--border)', backgroundColor: loadingArquivo[arq.id] === 'baixar' ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-secondary)', cursor: loadingArquivo[arq.id] ? 'wait' : 'pointer', opacity: loadingArquivo[arq.id] && loadingArquivo[arq.id] !== 'baixar' ? 0.5 : 1, transition: 'all 0.2s ease' }}
                           >
                             {loadingArquivo[arq.id] === 'baixar' ? 'Baixando...' : 'Baixar'}

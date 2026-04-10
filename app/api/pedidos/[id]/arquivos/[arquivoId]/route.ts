@@ -3,8 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
-// GET — serve o arquivo. Para blobs novos (Vercel Blob) redireciona para o
-// URL público; para arquivos legados (base64 no Postgres) decodifica e serve.
+// GET — serve o arquivo como proxy.
+// Blob Store é private → URL direta dá 403. Fazemos fetch server-side
+// com o BLOB_READ_WRITE_TOKEN e retornamos o conteúdo ao client.
+// Para arquivos legados (base64 no Postgres), decodifica e serve.
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ id: string; arquivoId: string }> }
@@ -19,9 +21,37 @@ export async function GET(
     })
     if (!arquivo) return NextResponse.json({ erro: 'Não encontrado' }, { status: 404 })
 
-    // Caminho novo: arquivo no Vercel Blob → redireciona para URL público
+    // Sanitiza nome e tipo para headers seguros
+    const nomeSanitizado = arquivo.nome.replace(/["\r\n]/g, '_')
+    const tipoSanitizado = /^[\w-]+\/[\w.+\-]+$/.test(arquivo.tipo)
+      ? arquivo.tipo
+      : 'application/octet-stream'
+
+    // Caminho novo: arquivo no Vercel Blob → proxy server-side (private store)
     if (arquivo.blobUrl) {
-      return NextResponse.redirect(arquivo.blobUrl, 302)
+      const token = process.env.BLOB_READ_WRITE_TOKEN
+      if (!token) {
+        return NextResponse.json({ erro: 'BLOB_READ_WRITE_TOKEN não configurado' }, { status: 500 })
+      }
+
+      const blobRes = await fetch(arquivo.blobUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!blobRes.ok) {
+        console.error('[arquivos] Erro fetch blob:', blobRes.status, arquivo.blobUrl)
+        return NextResponse.json({ erro: 'Erro ao buscar arquivo' }, { status: 502 })
+      }
+
+      const body = blobRes.body
+      return new NextResponse(body, {
+        headers: {
+          'Content-Type': tipoSanitizado,
+          'Content-Disposition': `inline; filename="${nomeSanitizado}"`,
+          ...(blobRes.headers.get('content-length')
+            ? { 'Content-Length': blobRes.headers.get('content-length')! }
+            : {}),
+        },
+      })
     }
 
     // Caminho legado: arquivo em base64 no Postgres
@@ -33,13 +63,6 @@ export async function GET(
       ? arquivo.conteudoBase64.split(',')[1]
       : arquivo.conteudoBase64
     const buffer = Buffer.from(base64, 'base64')
-
-    // Sanitiza nome para evitar header injection (remove aspas, quebras de linha e chars de controle)
-    const nomeSanitizado = arquivo.nome.replace(/["\r\n]/g, '_')
-    // Sanitiza Content-Type para aceitar apenas mime types válidos
-    const tipoSanitizado = /^[\w-]+\/[\w.+\-]+$/.test(arquivo.tipo)
-      ? arquivo.tipo
-      : 'application/octet-stream'
 
     return new NextResponse(buffer, {
       headers: {

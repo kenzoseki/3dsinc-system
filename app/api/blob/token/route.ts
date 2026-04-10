@@ -57,18 +57,11 @@ export async function POST(request: Request): Promise<NextResponse> {
             'application/zip',
           ],
           addRandomSuffix: true,
-          // tokenPayload é serializado e devolvido em onUploadCompleted
-          tokenPayload: JSON.stringify({ usuarioId: session.user.id }),
         }
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Webhook do Vercel — chamado em produção após o upload terminar.
-        // Em dev (localhost) não dispara. Por isso, registramos também via
-        // POST /api/pedidos/[id]/arquivos no client após o upload.
-        // Aqui só logamos (ou no futuro, podemos atualizar contadores como
-        // backup caso o registro client-side falhe).
-        console.log('Vercel Blob upload completed:', blob.pathname, tokenPayload)
-      },
+      // onUploadCompleted removido: exige callback URL pública (falha em dev)
+      // e o registro no banco já é feito via POST /api/pedidos/[id]/arquivos
+      // no client imediatamente após o upload terminar.
     })
 
     return NextResponse.json(jsonResponse)
