@@ -185,11 +185,13 @@ export default function PaginaWorkspace() {
   const [detalheDataEnvio, setDetalheDataEnvio] = useState('')
   const [detalheHoraEnvio, setDetalheHoraEnvio] = useState('')
   const [detalheCodigoRastreio, setDetalheCodigoRastreio] = useState('')
+  const [detalheDataEntrega, setDetalheDataEntrega] = useState('')
 
   // Arquivos do pedido vinculado
   interface ArquivoInfo { id: string; nome: string; tipo: string; tamanhoBytes: number; blobUrl?: string | null; itemWorkspaceId?: string | null; createdAt: string }
   const [arquivos, setArquivos] = useState<ArquivoInfo[]>([])
   const [uploadando, setUploadando] = useState(false)
+  const [uploadErro, setUploadErro] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [stlPreviewUrl, setStlPreviewUrl] = useState<string | null>(null)
   const [loadingArquivo, setLoadingArquivo] = useState<Record<string, string>>({})
@@ -216,11 +218,18 @@ export default function PaginaWorkspace() {
     // serverless — bypassa o limite de 4.5 MB do Vercel Hobby/Pro).
     // Limite alto (50 MB) para deixar margem dentro do plano Hobby (1 GB total).
     if (file.size > 50 * 1024 * 1024) {
-      setMensagem('Arquivo muito grande (máx. 50 MB).')
-      setTimeout(() => setMensagem(''), 4000)
+      setUploadErro('Arquivo muito grande (máx. 50 MB).')
+      setTimeout(() => setUploadErro(''), 5000)
       return
     }
     setUploadando(true)
+    setUploadErro('')
+
+    // Timeout duro de 60s — evita "carregando infinito" se o @vercel/blob travar
+    // (ex.: BLOB_READ_WRITE_TOKEN ausente em dev faz o SDK retentar 10x)
+    const ctrl = new AbortController()
+    const timeoutId = setTimeout(() => ctrl.abort(), 60_000)
+
     try {
       const tipo = detectarTipoArquivo(file)
 
@@ -229,11 +238,15 @@ export default function PaginaWorkspace() {
       const pathname = itemWorkspaceId
         ? `pedidos/${pedidoId}/itens/${itemWorkspaceId}/${file.name}`
         : `pedidos/${pedidoId}/${file.name}`
+
+      console.log('[upload] iniciando', { pathname, tipo, tamanhoBytes: file.size, itemWorkspaceId })
       const blob = await upload(pathname, file, {
         access: 'public',
         handleUploadUrl: '/api/blob/token',
         contentType: tipo,
+        abortSignal: ctrl.signal,
       })
+      console.log('[upload] blob OK', blob.url)
 
       // 2. Registra os metadados do blob no nosso banco
       const r = await fetch(`/api/pedidos/${pedidoId}/arquivos`, {
@@ -247,22 +260,33 @@ export default function PaginaWorkspace() {
           blobPathname: blob.pathname,
           itemWorkspaceId: itemWorkspaceId ?? null,
         }),
+        signal: ctrl.signal,
       })
 
       if (r.ok) {
         const novo = await r.json()
         setArquivos(prev => [...prev, novo])
+        console.log('[upload] registrado no banco', novo.id)
       } else {
         const err = await r.json().catch(() => ({ erro: `Erro ${r.status}` }))
-        setMensagem('Erro registrando arquivo: ' + (err.erro ?? 'Falha'))
-        setTimeout(() => setMensagem(''), 5000)
+        const msg = 'Erro registrando arquivo: ' + (err.erro ?? 'Falha')
+        console.error('[upload] falha registrando', r.status, err)
+        setUploadErro(msg)
+        setTimeout(() => setUploadErro(''), 6000)
       }
     } catch (e) {
-      // Erros do handleUpload chegam aqui (bloqueio de cota, auth, etc.)
-      const msg = e instanceof Error ? e.message : 'Falha de rede'
-      setMensagem('Erro upload: ' + msg)
-      setTimeout(() => setMensagem(''), 6000)
-    } finally { setUploadando(false) }
+      // Erros do handleUpload chegam aqui (bloqueio de cota, auth, token ausente, abort, etc.)
+      const aborted = e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))
+      const msg = aborted
+        ? 'Upload cancelado: tempo esgotado (60s). Verifique BLOB_READ_WRITE_TOKEN no .env e a conexão.'
+        : 'Erro upload: ' + (e instanceof Error ? e.message : 'Falha de rede')
+      console.error('[upload] erro', e)
+      setUploadErro(msg)
+      setTimeout(() => setUploadErro(''), 8000)
+    } finally {
+      clearTimeout(timeoutId)
+      setUploadando(false)
+    }
   }
 
   async function excluirArquivo(pedidoId: string, arquivoId: string) {
@@ -329,8 +353,10 @@ export default function PaginaWorkspace() {
       setDetalheDataEnvio(detalheAberto.dataEnvio ? detalheAberto.dataEnvio.slice(0, 10) : '')
       setDetalheHoraEnvio(detalheAberto.horaEnvio ?? '')
       setDetalheCodigoRastreio(detalheAberto.codigoRastreio ?? '')
+      setDetalheDataEntrega(detalheAberto.dataEntrega ? detalheAberto.dataEntrega.slice(0, 10) : '')
       setConfirmFinalizar(false)
       setPreviewUrl(null)
+      setUploadErro('')
       if (stlPreviewUrl) { URL.revokeObjectURL(stlPreviewUrl); setStlPreviewUrl(null) }
       if (detalheAberto.pedidoId) carregarArquivos(detalheAberto.pedidoId)
       else setArquivos([])
@@ -474,6 +500,7 @@ export default function PaginaWorkspace() {
           dataEnvio:     detalheDataEnvio || null,
           horaEnvio:     detalheHoraEnvio || null,
           codigoRastreio: detalheCodigoRastreio || null,
+          dataEntrega:   detalheDataEntrega || null,
           itens: detalheItens.map(it => ({
             descricao:     it.descricao,
             referencia:    it.referencia || null,
@@ -1099,12 +1126,18 @@ export default function PaginaWorkspace() {
                       </div>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif', marginBottom: '4px' }}>{s.clienteNome}</p>
                       {s.itens.length > 0 && (
-                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-                          {s.itens.length} item{s.itens.length !== 1 ? 's' : ''}
-                          {s.itens.some(it => it.valorUnitario) && (
-                            <> · R$ {s.itens.reduce((acc, it) => acc + (it.valorUnitario ?? 0) * it.quantidade, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</>
-                          )}
-                        </p>
+                        <>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+                            {s.itens.length} item{s.itens.length !== 1 ? 's' : ''}
+                            {s.itens.some(it => it.valorUnitario) && (
+                              <> · R$ {s.itens.reduce((acc, it) => acc + (it.valorUnitario ?? 0) * it.quantidade, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</>
+                            )}
+                          </p>
+                          {/* Lote 16.1: preview da descrição do primeiro item como referência rápida */}
+                          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', fontStyle: 'italic', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {s.itens[0].descricao}
+                          </p>
+                        </>
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
                         <p style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', margin: 0 }}>
@@ -1305,11 +1338,16 @@ export default function PaginaWorkspace() {
                   <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, fontFamily: 'Inter, sans-serif', backgroundColor: corPrioridade[detalheAberto.prioridade]?.bg ?? 'var(--bg-hover)', color: corPrioridade[detalheAberto.prioridade]?.texto ?? 'var(--text-secondary)' }}>
                     {labelPrioridade[detalheAberto.prioridade] ?? 'Normal'}
                   </span>
-                  {detalheAberto.dataEntrega && (
-                    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', backgroundColor: new Date(detalheAberto.dataEntrega) < new Date() ? 'var(--red-light)' : 'var(--amber-light)', color: new Date(detalheAberto.dataEntrega) < new Date() ? 'var(--red)' : 'var(--amber)' }}>
-                      Entrega: {new Date(detalheAberto.dataEntrega).toLocaleDateString('pt-BR')}
-                    </span>
-                  )}
+                  {/* Lote 16.1: data de entrega editável em todas as etapas */}
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', backgroundColor: detalheDataEntrega && new Date(detalheDataEntrega + 'T12:00:00') < new Date() ? 'var(--red-light)' : 'var(--amber-light)', color: detalheDataEntrega && new Date(detalheDataEntrega + 'T12:00:00') < new Date() ? 'var(--red)' : 'var(--amber)' }}>
+                    Entrega:
+                    <input
+                      type="date"
+                      value={detalheDataEntrega}
+                      onChange={e => setDetalheDataEntrega(e.target.value)}
+                      style={{ border: 'none', background: 'transparent', color: 'inherit', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, cursor: 'pointer', padding: 0, outline: 'none' }}
+                    />
+                  </label>
                 </div>
               </div>
               <button onClick={() => setDetalheAberto(null)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }}>✕</button>
@@ -1354,6 +1392,13 @@ export default function PaginaWorkspace() {
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--purple)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
+              </div>
+            )}
+
+            {/* Lote 16.1: erro de upload visível dentro do modal (a mensagem do header fica atrás do overlay) */}
+            {uploadErro && (
+              <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '12px', fontFamily: 'Inter, sans-serif', backgroundColor: 'var(--red-light)', color: 'var(--red)', border: '1px solid var(--red)' }}>
+                {uploadErro}
               </div>
             )}
 

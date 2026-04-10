@@ -5,6 +5,16 @@ import { authOptions } from '@/lib/auth'
 import { obterUsoAtual } from '@/lib/blob-limits'
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Sanity check: sem o token o handleUpload retorna 500 e o cliente fica
+  // tentando 10x com backoff, parecendo "carregando infinito".
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error('[blob/token] BLOB_READ_WRITE_TOKEN não configurado')
+    return NextResponse.json(
+      { error: 'BLOB_READ_WRITE_TOKEN não configurado no servidor. Configure a variável no .env (dev) ou na Vercel (produção).' },
+      { status: 500 },
+    )
+  }
+
   const body = (await request.json()) as HandleUploadBody
 
   try {
