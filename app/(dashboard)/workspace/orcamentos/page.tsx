@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 
 interface Orcamento {
@@ -48,6 +49,7 @@ function calcularTotal(orc: Orcamento): number {
 const LIMITE = 20
 
 export default function OrcamentosPage() {
+  const router = useRouter()
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
   const [paginacao, setPaginacao] = useState<Paginacao | null>(null)
   const [pagina, setPagina] = useState(1)
@@ -164,7 +166,7 @@ export default function OrcamentosPage() {
           {orcamentos.map((orc) => {
             const st = labelStatus[orc.status] ?? labelStatus.RASCUNHO
             return (
-              <div key={orc.id} className="orcamento-card-mobile" onClick={() => window.location.href = `/workspace/orcamentos/${orc.id}`}>
+              <Link key={orc.id} href={`/workspace/orcamentos/${orc.id}`} prefetch={false} className="orcamento-card-mobile" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
                 <div className="card-header">
                   <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>
                     ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
@@ -183,7 +185,7 @@ export default function OrcamentosPage() {
                     {new Date(orc.dataEmissao).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>
@@ -206,7 +208,13 @@ export default function OrcamentosPage() {
               {orcamentos.map((orc, i) => {
                 const st = labelStatus[orc.status] ?? labelStatus.RASCUNHO
                 return (
-                  <tr key={orc.id} style={{ borderBottom: i < orcamentos.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <tr
+                    key={orc.id}
+                    onClick={() => router.push(`/workspace/orcamentos/${orc.id}`)}
+                    style={{ borderBottom: i < orcamentos.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
                     <td style={{ padding: '14px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>
                       ORC-{String(orc.numero).padStart(4, '0')}-{String(orc.revisao).padStart(2, '0')}
                     </td>

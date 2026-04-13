@@ -80,7 +80,7 @@ const corEtapa: Record<Etapa, { borda: string; header: string; texto: string }> 
   APROVACAO:         { borda: '#1A6B42', header: '#E8F5EE', texto: '#1A6B42' },
   PRODUCAO:          { borda: '#4C3DB5', header: '#EDE9FC', texto: '#4C3DB5' },
   CALCULO_FRETE:     { borda: '#7C5A14', header: '#FEF3E2', texto: '#7C5A14' },
-  ENVIADO:           { borda: '#6B6860', header: '#F3F2EF', texto: '#6B6860' },
+  ENVIADO:           { borda: '#0E7490', header: '#E0F2FE', texto: '#0E7490' },
   FINALIZADO:        { borda: '#1A6B42', header: '#E8F5EE', texto: '#1A6B42' },
   CANCELADO:         { borda: '#B83232', header: '#FCE9E9', texto: '#B83232' },
 }
@@ -1025,7 +1025,7 @@ export default function PaginaWorkspace() {
                         <button onClick={() => setDetalheAberto(s)} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}>
                           Ver
                         </button>
-                        {cargo === 'ADMIN' && (
+                        {(cargo === 'ADMIN' || cargo === 'SOCIO') && (
                           <button onClick={() => excluir(s.id)} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontFamily: 'Inter, sans-serif', border: '1px solid var(--red-light)', backgroundColor: 'transparent', color: 'var(--red)', cursor: 'pointer' }}>
                             Excluir
                           </button>
@@ -1477,8 +1477,8 @@ export default function PaginaWorkspace() {
               </div>
             )}
 
-            {/* Excluir — somente ADMIN */}
-            {cargo === 'ADMIN' && (
+            {/* Excluir — ADMIN ou SOCIO */}
+            {(cargo === 'ADMIN' || cargo === 'SOCIO') && (
               <div style={{ marginBottom: '16px' }}>
                 <button
                   onClick={() => excluir(detalheAberto.id)}

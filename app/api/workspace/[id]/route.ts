@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Permissoes } from '@/lib/permissoes'
+import { registrarAtividade, AcaoAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 import { Cargo, EtapaWorkspace } from '@prisma/client'
 
@@ -287,6 +288,23 @@ export async function PATCH(
       return ws
     }, { timeout: 15000 })
 
+    if (dados.etapa && dados.etapa !== wsAtual.etapa) {
+      const acaoMap: Record<string, AcaoAtividade> = {
+        APROVACAO: 'aprovou',
+        CANCELADO: 'cancelou',
+        FINALIZADO: 'finalizou',
+        ENVIADO: 'enviou',
+      }
+      await registrarAtividade({
+        usuarioId: session.user.id,
+        acao: acaoMap[dados.etapa] ?? 'moveu',
+        entidade: 'Workspace',
+        entidadeId: atualizado.id,
+        titulo: `#${atualizado.numero} — ${atualizado.clienteNome}`,
+        descricao: `Etapa: ${wsAtual.etapa} → ${dados.etapa}`,
+      })
+    }
+
     return NextResponse.json(atualizado)
   } catch (erro) {
     console.error('Erro ao atualizar workspace:', erro)
@@ -304,8 +322,8 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
     }
-    if (session.user.cargo !== 'ADMIN') {
-      return NextResponse.json({ erro: 'Somente ADMIN pode excluir' }, { status: 403 })
+    if (!['ADMIN', 'SOCIO'].includes(session.user.cargo)) {
+      return NextResponse.json({ erro: 'Somente ADMIN ou SOCIO pode excluir' }, { status: 403 })
     }
 
     const { id } = await params
@@ -313,7 +331,7 @@ export async function DELETE(
     // Buscar workspace para limpar vínculos
     const ws = await prisma.workspace.findUnique({
       where: { id },
-      select: { pedidoId: true, orcamentoId: true },
+      select: { pedidoId: true, orcamentoId: true, numero: true, clienteNome: true },
     })
     if (!ws) {
       return NextResponse.json({ erro: 'Não encontrado' }, { status: 404 })
@@ -329,6 +347,15 @@ export async function DELETE(
       }
       await tx.itemWorkspace.deleteMany({ where: { workspaceId: id } })
       await tx.workspace.delete({ where: { id } })
+    })
+
+    await registrarAtividade({
+      usuarioId: session.user.id,
+      acao: 'excluiu',
+      entidade: 'Workspace',
+      entidadeId: null,
+      titulo: `#${ws.numero} — ${ws.clienteNome}`,
+      descricao: 'Solicitação excluída',
     })
 
     return NextResponse.json({ mensagem: 'Excluído com sucesso' })

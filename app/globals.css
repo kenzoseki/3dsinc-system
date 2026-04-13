@@ -518,3 +518,19 @@ input[type="number"]::-webkit-outer-spin-button {
     border: 1px solid #ddd !important;
   }
 }
+
+/* Print isolado: usado por imprimirPDF() em orçamentos.
+   Oculta tudo exceto #orcamento-doc e seus filhos. */
+body.print-isolated * {
+  visibility: hidden !important;
+}
+body.print-isolated #orcamento-doc,
+body.print-isolated #orcamento-doc * {
+  visibility: visible !important;
+}
+body.print-isolated #orcamento-doc {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { registrarAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 
 const schemaItem = z.object({
@@ -175,6 +176,15 @@ export async function POST(request: NextRequest) {
       }
 
       return novoOrc
+    })
+
+    await registrarAtividade({
+      usuarioId: session.user.id,
+      acao: 'criou',
+      entidade: 'Orcamento',
+      entidadeId: orcamento.id,
+      titulo: `ORC-${String(orcamento.numero).padStart(4, '0')} — ${orcamento.clienteNome}`,
+      descricao: `Orçamento criado`,
     })
 
     return NextResponse.json(orcamento, { status: 201 })

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Permissoes } from '@/lib/permissoes'
+import { registrarAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 import { Cargo, EtapaWorkspace } from '@prisma/client'
 
@@ -147,6 +148,17 @@ export async function POST(request: NextRequest) {
       })
 
       return ws
+    })
+
+    await registrarAtividade({
+      usuarioId: session.user.id,
+      acao: 'criou',
+      entidade: 'Workspace',
+      entidadeId: solicitacao.id,
+      titulo: `#${solicitacao.numero} — ${solicitacao.clienteNome}`,
+      descricao: dados.itens.length > 0
+        ? `Solicitação com ${dados.itens.length} item${dados.itens.length !== 1 ? 's' : ''}`
+        : 'Nova solicitação',
     })
 
     return NextResponse.json(solicitacao, { status: 201 })

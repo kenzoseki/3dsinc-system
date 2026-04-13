@@ -104,7 +104,14 @@ export default function OrcamentoDetalhe() {
   }
 
   function imprimirPDF() {
+    document.body.classList.add('print-isolated')
+    const cleanup = () => {
+      document.body.classList.remove('print-isolated')
+      window.removeEventListener('afterprint', cleanup)
+    }
+    window.addEventListener('afterprint', cleanup)
     window.print()
+    setTimeout(() => { if (document.body.classList.contains('print-isolated')) cleanup() }, 1000)
   }
 
   if (!orc || !config || !orc.itens) {

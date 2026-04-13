@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { registrarAtividade, AcaoAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 
 const schemaItem = z.object({
@@ -75,6 +76,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { itens, dataEmissao, frete, aliquotaImposto, bonusPercentual, ...resto } = validacao.data
 
+    const orcAtual = await prisma.orcamento.findUnique({ where: { id }, select: { status: true, numero: true, clienteNome: true } })
+
     const orcamento = await prisma.$transaction(async (tx) => {
       if (itens !== undefined) {
         await tx.itemOrcamento.deleteMany({ where: { orcamentoId: id } })
@@ -110,6 +113,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       })
     })
 
+    if (resto.status && orcAtual && resto.status !== orcAtual.status) {
+      const acaoMap: Record<string, AcaoAtividade> = {
+        APROVADO: 'aprovou',
+        REPROVADO: 'reprovou',
+        ENVIADO: 'enviou',
+      }
+      await registrarAtividade({
+        usuarioId: session.user.id,
+        acao: acaoMap[resto.status] ?? 'atualizou',
+        entidade: 'Orcamento',
+        entidadeId: orcamento.id,
+        titulo: `ORC-${String(orcamento.numero).padStart(4, '0')} — ${orcamento.clienteNome}`,
+        descricao: `Status: ${orcAtual.status} → ${resto.status}`,
+      })
+    }
+
     return NextResponse.json(orcamento)
   } catch (erro) {
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
@@ -121,11 +140,23 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
-    if (!['ADMIN', 'SOCIO', 'GERENTE'].includes(session.user.cargo)) {
-      return NextResponse.json({ erro: 'Sem permissão' }, { status: 403 })
+    if (!['ADMIN', 'SOCIO'].includes(session.user.cargo)) {
+      return NextResponse.json({ erro: 'Somente ADMIN ou SOCIO pode excluir' }, { status: 403 })
     }
 
+    const orc = await prisma.orcamento.findUnique({ where: { id }, select: { numero: true, clienteNome: true } })
     await prisma.orcamento.delete({ where: { id } })
+
+    if (orc) {
+      await registrarAtividade({
+        usuarioId: session.user.id,
+        acao: 'excluiu',
+        entidade: 'Orcamento',
+        entidadeId: null,
+        titulo: `ORC-${String(orc.numero).padStart(4, '0')} — ${orc.clienteNome}`,
+        descricao: 'Orçamento excluído',
+      })
+    }
     return new NextResponse(null, { status: 204 })
   } catch (erro) {
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })

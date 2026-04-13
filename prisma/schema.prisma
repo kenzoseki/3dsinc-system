@@ -22,6 +22,24 @@ model Usuario {
   historicos    HistoricoPedido[]
   convitesEnviados Convite[]  @relation("ConviteEnviador")
   sugestoes     Sugestao[]
+  atividades    AtividadeLog[]
+}
+
+model AtividadeLog {
+  id          String   @id @default(cuid())
+  usuarioId   String?
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  acao        String   // "criou", "atualizou", "aprovou", "excluiu", "moveu", etc.
+  entidade    String   // "Pedido", "Orcamento", "Workspace", "Cliente", "Lead", "CardMarketing"
+  entidadeId  String?  // ID do registro afetado (nullable caso deletado)
+  titulo      String   // título humano — ex: "Apartamento Batel 180m²"
+  descricao   String?  @db.Text
+  lida        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([usuarioId])
+  @@index([entidade, entidadeId])
+  @@index([createdAt])
 }
 
 enum Cargo {

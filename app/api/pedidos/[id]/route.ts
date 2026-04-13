@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Permissoes } from '@/lib/permissoes'
+import { registrarAtividade, AcaoAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 import { Cargo, StatusPedido } from '@prisma/client'
 
@@ -160,6 +161,23 @@ export async function PATCH(
       return atualizado
     })
 
+    if (dados.status && dados.status !== pedidoAtual.status) {
+      const acaoMap: Record<string, AcaoAtividade> = {
+        APROVADO: 'aprovou',
+        CANCELADO: 'cancelou',
+        ENTREGUE: 'finalizou',
+        CONCLUIDO: 'finalizou',
+      }
+      await registrarAtividade({
+        usuarioId: session.user.id,
+        acao: acaoMap[dados.status] ?? 'moveu',
+        entidade: 'Pedido',
+        entidadeId: pedidoAtualizado.id,
+        titulo: `Pedido #${pedidoAtualizado.numero} — ${pedidoAtualizado.cliente.nome}`,
+        descricao: `Status: ${pedidoAtual.status} → ${dados.status}`,
+      })
+    }
+
     return NextResponse.json(pedidoAtualizado)
   } catch (erro) {
     console.error('Erro ao atualizar pedido:', erro)
@@ -194,6 +212,15 @@ export async function DELETE(
       prisma.itemPedido.deleteMany({ where: { pedidoId: id } }),
       prisma.pedido.delete({ where: { id } }),
     ])
+
+    await registrarAtividade({
+      usuarioId: session.user.id,
+      acao: 'excluiu',
+      entidade: 'Pedido',
+      entidadeId: null,
+      titulo: `Pedido #${pedido.numero}`,
+      descricao: 'Pedido excluído permanentemente',
+    })
 
     return NextResponse.json({ mensagem: 'Pedido deletado com sucesso' })
   } catch (erro) {

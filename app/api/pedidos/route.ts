@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Permissoes } from '@/lib/permissoes'
+import { registrarAtividade } from '@/lib/atividade'
 import { z } from 'zod'
 import { Cargo, StatusPedido } from '@prisma/client'
 
@@ -127,6 +128,15 @@ export async function POST(request: NextRequest) {
       })
 
       return novoPedido
+    })
+
+    await registrarAtividade({
+      usuarioId: session.user.id,
+      acao: 'criou',
+      entidade: 'Pedido',
+      entidadeId: pedido.id,
+      titulo: `Pedido #${pedido.numero} — ${pedido.cliente.nome}`,
+      descricao: pedido.descricao.slice(0, 140),
     })
 
     return NextResponse.json(pedido, { status: 201 })

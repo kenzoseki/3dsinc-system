@@ -29,6 +29,7 @@ const gruposNavegacao: GrupoNav[] = [
     itens: [
       { href: '/home', label: 'Início', icone: '1' },
       { href: '/workspace', label: 'Workspace', icone: '2' },
+      { href: '/workspace/inbox', label: 'Inbox', icone: '✉' },
       { href: '/workspace/relatorios', label: 'Relatórios', icone: '3' },
     ],
   },
@@ -90,45 +91,10 @@ function ItemNavLink({ href, icone, label, ativo, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '7px 12px',
-        borderRadius: '8px',
-        marginBottom: '1px',
-        textDecoration: 'none',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '13px',
-        fontWeight: ativo ? 500 : 400,
-        color: ativo ? 'var(--purple-text)' : 'var(--text-secondary)',
-        backgroundColor: ativo ? 'var(--purple-light)' : 'transparent',
-        borderLeft: ativo ? '3px solid var(--purple)' : '3px solid transparent',
-        transition: 'background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast)',
-        boxShadow: ativo ? 'inset 0 0 0 1px rgba(91,71,200,0.10)' : 'none',
-      }}
-      onMouseEnter={(e) => {
-        if (!ativo) {
-          (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--bg-hover)'
-          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)'
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!ativo) {
-          (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'transparent'
-          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-secondary)'
-        }
-      }}
+      prefetch={false}
+      className={`nav-item${ativo ? ' nav-item-ativo' : ''}`}
     >
-      <span style={{
-        fontSize: '10px', lineHeight: 1, flexShrink: 0,
-        fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
-        width: '20px', height: '20px', borderRadius: '6px',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: ativo ? 'var(--purple)' : 'var(--bg-hover)',
-        color: ativo ? '#fff' : 'var(--text-secondary)',
-        transition: 'background var(--t-fast), color var(--t-fast)',
-      }}>{icone}</span>
+      <span className="nav-item-icone">{icone}</span>
       <span style={{ letterSpacing: '0.01em' }}>{label}</span>
     </Link>
   )

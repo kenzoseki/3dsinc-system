@@ -330,7 +330,58 @@
     - `prefers-reduced-motion`: desativa todas as animações
     - Header: empilha verticalmente em mobile com botão full-width
 
-### Lote 18 (commit atual)
+### Lote 19 (commit atual)
+- **PDF Orçamento — Print Isolado**:
+    - Adicionada classe CSS `body.print-isolated` em `app/globals.css` que oculta todo o DOM exceto `#orcamento-doc`
+    - `imprimirPDF()` em `app/(dashboard)/workspace/orcamentos/[id]/page.tsx` agora ativa a classe antes de `window.print()` e remove ao final (listener `afterprint` + fallback de 1s)
+    - Resultado: PDF gerado contém apenas o documento do orçamento, sem sidebar/header/bar de ações
+- **Workspace — Cor da Etapa Enviado**:
+    - Trocado de cinza (`#6B6860`) para azul-petróleo/teal (`#0E7490` com fundo `#E0F2FE`)
+    - Diferenciação visual clara entre CANCELADO (vermelho), FINALIZADO (verde) e ENVIADO
+- **Orçamentos — Listagem Clicável**:
+    - Cards mobile agora usam `<Link prefetch={false}>` em vez de `window.location.href` (navegação client-side)
+    - Linhas da tabela desktop clicáveis (onClick `router.push`), com hover `var(--bg-hover)` e cursor pointer
+- **Exclusão ADMIN/SOCIO — Sem bloqueio por status**:
+    - `app/api/workspace/[id]/route.ts` DELETE agora aceita ADMIN **e** SOCIO (antes só ADMIN)
+    - `app/api/orcamentos/[id]/route.ts` DELETE restringido para ADMIN/SOCIO (antes permitia GERENTE)
+    - Botão "Excluir Solicitação" no detalhe do Workspace e botão "Excluir" na tabela do Workspace agora visíveis para SOCIO também
+    - Confirmado: nenhuma das rotas DELETE tinha bloqueio por status CANCELADO — exclusão funciona em qualquer estado
+- **Auditoria de Performance — Sidebar/Nav**:
+    - **Causas identificadas da lentidão em mobile**:
+        1. Handlers `onMouseEnter`/`onMouseLeave` inline criavam novas closures a cada render de ItemNavLink
+        2. Ausência de `touch-action: manipulation` causava delay de 300ms em iOS/Android nos taps
+        3. Links com `prefetch` default disparavam fetch de rotas pesadas ao hover
+    - **Soluções aplicadas**:
+        - Handlers inline removidos — substituídos por classes `.nav-item` / `.nav-item-ativo` em CSS puro
+        - `touch-action: manipulation` aplicado globalmente a `button`, `a`, `input[type=button|submit]`, `[role=button]`
+        - `prefetch={false}` nos Links da sidebar e nos cards de Orçamentos/Inbox
+        - `-webkit-tap-highlight-color: transparent` para evitar flash de highlight
+- **INBOX — Sistema de Log de Atividades**:
+    - Novo model Prisma `AtividadeLog` (id, usuarioId, acao, entidade, entidadeId, titulo, descricao, lida, createdAt) com índices em usuarioId, entidade/entidadeId e createdAt
+    - Helper `lib/atividade.ts` com função `registrarAtividade()` e tipos `AcaoAtividade` (criou, atualizou, aprovou, reprovou, excluiu, moveu, cancelou, finalizou, enviou, comentou, anexou) e `EntidadeAtividade` (Pedido, Orcamento, Workspace, Cliente, Lead, CardMarketing, Filamento)
+    - Falha ao registrar atividade nunca quebra a operação principal (try/catch silencioso)
+    - API `app/api/atividades/route.ts` com GET (lista paginada, filtro `?naoLidas=true`) e PATCH (marcar todas como lidas)
+    - Integração nas rotas existentes:
+        - `POST /api/pedidos` → "criou Pedido"
+        - `PATCH /api/pedidos/[id]` → status mudou: "aprovou/cancelou/finalizou/moveu Pedido"
+        - `DELETE /api/pedidos/[id]` → "excluiu Pedido"
+        - `POST /api/orcamentos` → "criou Orçamento"
+        - `PATCH /api/orcamentos/[id]` → status mudou: "aprovou/reprovou/enviou/atualizou Orçamento"
+        - `DELETE /api/orcamentos/[id]` → "excluiu Orçamento"
+        - `POST /api/workspace` → "criou Workspace"
+        - `PATCH /api/workspace/[id]` → etapa mudou: "aprovou/cancelou/finalizou/enviou/moveu Workspace"
+        - `DELETE /api/workspace/[id]` → "excluiu Workspace"
+    - Página `app/(dashboard)/workspace/inbox/page.tsx`:
+        - Design inspirado no padrão "Inbox" (avatar colorido por entidade + linha de texto + hora à direita)
+        - Agrupamento por dia (Hoje / Ontem / Data formatada)
+        - Filtros: Todas / Não lidas (com badge de contagem)
+        - Botão "Marcar todas como lidas"
+        - Cada atividade linka para a entidade correspondente quando aplicável (prefetch false)
+        - Avatar com iniciais e cor por tipo de entidade (Pedido roxo, Orçamento teal, Workspace âmbar, Cliente verde, Lead roxo-escuro, Marketing vermelho)
+        - Indicador azul de "não lida" no canto superior direito do avatar
+    - Item "Inbox" adicionado ao grupo Principal da sidebar (ícone ✉)
+
+### Lote 18 (commit anterior)
 - RESPONSIVIDADE MOBILE — ESTRUTURA COMPLETA:
     - Novo arquivo `app/responsive.css` com regras mobile (<768px), tablet (768-1024px) e `prefers-reduced-motion`
     - Importado em `app/layout.tsx` — aplica globalmente a todas as páginas
