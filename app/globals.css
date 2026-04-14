@@ -557,54 +557,55 @@ body.print-isolated #orcamento-doc {
    LAYOUT — Header roxo + Sidebar dropdown + Inbox panel
    ============================================= */
 
-/* Header (topbar) — roxo com altura igual ao logo da sidebar */
+/* Header (topbar) — superfície clara com altura igual ao logo da sidebar */
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   height: 64px;
-  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 2px 6px rgba(44,42,38,0.08);
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(44,42,38,0.04);
   position: sticky;
   top: 0;
   z-index: 10;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .layout-header .topbar-hamburguer {
-  background: rgba(255,255,255,0.12);
+  background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: #fff;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--text-primary);
   font-size: 18px;
   line-height: 1;
   display: none;
   transition: background 0.15s;
 }
 .layout-header .topbar-hamburguer:hover {
-  background: rgba(255,255,255,0.2);
+  background: var(--bg-hover);
 }
 
 .header-icon-btn {
   position: relative;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: transparent;
+  border: 1px solid var(--border);
   width: 36px;
   height: 36px;
   border-radius: 50%;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
 }
 .header-icon-btn:hover {
-  background: rgba(255,255,255,0.22);
+  background: var(--bg-hover);
+  color: var(--text-primary);
   transform: translateY(-1px);
 }
 .header-badge {
@@ -614,8 +615,8 @@ body.print-isolated #orcamento-doc {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  background: #FFC857;
-  color: #2C2A26;
+  background: var(--purple);
+  color: #fff;
   font-size: 10px;
   font-weight: 700;
   font-family: 'Inter', sans-serif;
@@ -623,7 +624,7 @@ body.print-isolated #orcamento-doc {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--purple-dark);
+  border: 2px solid var(--bg-surface);
 }
 
 .header-user-btn {
@@ -632,13 +633,37 @@ body.print-isolated #orcamento-doc {
   gap: 10px;
   padding: 4px 10px 4px 4px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background-color: rgba(255,255,255,0.08);
+  border: 1px solid transparent;
+  background-color: transparent;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 .header-user-btn:hover {
-  background-color: rgba(255,255,255,0.18);
+  background-color: var(--bg-hover);
+  border-color: var(--border);
+}
+
+/* Spacing entre grupos da sidebar */
+.sidebar-nav .nav-grupo + .nav-grupo {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Rodapé da sidebar com ícones minimalistas */
+.sidebar-rodape .nav-item-compact .nav-item-icone {
+  background: transparent;
+  color: var(--text-secondary);
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+}
+.sidebar-rodape .nav-item-compact.nav-item-ativo .nav-item-icone {
+  background: transparent;
+  color: var(--purple);
+}
+.sidebar-rodape .nav-item-compact:hover:not(.nav-item-ativo) .nav-item-icone {
+  color: var(--text-primary);
 }
 
 /* Sidebar — logo row com mesma altura do header */

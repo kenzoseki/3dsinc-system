@@ -12,7 +12,7 @@ import type { Session } from 'next-auth'
 type ItemNav = {
   href: string
   label: string
-  icone: string
+  icone: React.ReactNode
   verificar?: (cargo: Cargo) => boolean
 }
 
@@ -21,6 +21,20 @@ type GrupoNav = {
   itens: ItemNav[]
   colapsavel?: boolean
 }
+
+// Minimal line icons (stroke 1.6, 16px) — evitam dependência externa
+function Ic({ d, size = 16 }: { d: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  )
+}
+const IconePerfil       = <Ic d="M20 21a8 8 0 0 0-16 0 M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+const IconeEquipe       = <Ic d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13A4 4 0 0 1 16 11" />
+const IconeFeedback     = <Ic d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+const IconeConfiguracoes = <Ic d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.15.68.4.92.73" />
+export const IconeSino  = <Ic d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z M10 21a2 2 0 0 0 4 0" />
 
 const soAdmin = (c: Cargo) => c === 'ADMIN'
 
@@ -85,10 +99,10 @@ const gruposNavegacao: GrupoNav[] = [
 
 // Itens fixos no rodapé (Perfil, Equipe, Feedback, Configurações)
 const itensRodape: ItemNav[] = [
-  { href: '/workspace/perfil', label: 'Perfil', icone: 'P' },
-  { href: '/workspace/equipe', label: 'Equipe', icone: 'E' },
-  { href: '/workspace/sugestoes', label: 'Feedback', icone: 'F' },
-  { href: '/workspace/configuracoes', label: 'Configurações', icone: 'C' },
+  { href: '/workspace/perfil',         label: 'Perfil',         icone: IconePerfil },
+  { href: '/workspace/equipe',         label: 'Equipe',         icone: IconeEquipe },
+  { href: '/workspace/sugestoes',      label: 'Feedback',       icone: IconeFeedback },
+  { href: '/workspace/configuracoes',  label: 'Configurações',  icone: IconeConfiguracoes },
 ]
 
 const labelCargo: Record<string, string> = {
@@ -101,7 +115,7 @@ const labelCargo: Record<string, string> = {
 
 function ItemNavLink({ href, icone, label, ativo, onClick, compact }: {
   href: string
-  icone: string
+  icone: React.ReactNode
   label: string
   ativo: boolean
   onClick?: () => void
@@ -380,7 +394,7 @@ export default function LayoutShell({
               aria-label={`Inbox${naoLidas > 0 ? ` — ${naoLidas} não lidas` : ''}`}
               className="header-icon-btn"
             >
-              <span aria-hidden="true" style={{ fontSize: '16px' }}>🔔</span>
+              {IconeSino}
               {naoLidas > 0 && (
                 <span className="header-badge" aria-hidden="true">
                   {naoLidas > 99 ? '99+' : naoLidas}
@@ -399,18 +413,18 @@ export default function LayoutShell({
               >
                 <div style={{
                   width: '30px', height: '30px', borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.18)',
+                  background: 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
                   color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif',
                   flexShrink: 0,
-                  border: '1px solid rgba(255,255,255,0.25)',
+                  boxShadow: '0 1px 4px rgba(91,71,200,0.25)',
                 }}>{iniciais}</div>
-                <div className="topbar-user-info" style={{ textAlign: 'left', color: '#fff' }}>
-                  <p style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'Inter, sans-serif', margin: 0 }}>{user.nome}</p>
-                  <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', margin: 0, opacity: 0.85 }}>{labelCargo[user.cargo] ?? user.cargo}</p>
+                <div className="topbar-user-info" style={{ textAlign: 'left' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', margin: 0 }}>{user.nome}</p>
+                  <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', margin: 0 }}>{labelCargo[user.cargo] ?? user.cargo}</p>
                 </div>
-                <span className="topbar-user-info" aria-hidden="true" style={{ color: '#fff', fontSize: '12px', opacity: 0.9 }}>▾</span>
+                <span className="topbar-user-info" aria-hidden="true" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>▾</span>
               </button>
 
               {dropdownAberto && (
@@ -456,7 +470,7 @@ export default function LayoutShell({
         </header>
 
         {/* Conteúdo */}
-        <main className="layout-main" style={{ flex: 1, overflow: 'auto' }}>
+        <main className="layout-main" style={{ flex: 1, padding: '28px 48px', overflow: 'auto' }}>
           {children}
         </main>
       </div>
