@@ -534,3 +534,396 @@ body.print-isolated #orcamento-doc {
   top: 0 !important;
   width: 100% !important;
 }
+
+/* Preserva cores de fundo em faixas do PDF — Chrome/Edge */
+@media print {
+  #orcamento-doc {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  #orcamento-doc .faixa-destaque,
+  #orcamento-doc th,
+  #orcamento-doc tfoot td,
+  #orcamento-doc .linha-subtotal,
+  #orcamento-doc .linha-despesas,
+  #orcamento-doc .linha-subtotal-despesas,
+  #orcamento-doc .linha-produtos {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
+
+/* =============================================
+   LAYOUT — Header roxo + Sidebar dropdown + Inbox panel
+   ============================================= */
+
+/* Header (topbar) — roxo com altura igual ao logo da sidebar */
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 2px 6px rgba(44,42,38,0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  color: #fff;
+}
+
+.layout-header .topbar-hamburguer {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  display: none;
+  transition: background 0.15s;
+}
+.layout-header .topbar-hamburguer:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.header-icon-btn {
+  position: relative;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+}
+.header-icon-btn:hover {
+  background: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+.header-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #FFC857;
+  color: #2C2A26;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--purple-dark);
+}
+
+.header-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background-color: rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.header-user-btn:hover {
+  background-color: rgba(255,255,255,0.18);
+}
+
+/* Sidebar — logo row com mesma altura do header */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-fechar {
+  display: none !important;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 18px;
+  padding: 6px;
+  line-height: 1;
+  border-radius: 6px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 6px 10px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.nav-grupo {
+  margin-bottom: 4px;
+}
+
+.nav-grupo-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+  transition: background 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-grupo-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.nav-grupo-conteudo {
+  animation: resp-fadeUp 0.18s ease both;
+}
+
+.sidebar-rodape {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nav-item.nav-item-compact {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.sidebar-userinfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 6px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* Aside aspect — sidebar moldura */
+.layout-sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  background-image: linear-gradient(180deg, var(--bg-surface) 0%, #F7F5F1 100%);
+}
+
+@media (max-width: 767px) {
+  .sidebar-fechar {
+    display: inline-flex !important;
+  }
+}
+
+/* =============================================
+   INBOX PANEL — slide-over (desktop) + modal (mobile)
+   ============================================= */
+.inbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 42, 38, 0.35);
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.inbox-backdrop.visivel {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.inbox-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(44,42,38,0.15);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.inbox-panel.aberto {
+  transform: translateX(0);
+}
+
+.inbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.inbox-close-btn {
+  background: var(--bg-hover);
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.inbox-close-btn:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.inbox-filtros {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.inbox-pill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.inbox-pill:hover {
+  background: var(--bg-hover);
+}
+.inbox-pill.ativo {
+  background: var(--purple-light);
+  border-color: var(--purple);
+  color: var(--purple-text);
+  font-weight: 600;
+}
+.inbox-pill-badge {
+  background: var(--purple);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+.inbox-acao-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--purple-text);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  text-decoration: underline;
+  padding: 4px 2px;
+}
+
+.inbox-lista {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.inbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.inbox-item.clicavel {
+  cursor: pointer;
+}
+.inbox-item.clicavel:hover {
+  background: var(--bg-hover);
+}
+.inbox-item.nao-lida {
+  background: rgba(91,71,200,0.04);
+}
+
+.inbox-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  flex-shrink: 0;
+  position: relative;
+}
+.inbox-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--purple);
+  border: 2px solid var(--bg-surface);
+}
+
+.inbox-tempo {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+@media (max-width: 767px) {
+  .inbox-panel {
+    width: 100vw;
+    border-left: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inbox-panel,
+  .inbox-backdrop,
+  .nav-grupo-conteudo {
+    transition: none !important;
+    animation: none !important;
+  }
+}

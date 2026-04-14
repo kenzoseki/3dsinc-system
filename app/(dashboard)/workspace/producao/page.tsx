@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface ItemWS {
   id: string
@@ -29,8 +30,14 @@ type Secao = {
 
 const SECOES: Secao[] = [
   {
+    titulo: 'Em Negociação',
+    etapas: ['SOLICITACAO', 'CUSTO_VIABILIDADE'],
+    cor: { bg: '#FCE9E9', cor: '#B83232' },
+    acoes: [],
+  },
+  {
     titulo: 'Aguardando Produção',
-    etapas: ['SOLICITACAO', 'CUSTO_VIABILIDADE', 'APROVACAO'],
+    etapas: ['APROVACAO'],
     cor: { bg: '#FEF3E2', cor: '#8A5A0A' },
     acoes: [],
   },
@@ -61,6 +68,7 @@ const labelEtapa: Record<string, string> = {
 }
 
 export default function PaginaProducao() {
+  const router = useRouter()
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoWS[]>([])
   const [carregando, setCarregando] = useState(true)
   const [atualizando, setAtualizando] = useState<string | null>(null)
@@ -107,8 +115,8 @@ export default function PaginaProducao() {
         </h1>
         {!carregando && (
           <p style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', marginTop: '4px', fontSize: '13px' }}>
-            {porSecao(['SOLICITACAO', 'CUSTO_VIABILIDADE', 'APROVACAO']).length} aguardando · {porSecao(['PRODUCAO']).length} em produção · {porSecao(['CALCULO_FRETE', 'ENVIADO', 'FINALIZADO']).length} finalizados
-            {totalAtivos === 0 && ' · Nenhuma solicitação ativa'}
+            {porSecao(['SOLICITACAO', 'CUSTO_VIABILIDADE']).length} em negociação · {porSecao(['APROVACAO']).length} aguardando · {porSecao(['PRODUCAO']).length} em produção · {porSecao(['CALCULO_FRETE', 'ENVIADO', 'FINALIZADO']).length} finalizados
+            {totalAtivos === 0 && ' · Nenhum pedido ativo'}
           </p>
         )}
       </div>
@@ -120,7 +128,7 @@ export default function PaginaProducao() {
       ) : totalAtivos === 0 ? (
         <div style={{ padding: '48px', textAlign: 'center', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
-            Nenhuma solicitação no fluxo de produção.
+            Nenhum pedido no fluxo de produção.
           </p>
         </div>
       ) : (
@@ -137,13 +145,13 @@ export default function PaginaProducao() {
                     {secao.titulo}
                   </span>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-                    {lista.length} solicitação{lista.length !== 1 ? 'ões' : ''}
+                    {lista.length} pedido{lista.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
                 {lista.length === 0 ? (
                   <div style={{ padding: '20px 24px', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px', fontFamily: 'Inter, sans-serif' }}>
-                    Nenhuma solicitação nesta etapa.
+                    Nenhum pedido nesta etapa.
                   </div>
                 ) : (
                   <div style={{ background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
@@ -161,7 +169,17 @@ export default function PaginaProducao() {
                       </thead>
                       <tbody>
                         {lista.map((s, i) => (
-                          <tr key={s.id} style={{ borderBottom: i < lista.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                          <tr
+                            key={s.id}
+                            onClick={() => router.push(`/workspace?id=${s.id}`)}
+                            style={{
+                              borderBottom: i < lista.length - 1 ? '1px solid var(--border)' : 'none',
+                              cursor: 'pointer',
+                              transition: 'background 0.12s',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget as HTMLTableRowElement).style.background = 'var(--bg-hover)'}
+                            onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'}
+                          >
                             <td style={{ padding: '14px 16px', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>
                               #{s.numero}
                             </td>
@@ -180,7 +198,7 @@ export default function PaginaProducao() {
                               {s.dataInicioProducao ? new Date(s.dataInicioProducao).toLocaleString('pt-BR') : '—'}
                             </td>
                             {secao.acoes.length > 0 && (
-                              <td style={{ padding: '14px 16px' }}>
+                              <td style={{ padding: '14px 16px' }} onClick={(e) => e.stopPropagation()}>
                                 <div style={{ display: 'flex', gap: '6px' }}>
                                   {secao.acoes.map(acao => (
                                     <button

@@ -131,6 +131,8 @@ export default function OrcamentoDetalhe() {
     padding: '10px 12px', textAlign: 'left', fontSize: '12px',
     fontWeight: 700, color: '#fff', fontFamily: 'Inter, sans-serif',
     backgroundColor: '#5B47C8',
+    WebkitPrintColorAdjust: 'exact',
+    printColorAdjust: 'exact',
   }
 
   return (
@@ -285,7 +287,7 @@ export default function OrcamentoDetalhe() {
                 <td /><td /><td />
               </tr>
             ))}
-            <tr style={{ backgroundColor: '#5B47C8' }}>
+            <tr style={{ backgroundColor: '#5B47C8', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <td colSpan={4} style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>SUBTOTAL DO PEDIDO</td>
               <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, color: '#fff', textAlign: 'right' }}>
                 R${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -322,7 +324,7 @@ export default function OrcamentoDetalhe() {
                 </td>
               </tr>
             ))}
-            <tr style={{ backgroundColor: '#5B47C8' }}>
+            <tr style={{ backgroundColor: '#5B47C8', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <td colSpan={3} style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>SUBTOTAL DAS DESPESAS</td>
               <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, color: '#fff', textAlign: 'right' }}>
                 R$ {(freteVal + bonusVal + impostoVal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -334,7 +336,7 @@ export default function OrcamentoDetalhe() {
         {/* Condições técnicas */}
         {orc.condicoesTecnicas && (
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ backgroundColor: '#5B47C8', padding: '8px 12px', marginBottom: '8px' }}>
+            <div style={{ backgroundColor: '#5B47C8', padding: '8px 12px', marginBottom: '8px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>CONDIÇÕES TÉCNICAS</span>
             </div>
             <div style={{ padding: '0 4px' }}>
@@ -348,7 +350,7 @@ export default function OrcamentoDetalhe() {
         {/* Condições comerciais */}
         {orc.condicoesComerciais && (
           <div style={{ marginBottom: '20px' }}>
-            <div style={{ backgroundColor: '#5B47C8', padding: '8px 12px', marginBottom: '8px' }}>
+            <div style={{ backgroundColor: '#5B47C8', padding: '8px 12px', marginBottom: '8px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>CONDIÇÕES COMERCIAIS</span>
             </div>
             <div style={{ padding: '0 4px' }}>
@@ -388,7 +390,7 @@ export default function OrcamentoDetalhe() {
             <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '16px', letterSpacing: '0.5px' }}>ANEXO 1 - DETALHAMENTO DOS PRODUTOS</div>
             {itensCom.map((item, i) => (
               <div key={item.id} style={{ marginBottom: '24px', border: '2px solid #5B47C8', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#5B47C8', padding: '10px 16px' }}>
+                <div style={{ backgroundColor: '#5B47C8', padding: '10px 16px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
                     {String(i + 1).padStart(2, '0')} &nbsp;&nbsp; {item.descricao.toUpperCase()}
                   </span>
@@ -415,7 +417,7 @@ export default function OrcamentoDetalhe() {
             <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '24px', letterSpacing: '0.5px' }}>ANEXO DE IMAGENS</div>
             {itensComImagens.map((item, idx) => (
               <div key={item.id} style={{ marginBottom: '32px' }}>
-                <div style={{ backgroundColor: '#5B47C8', padding: '8px 16px', marginBottom: '12px' }}>
+                <div style={{ backgroundColor: '#5B47C8', padding: '8px 16px', marginBottom: '12px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
                     ITEM {String(orc.itens.indexOf(item) + 1).padStart(2, '0')} — {item.descricao.toUpperCase()}
                   </span>

@@ -330,6 +330,28 @@
     - `prefers-reduced-motion`: desativa todas as animações
     - Header: empilha verticalmente em mobile com botão full-width
 
+### Lote 18 (commit anterior)
+- RESPONSIVIDADE MOBILE — ESTRUTURA COMPLETA:
+    - Novo arquivo `app/responsive.css` com regras mobile (<768px), tablet (768-1024px) e `prefers-reduced-motion`
+    - Importado em `app/layout.tsx` — aplica globalmente a todas as páginas
+    - **LayoutShell**: topbar oculta nome/cargo do usuário em mobile (mostra só avatar), sidebar colapsável já existente otimizada
+    - **Home (Dashboard)**: KPIs empilham em grid 2×3 em mobile, gráficos Recharts em coluna única, workspace flow bar vertical, tabelas com scroll horizontal
+    - **Pedidos**: tabela oculta em mobile, substituída por cards compactos (número, cliente, descrição, status badge, valor, prazo) com animação `resp-fadeUp`
+    - **Orçamentos**: mesma adaptação tabela → cards mobile (número ORC, cliente, total, status, data)
+    - **Clientes**: tabela → cards mobile (nome, empresa, email, telefone, contagem de pedidos)
+    - **CRM (Leads)**: kanban grid 4 colunas → 1 coluna em mobile, 2 colunas em tablet
+    - **Marketing**: kanban 6 colunas → vertical em mobile, `flex` em vez de `grid` para scroll, colunas colapsam em mobile
+    - **Agenda Produção**: timeline grid com scroll horizontal em mobile, legenda com `flex-wrap`
+    - **Agenda Marketing**: calendário 7×N com scroll horizontal em mobile, seção "Sem data" separada
+    - **Relatórios**: KPIs 3→2 colunas em mobile, gráficos lado a lado → empilhados, tabelas com scroll horizontal, cabeçalho com botões empilhados
+    - **Modais gerais**: TODOS os modais do sistema (Clientes, CRM, Marketing criar/detalhe, Equipe convite, Sugestões, Cliente detalhe exclusão) agora são full-screen em mobile (`.modal-overlay` + `.modal-content` classes), botões de ação empilham verticalmente com `min-height: 48px`
+    - **Filtros**: scroll horizontal sem quebra em mobile (`.filtros-status`)
+    - **Paginação**: botões empilham verticalmente com `min-height: 44px` em mobile
+    - **Busca**: formulário empilha verticalmente em mobile (`.form-busca`)
+    - **Cabeçalhos de ação**: botões empilham em mobile (`.cabecalho-acoes`, `.cabecalho-pagina`)
+    - **Workspace CSS**: removido `scroll-behavior: smooth` e `backdrop-filter: blur(2px)` dos modais (causavam lentidão no scroll)
+    - `prefers-reduced-motion`: desativa animações dos cards mobile e modais
+
 ### Lote 19 (commit atual)
 - **PDF Orçamento — Print Isolado**:
     - Adicionada classe CSS `body.print-isolated` em `app/globals.css` que oculta todo o DOM exceto `#orcamento-doc`
@@ -380,48 +402,70 @@
         - Avatar com iniciais e cor por tipo de entidade (Pedido roxo, Orçamento teal, Workspace âmbar, Cliente verde, Lead roxo-escuro, Marketing vermelho)
         - Indicador azul de "não lida" no canto superior direito do avatar
     - Item "Inbox" adicionado ao grupo Principal da sidebar (ícone ✉)
-
-### Lote 18 (commit anterior)
-- RESPONSIVIDADE MOBILE — ESTRUTURA COMPLETA:
-    - Novo arquivo `app/responsive.css` com regras mobile (<768px), tablet (768-1024px) e `prefers-reduced-motion`
-    - Importado em `app/layout.tsx` — aplica globalmente a todas as páginas
-    - **LayoutShell**: topbar oculta nome/cargo do usuário em mobile (mostra só avatar), sidebar colapsável já existente otimizada
-    - **Home (Dashboard)**: KPIs empilham em grid 2×3 em mobile, gráficos Recharts em coluna única, workspace flow bar vertical, tabelas com scroll horizontal
-    - **Pedidos**: tabela oculta em mobile, substituída por cards compactos (número, cliente, descrição, status badge, valor, prazo) com animação `resp-fadeUp`
-    - **Orçamentos**: mesma adaptação tabela → cards mobile (número ORC, cliente, total, status, data)
-    - **Clientes**: tabela → cards mobile (nome, empresa, email, telefone, contagem de pedidos)
-    - **CRM (Leads)**: kanban grid 4 colunas → 1 coluna em mobile, 2 colunas em tablet
-    - **Marketing**: kanban 6 colunas → vertical em mobile, `flex` em vez de `grid` para scroll, colunas colapsam em mobile
-    - **Agenda Produção**: timeline grid com scroll horizontal em mobile, legenda com `flex-wrap`
-    - **Agenda Marketing**: calendário 7×N com scroll horizontal em mobile, seção "Sem data" separada
-    - **Relatórios**: KPIs 3→2 colunas em mobile, gráficos lado a lado → empilhados, tabelas com scroll horizontal, cabeçalho com botões empilhados
-    - **Modais gerais**: TODOS os modais do sistema (Clientes, CRM, Marketing criar/detalhe, Equipe convite, Sugestões, Cliente detalhe exclusão) agora são full-screen em mobile (`.modal-overlay` + `.modal-content` classes), botões de ação empilham verticalmente com `min-height: 48px`
-    - **Filtros**: scroll horizontal sem quebra em mobile (`.filtros-status`)
-    - **Paginação**: botões empilham verticalmente com `min-height: 44px` em mobile
-    - **Busca**: formulário empilha verticalmente em mobile (`.form-busca`)
-    - **Cabeçalhos de ação**: botões empilham em mobile (`.cabecalho-acoes`, `.cabecalho-pagina`)
-    - **Workspace CSS**: removido `scroll-behavior: smooth` e `backdrop-filter: blur(2px)` dos modais (causavam lentidão no scroll)
-    - `prefers-reduced-motion`: desativa animações dos cards mobile e modais
-
 ---
 
-## Pendências
+## Lote 20 — Arquitetura de navegação + Inbox slide-over + PDF
 
-### Testes em Dispositivos Reais
-> **Prioridade: Média** · Validação final
+- **INBOX (resolvido)**:
+    - Agora é um **slide-over** lateral (`InboxPanel`) que abre com smooth ao clicar no sino do header (badge com contagem de não lidas).
+    - Desktop: painel lateral de 400px com transform + blur-less backdrop leve.
+    - Mobile: ocupa 100vw como modal fullscreen.
+    - Fecha com ESC, clique no backdrop, ou botão ✕.
+    - Botão "Marcar lidas" quando houver itens não lidos.
+    - Página `/workspace/inbox` mantida para deep-link, mas removida da sidebar.
 
-1. Testar em Android (Chrome) e iOS (Safari) para garantir que inputs date/time, selects e textareas funcionam corretamente
-2. Validar scroll e touch nos kanbans mobile
-3. Verificar performance dos modais full-screen
+- **SIDEBAR (resolvido)**:
+    - Grupos agora são **dropdowns colapsáveis** (`<button>` com aria-expanded).
+    - Estado persistido em `localStorage` (`sidebar-grupos-abertos`).
+    - Grupo "Principal" renderiza sem título (Início, Workspace, Relatórios).
+    - Seção "Administração" removida — Perfil / Equipe / Feedback / Configurações movidos para o **rodapé fixo** da sidebar, junto com info do usuário.
+    - Nova ordem: Principal → Comercial → Produção → Marketing → Financeiro → CRM → Ferramentas.
 
-### App Mobile (PWA)
-> **Prioridade: Média** · Solução mais simples via PWA
+- **Renomes (resolvido)**:
+    - Sidebar: Operacional → Produção, Agenda Produção → Agenda, Agenda Marketing → Agenda.
+    - Página Produção: todas as referências a "solicitação/solicitações" trocadas por "pedido/pedidos".
+    - CRM passou a conter Clientes + Funil como sub-seções.
 
-O sistema já é PWA (manifest + service worker registrado). Para criar a experiência de "app nativo":
+- **PRODUÇÃO — novas categorias (resolvido)**:
+    - Em Negociação (SOLICITACAO, CUSTO_VIABILIDADE) — cor vermelho.
+    - Aguardando Produção (APROVACAO) — cor âmbar.
+    - Em Produção (PRODUCAO) — cor roxa.
+    - Produção Finalizada (CALCULO_FRETE, ENVIADO, FINALIZADO) — cor verde.
+    - Linhas da tabela agora são clicáveis → navega para `/workspace?id=<id>` (hover destacado, stopPropagation no botão de ação).
 
-1. **Já implementado**: `app/manifest.ts` com `display: 'standalone'`, `public/sw.js`, `PwaRegistrar.tsx`, ícones SVG
-2. **Ação necessária**: orientar os usuários a "Adicionar à Tela Inicial" no Chrome (Android) ou Safari (iOS), que instala o PWA como app com ícone na home
-3. **Futuramente**: app nativo React Native em repositório separado (reutiliza API REST) — stand-by até volume justificar
+- **FINANCEIRO (novo)**:
+    - Rotas criadas: `/workspace/financeiro/pagamentos`, `/compras`, `/nfe`.
+    - Componente `EmBreve` compartilhado exibe título, descrição e badge "EM BREVE" (design consistente com o resto do sistema).
+
+- **CRM (reestruturado)**:
+    - Clientes agora vive sob o grupo CRM.
+    - Funil (página `/workspace/crm`) continua sendo o kanban de leads.
+
+- **HEADER roxo (resolvido)**:
+    - Altura fixa `64px` (mesma do logo da sidebar).
+    - Fundo gradient linear `var(--purple) → var(--purple-dark)`.
+    - Sino de notificações com badge âmbar.
+    - Avatar com border branco translúcido.
+    - Hambúrguer (mobile) em botão com bg `rgba(255,255,255,0.12)`.
+
+- **ORÇAMENTO PDF (resolvido)**:
+    - Adicionado `print-color-adjust: exact` + `-webkit-print-color-adjust: exact` nas faixas roxas (PRODUTOS, SUBTOTAL, OUTRAS DESPESAS, SUBTOTAL DAS DESPESAS, CONDIÇÕES TÉCNICAS/COMERCIAIS, ANEXO 1).
+    - Aplicado tanto via `@media print` em `#orcamento-doc` quanto inline como fallback para Chrome/Edge/Firefox.
+
+- **Performance global**:
+    - `scroll-behavior: smooth` aplicado em `.sidebar-nav` e `.inbox-lista`.
+    - `@media (prefers-reduced-motion: reduce)` desativa transições em `.inbox-panel`, `.inbox-backdrop`, `.nav-grupo-conteudo`.
+    - Backdrop do Inbox **sem** `backdrop-filter` (evita reflow/repaint custoso no scroll).
+
+## Pendências ainda abertas
+
+- **Pedidos refletindo WORKSPACE completo (incluindo arquivos .stl/imagens)**:
+    - Requer migração de dados + redesign da página `/workspace/pedidos`. Decisão adiada — a arquitetura atual já vincula Pedido ↔ Workspace via `workspace.pedidoId` e herda os itens; a experiência de ver "tudo do WS no pedido" pode ser alcançada com um botão "Ver no Workspace" ao abrir o pedido, evitando duplicação de dados. A ser discutido antes de executar.
+
+- **Agenda de Produção estilo Agenda de Marketing (calendário mensal por data de entrega)**:
+    - A página `/workspace/agenda-producao` atualmente é uma timeline. Reestruturar para grid de calendário mensal puxando `dataEntrega` do Workspace. Requer alinhamento sobre o que acontece com pedidos sem data de entrega.
+
+- **ATUALIZAR CLAUDE.md**: pendente para um próximo lote (ajustar seção de módulos com as novas rotas Financeiro e reorganização do CRM).
 
 ---
 
