@@ -52,6 +52,7 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
         },
         arquivos: { select: { id: true, nome: true, tipo: true, tamanhoBytes: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+        workspace: { select: { id: true, numero: true, etapa: true, dataEntrega: true, dataInicioProducao: true, dataFimProducao: true, frete: true, codigoRastreio: true, dataEnvio: true, horaEnvio: true, infoAdicional: true, tipoPessoa: true } },
       },
     })
 

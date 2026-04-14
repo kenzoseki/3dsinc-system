@@ -48,6 +48,20 @@ interface PedidoDetalhe {
   itens: ItemPedido[]
   historico: HistoricoItem[]
   arquivos: ArquivoPedido[]
+  workspace: {
+    id: string
+    numero: number
+    etapa: string
+    dataEntrega: string | null
+    dataInicioProducao: string | null
+    dataFimProducao: string | null
+    frete: string | null
+    codigoRastreio: string | null
+    dataEnvio: string | null
+    horaEnvio: string | null
+    infoAdicional: string | null
+    tipoPessoa: string | null
+  } | null
 }
 
 const statusBadge: Record<string, { cor: string; fundo: string; label: string }> = {
@@ -246,9 +260,21 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
         )}
       </div>
 
-      {/* Link do portal */}
+      {/* Link do portal + Ver no Workspace */}
       {podeEditar && (
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {pedido.workspace && (
+            <button
+              onClick={() => router.push(`/workspace?id=${pedido.workspace!.id}`)}
+              style={{
+                padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--purple-light)',
+                background: 'var(--purple-light)', fontSize: '13px', color: 'var(--purple-text)',
+                cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 500,
+              }}
+            >
+              → Ver no Workspace (#{pedido.workspace.numero})
+            </button>
+          )}
           <button
             onClick={gerarLinkPortal}
             disabled={gerandoToken}
@@ -362,6 +388,61 @@ export default function PaginaDetalhe({ params }: { params: Promise<{ id: string
               {pedido.orcamento.status}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Dados do Workspace — produção e envio */}
+      {pedido.workspace && (pedido.workspace.dataEntrega || pedido.workspace.dataInicioProducao || pedido.workspace.dataFimProducao || pedido.workspace.frete || pedido.workspace.codigoRastreio || pedido.workspace.infoAdicional) && (
+        <div style={{ ...estiloCard, marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '12px' }}>
+            Dados do Workspace
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {pedido.workspace.dataEntrega && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Data de Entrega</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', fontSize: '14px' }}>{new Date(pedido.workspace.dataEntrega).toLocaleDateString('pt-BR')}</p>
+              </div>
+            )}
+            {pedido.workspace.dataInicioProducao && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Início Produção</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', fontSize: '14px' }}>{new Date(pedido.workspace.dataInicioProducao).toLocaleDateString('pt-BR')}</p>
+              </div>
+            )}
+            {pedido.workspace.dataFimProducao && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Fim Produção</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', fontSize: '14px' }}>{new Date(pedido.workspace.dataFimProducao).toLocaleDateString('pt-BR')}</p>
+              </div>
+            )}
+            {pedido.workspace.frete && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Frete</p>
+                <p style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-primary)', fontSize: '14px' }}>R$ {parseFloat(pedido.workspace.frete).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+            )}
+            {pedido.workspace.codigoRastreio && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Rastreio</p>
+                <p style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-primary)', fontSize: '14px' }}>{pedido.workspace.codigoRastreio}</p>
+              </div>
+            )}
+            {pedido.workspace.dataEnvio && (
+              <div>
+                <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Enviado em</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', fontSize: '14px' }}>
+                  {new Date(pedido.workspace.dataEnvio).toLocaleDateString('pt-BR')}{pedido.workspace.horaEnvio ? ` · ${pedido.workspace.horaEnvio}` : ''}
+                </p>
+              </div>
+            )}
+          </div>
+          {pedido.workspace.infoAdicional && (
+            <div style={{ marginTop: '14px' }}>
+              <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Informações Adicionais</p>
+              <p style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'pre-wrap' }}>{pedido.workspace.infoAdicional}</p>
+            </div>
+          )}
         </div>
       )}
 
