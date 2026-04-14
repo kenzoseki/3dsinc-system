@@ -457,15 +457,25 @@
     - `@media (prefers-reduced-motion: reduce)` desativa transições em `.inbox-panel`, `.inbox-backdrop`, `.nav-grupo-conteudo`.
     - Backdrop do Inbox **sem** `backdrop-filter` (evita reflow/repaint custoso no scroll).
 
+## Lote 21 — Agenda Produção como calendário + Pedidos espelham Workspace (commit a31bc71)
+
+- **AGENDA DE PRODUÇÃO (resolvido)**:
+    - Reescrita no padrão da Agenda de Marketing: grid 7 colunas (Dom–Sáb), navegação por mês, botão "Hoje".
+    - Cards agrupados por `dataEntrega` (parse `YYYY-MM-DD` sem shift de timezone), cor por etapa, clique → `/workspace`.
+    - Exclui etapas `CANCELADO` e `FINALIZADO` da visualização.
+    - Pedidos **sem `dataEntrega`** não aparecem no calendário — exibidos num **banner ⚠ de aviso** no topo da página, listando cada pedido (#numero + cliente + etapa), clicáveis para abrir o Workspace e cadastrar a data.
+    - Legenda de cores mantida no rodapé.
+
+- **PEDIDOS espelham WORKSPACE (resolvido sem duplicação)**:
+    - `GET /api/pedidos/[id]` agora inclui o `workspace` relacionado (etapa, dataEntrega, dataInicioProducao, dataFimProducao, frete, codigoRastreio, dataEnvio, horaEnvio, infoAdicional, tipoPessoa).
+    - Página de detalhe (`/workspace/pedidos/[id]`) ganhou:
+        - Botão **→ Ver no Workspace (#N)** (ao lado do link do portal) que navega a `/workspace?id=<workspaceId>` — aponta ao workspace específico referenciado, não à lista genérica.
+        - Card **"Dados do Workspace"** que exibe datas de produção, frete, rastreio, envio e informações adicionais — somente leitura, sem duplicar dados (fonte única = Workspace).
+    - Arquivos (.stl/imagens), itens, histórico e orçamento vinculado já eram exibidos na página — auditados e mantidos.
+
 ## Pendências ainda abertas
 
-- **Pedidos refletindo WORKSPACE completo (incluindo arquivos .stl/imagens)**:
-    - Requer migração de dados + redesign da página `/workspace/pedidos`. Decisão adiada — a arquitetura atual já vincula Pedido ↔ Workspace via `workspace.pedidoId` e herda os itens; a experiência de ver "tudo do WS no pedido" pode ser alcançada com um botão "Ver no Workspace" ao abrir o pedido, evitando duplicação de dados. A ser discutido antes de executar.
-
-- **Agenda de Produção estilo Agenda de Marketing (calendário mensal por data de entrega)**:
-    - A página `/workspace/agenda-producao` atualmente é uma timeline. Reestruturar para grid de calendário mensal puxando `dataEntrega` do Workspace. Requer alinhamento sobre o que acontece com pedidos sem data de entrega.
-
-- **ATUALIZAR CLAUDE.md**: pendente para um próximo lote (ajustar seção de módulos com as novas rotas Financeiro e reorganização do CRM).
+- **ATUALIZAR CLAUDE.md** (Lote 21): seção de módulos foi atualizada com as novas rotas Financeiro, reorganização do CRM, Agenda de Produção em calendário e espelhamento Pedido↔Workspace.
 
 ---
 

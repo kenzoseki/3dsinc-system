@@ -57,10 +57,12 @@ Vercel Free  →  Railway Starter  →  VPS próprio
 │   │       ├── orcamento/[id]/     # Editor avançado de orçamento
 │   │       ├── clientes/           # Listagem, detalhe, CRUD
 │   │       ├── producao/           # Fila de produção via Workspace
-│   │       ├── agenda-producao/    # Timeline mensal de produção
+│   │       ├── agenda-producao/    # Calendário mensal por dataEntrega + warning sem-data
 │   │       ├── marketing/          # Kanban de marketing (6 etapas)
 │   │       ├── agenda-marketing/   # Calendário mensal de publicações
+│   │       ├── financeiro/         # Pagamentos, Compras, NF-e (placeholders EmBreve)
 │   │       ├── crm/                # Pipeline de Leads (kanban)
+│   │       ├── inbox/              # Log de atividades (deep-link; sidebar usa slide-over)
 │   │       ├── estoque/            # Filamentos com alertas (oculto da sidebar)
 │   │       ├── assistente/         # IA Chat com contexto ERP
 │   │       ├── relatorios/         # Relatórios PDF gerenciais
