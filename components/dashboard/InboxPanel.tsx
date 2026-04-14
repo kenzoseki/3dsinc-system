@@ -227,9 +227,13 @@ export function InboxPanel({
                 >
                   <div
                     className="inbox-avatar"
-                    style={{ background: corAcento }}
+                    style={{ background: atv.usuario?.avatarUrl ? 'transparent' : corAcento, overflow: 'hidden' }}
                   >
-                    {atv.usuario ? iniciais(atv.usuario.nome) : '?'}
+                    {atv.usuario?.avatarUrl ? (
+                      <img src={atv.usuario.avatarUrl} alt={atv.usuario.nome} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                    ) : (
+                      atv.usuario ? iniciais(atv.usuario.nome) : '?'
+                    )}
                     {!atv.lida && <span className="inbox-dot" />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

@@ -343,10 +343,13 @@ export default function LayoutShell({
         <div className="sidebar-userinfo">
           <div style={{
             width: '30px', height: '30px', borderRadius: '50%',
-            backgroundColor: 'var(--purple)', color: '#fff',
+            backgroundColor: user.avatarUrl ? 'transparent' : 'var(--purple)', color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif', flexShrink: 0,
-          }}>{iniciais}</div>
+            overflow: 'hidden',
+          }}>
+            {user.avatarUrl ? <img src={user.avatarUrl} alt={user.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais}
+          </div>
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
               {user.nome}
@@ -413,13 +416,16 @@ export default function LayoutShell({
               >
                 <div style={{
                   width: '30px', height: '30px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                  background: user.avatarUrl ? 'transparent' : 'linear-gradient(135deg, var(--purple), var(--purple-dark))',
                   color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '11px', fontWeight: 700, fontFamily: 'Nunito, sans-serif',
                   flexShrink: 0,
                   boxShadow: '0 1px 4px rgba(91,71,200,0.25)',
-                }}>{iniciais}</div>
+                  overflow: 'hidden',
+                }}>
+                  {user.avatarUrl ? <img src={user.avatarUrl} alt={user.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais}
+                </div>
                 <div className="topbar-user-info" style={{ textAlign: 'left' }}>
                   <p style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)', margin: 0 }}>{user.nome}</p>
                   <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: 'var(--text-secondary)', margin: 0 }}>{labelCargo[user.cargo] ?? user.cargo}</p>
