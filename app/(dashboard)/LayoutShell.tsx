@@ -68,7 +68,7 @@ const gruposNavegacao: GrupoNav[] = [
     colapsavel: true,
     itens: [
       { href: '/workspace/clientes', label: 'Clientes', icone: '8' },
-      { href: '/workspace/crm', label: 'Funil', icone: '9', verificar: soAdmin },
+      { href: '/workspace/crm', label: 'Funil', icone: '9' },
     ],
   },
   {
