@@ -64,28 +64,28 @@ const gruposNavegacao: GrupoNav[] = [
     ],
   },
   {
+    titulo: 'CRM',
+    colapsavel: true,
+    itens: [
+      { href: '/workspace/clientes', label: 'Clientes', icone: '8' },
+      { href: '/workspace/crm', label: 'Funil', icone: '9', verificar: soAdmin },
+    ],
+  },
+  {
     titulo: 'Marketing',
     colapsavel: true,
     itens: [
-      { href: '/workspace/marketing', label: 'Kanban', icone: '8' },
-      { href: '/workspace/agenda-marketing', label: 'Agenda', icone: '9' },
+      { href: '/workspace/marketing', label: 'Kanban', icone: '10' },
+      { href: '/workspace/agenda-marketing', label: 'Agenda', icone: '11' },
     ],
   },
   {
     titulo: 'Financeiro',
     colapsavel: true,
     itens: [
-      { href: '/workspace/financeiro/pagamentos', label: 'Pagamentos', icone: '10' },
-      { href: '/workspace/financeiro/compras', label: 'Compras', icone: '11' },
-      { href: '/workspace/financeiro/nfe', label: 'NF-e', icone: '12' },
-    ],
-  },
-  {
-    titulo: 'CRM',
-    colapsavel: true,
-    itens: [
-      { href: '/workspace/clientes', label: 'Clientes', icone: '13' },
-      { href: '/workspace/crm', label: 'Funil', icone: '14', verificar: soAdmin },
+      { href: '/workspace/financeiro/pagamentos', label: 'Pagamentos', icone: '12' },
+      { href: '/workspace/financeiro/compras', label: 'Compras', icone: '13' },
+      { href: '/workspace/financeiro/nfe', label: 'NF-e', icone: '14' },
     ],
   },
   {
