@@ -104,9 +104,19 @@ export default function OrcamentoDetalhe() {
   }
 
   function imprimirPDF() {
+    if (!orc) return
+    // Nome padronizado: "3D SINC - ORC-[numero-revisao] - [cliente] - [descricao do 1o item]"
+    const codigo = `ORC-${String(orc.numero).padStart(4, '0')}-${String(orc.revisao).padStart(2, '0')}`
+    const cliente = (orc.clienteNome || '').trim().toUpperCase()
+    const primeiroItem = (orc.itens[0]?.descricao || '').trim().toUpperCase()
+    const partes = ['3D SINC', codigo, cliente, primeiroItem].filter(Boolean)
+    const nomeArquivo = partes.join(' - ').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim()
+    const tituloOriginal = document.title
+    document.title = nomeArquivo
     document.body.classList.add('print-isolated')
     const cleanup = () => {
       document.body.classList.remove('print-isolated')
+      document.title = tituloOriginal
       window.removeEventListener('afterprint', cleanup)
     }
     window.addEventListener('afterprint', cleanup)
@@ -124,8 +134,7 @@ export default function OrcamentoDetalhe() {
   const impostoVal = subtotal * (Number(orc.aliquotaImposto ?? 0) / 100)
   const total = subtotal + freteVal + bonusVal
   const st = labelStatus[orc.status] ?? labelStatus.RASCUNHO
-  const itensCom = orc.itens.filter(i => i.detalhamento)
-  const itensComImagens = orc.itens.filter(i => i.imagens && i.imagens.length > 0)
+  const itensAnexo = orc.itens.filter(i => i.detalhamento || (i.imagens && i.imagens.length > 0))
 
   const estiloTh: React.CSSProperties = {
     padding: '10px 12px', textAlign: 'left', fontSize: '12px',
@@ -383,59 +392,62 @@ export default function OrcamentoDetalhe() {
           </tbody>
         </table>
 
-        {/* Página 2 — Anexo 1 (itens com detalhamento) */}
-        {itensCom.length > 0 && (
-          <div style={{ marginTop: '48px', pageBreakBefore: 'always' }}>
-            <hr style={{ border: 'none', borderTop: '2px solid #2C2A26', marginBottom: '16px' }} />
-            <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '16px', letterSpacing: '0.5px' }}>ANEXO 1 - DETALHAMENTO DOS PRODUTOS</div>
-            {itensCom.map((item, i) => (
-              <div key={item.id} style={{ marginBottom: '24px', border: '2px solid #5B47C8', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#5B47C8', padding: '10px 16px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                    {String(i + 1).padStart(2, '0')} &nbsp;&nbsp; {item.descricao.toUpperCase()}
-                  </span>
-                </div>
-                <div style={{ padding: '12px 16px' }}>
-                  {item.detalhamento?.split('\n').map((linha, j) => (
-                    <p key={j} style={{ fontSize: '11px', marginBottom: '4px' }}>{linha}</p>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Rodapé da página */}
         <div style={{ marginTop: '24px', borderTop: '1px solid #e8e6e0', paddingTop: '8px', textAlign: 'right' }}>
           <span style={{ fontSize: '10px', color: '#aaa' }}>1</span>
         </div>
 
-        {/* Anexo de Imagens — última(s) página(s) do PDF */}
-        {itensComImagens.length > 0 && (
+        {/* Anexo de Imagens — segunda página: item + descrição + grid 2 colunas */}
+        {itensAnexo.length > 0 && (
           <div style={{ marginTop: '48px', pageBreakBefore: 'always' }}>
-            <hr style={{ border: 'none', borderTop: '2px solid #2C2A26', marginBottom: '16px' }} />
-            <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '24px', letterSpacing: '0.5px' }}>ANEXO DE IMAGENS</div>
-            {itensComImagens.map((item, idx) => (
-              <div key={item.id} style={{ marginBottom: '32px' }}>
-                <div style={{ backgroundColor: '#5B47C8', padding: '8px 16px', marginBottom: '12px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                    ITEM {String(orc.itens.indexOf(item) + 1).padStart(2, '0')} — {item.descricao.toUpperCase()}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '0 4px' }}>
-                  {item.imagens.map((img, j) => (
-                    <div key={img.id} style={{ textAlign: 'center' }}>
-                      <img
-                        src={img.imagemBase64}
-                        alt={img.nomeArquivo}
-                        style={{ maxWidth: '220px', maxHeight: '180px', objectFit: 'contain', border: '1px solid #e8e6e0', borderRadius: '4px' }}
-                      />
-                      <div style={{ fontSize: '10px', color: '#6B6860', marginTop: '4px' }}>Figura {idx + 1}.{j + 1}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '16px', letterSpacing: '0.5px' }}>ANEXO 1 - DETALHAMENTO DOS PRODUTOS</div>
+            {itensAnexo.map((item) => {
+              const numero = String(orc.itens.indexOf(item) + 1).padStart(2, '0')
+              return (
+                <div key={item.id} style={{ marginBottom: '32px', border: '1px solid #2C2A26', pageBreakInside: 'avoid' }}>
+                  {/* Cabeçalho: número + descrição */}
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      <tr style={{ backgroundColor: '#C8BEF2', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                        <td style={{ padding: '8px 16px', fontSize: '11px', fontWeight: 700, color: '#2C2A26', width: '60px', borderRight: '1px solid #2C2A26' }}>
+                          {numero}
+                        </td>
+                        <td style={{ padding: '8px 16px', fontSize: '11px', fontWeight: 700, color: '#2C2A26' }}>
+                          {item.descricao.toUpperCase()}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  {/* Detalhamento (se houver) */}
+                  {item.detalhamento && (
+                    <div style={{ padding: '10px 16px', borderBottom: '1px solid #2C2A26' }}>
+                      {item.detalhamento.split('\n').map((linha, j) => (
+                        <p key={j} style={{ fontSize: '11px', marginBottom: '4px' }}>- {linha}</p>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {/* Grid 2 colunas de imagens */}
+                  {item.imagens && item.imagens.length > 0 && (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '12px',
+                      padding: '16px',
+                    }}>
+                      {item.imagens.map((img) => (
+                        <div key={img.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+                          <img
+                            src={img.imagemBase64}
+                            alt={img.nomeArquivo}
+                            style={{ maxWidth: '100%', maxHeight: '260px', objectFit: 'contain' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
